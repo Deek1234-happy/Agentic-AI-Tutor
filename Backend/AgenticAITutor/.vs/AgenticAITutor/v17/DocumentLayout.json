@@ -1,7 +1,36 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|d:\\.net projects\\graduation project\\implementation\\agentic-ai-tutor\\backend\\agenticaitutor\\agenticaitutor\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|solutionrelative:agenticaitutor\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|d:\\.net projects\\graduation project\\implementation\\agentic-ai-tutor\\backend\\agenticaitutor\\agenticaitutor\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|solutionrelative:agenticaitutor\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|d:\\.net projects\\graduation project\\implementation\\agentic-ai-tutor\\backend\\agenticaitutor\\agenticaitutor\\models\\dtos\\auth\\loginrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|solutionrelative:agenticaitutor\\models\\dtos\\auth\\loginrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|d:\\.net projects\\graduation project\\implementation\\agentic-ai-tutor\\backend\\agenticaitutor\\agenticaitutor\\services\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|solutionrelative:agenticaitutor\\services\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|d:\\.net projects\\graduation project\\implementation\\agentic-ai-tutor\\backend\\agenticaitutor\\agenticaitutor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|solutionrelative:agenticaitutor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|d:\\.net projects\\graduation project\\implementation\\agentic-ai-tutor\\backend\\agenticaitutor\\agenticaitutor\\services\\bcryptpasswordhasher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|solutionrelative:agenticaitutor\\services\\bcryptpasswordhasher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|d:\\.net projects\\graduation project\\implementation\\agentic-ai-tutor\\backend\\agenticaitutor\\agenticaitutor\\services\\ipasswordhasher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{716329A5-1262-4B0C-99FE-E0F217CEFA55}|AgenticAITutor\\AgenticAITutor.csproj|solutionrelative:agenticaitutor\\services\\ipasswordhasher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,7 +38,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Bookmark",
@@ -18,6 +47,97 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "AgenticAITutor\\Controllers\\AuthController.cs",
+              "ToolTip": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "AgenticAITutor\\Controllers\\AuthController.cs",
+              "ViewState": "AQIAACIAAAAAAAAAAAAIwCgAAAAoAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T14:07:05.67Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "LoginRequest.cs",
+              "DocumentMoniker": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Models\\DTOs\\Auth\\LoginRequest.cs",
+              "RelativeDocumentMoniker": "AgenticAITutor\\Models\\DTOs\\Auth\\LoginRequest.cs",
+              "ToolTip": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Models\\DTOs\\Auth\\LoginRequest.cs",
+              "RelativeToolTip": "AgenticAITutor\\Models\\DTOs\\Auth\\LoginRequest.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAkAAAAtAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T13:59:01.164Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IAuthService.cs",
+              "DocumentMoniker": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\IAuthService.cs",
+              "RelativeDocumentMoniker": "AgenticAITutor\\Services\\IAuthService.cs",
+              "ToolTip": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\IAuthService.cs",
+              "RelativeToolTip": "AgenticAITutor\\Services\\IAuthService.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T13:58:34.245Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AuthService.cs",
+              "DocumentMoniker": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\AuthService.cs",
+              "RelativeDocumentMoniker": "AgenticAITutor\\Services\\AuthService.cs",
+              "ToolTip": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\AuthService.cs",
+              "RelativeToolTip": "AgenticAITutor\\Services\\AuthService.cs",
+              "ViewState": "AQIAAEcAAAAAAAAAAAAgwCEAAAAtAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T13:54:45.331Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Program.cs",
+              "RelativeDocumentMoniker": "AgenticAITutor\\Program.cs",
+              "ToolTip": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Program.cs",
+              "RelativeToolTip": "AgenticAITutor\\Program.cs",
+              "ViewState": "AQIAACUAAAAAAAAAAAAQwDwAAABQAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T13:54:11.667Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "BCryptPasswordHasher.cs",
+              "DocumentMoniker": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\BCryptPasswordHasher.cs",
+              "RelativeDocumentMoniker": "AgenticAITutor\\Services\\BCryptPasswordHasher.cs",
+              "ToolTip": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\BCryptPasswordHasher.cs",
+              "RelativeToolTip": "AgenticAITutor\\Services\\BCryptPasswordHasher.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAkAAAA4AAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T13:51:20.818Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "IPasswordHasher.cs",
+              "DocumentMoniker": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\IPasswordHasher.cs",
+              "RelativeDocumentMoniker": "AgenticAITutor\\Services\\IPasswordHasher.cs",
+              "ToolTip": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\Services\\IPasswordHasher.cs",
+              "RelativeToolTip": "AgenticAITutor\\Services\\IPasswordHasher.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAUAAAAwAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-23T13:49:34.325Z",
+              "EditorCaption": ""
             }
           ]
         }

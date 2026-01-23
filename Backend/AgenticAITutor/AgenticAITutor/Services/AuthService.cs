@@ -14,11 +14,13 @@ namespace AgenticAITutor.Services
     public class AuthService : IAuthService
     {
         private readonly IUserRepository userRepository;
+        private readonly IPasswordHasher passwordHasher;
         private readonly JWT jwt;
 
-        public AuthService(IUserRepository userRepository, IOptions<JWT> jwt)
+        public AuthService(IUserRepository userRepository, IOptions<JWT> jwt, IPasswordHasher passwordHasher)
         {
             this.userRepository = userRepository;
+            this.passwordHasher = passwordHasher;
             this.jwt = jwt.Value;
         }
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -30,8 +32,8 @@ namespace AgenticAITutor.Services
             {
                 first_name = request.FirstName,
                 last_name = request.LastName,
-                email = request.Email,
-                password_hash = request.Password // The Password Will Be Hashed Later and Put Data Annotation on Password
+                email = request.Email.ToLower(),
+                password_hash = passwordHasher.Hash(request.Password)
             };
 
             await userRepository.AddAsync(user);
@@ -47,9 +49,29 @@ namespace AgenticAITutor.Services
                 ExpiresIn = jwtSecurityToken.ValidTo
             };
         }
-        public Task<AuthResponse> LoginAsync(LoginRequest request)
+        public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
-            throw new NotImplementedException();
+            var authResponse = new AuthResponse();
+
+            var user = await userRepository.GetByEmailAsync(request.Email);
+
+            if (user is null || !passwordHasher.Verify(request.Password,user.password_hash))
+            { 
+                authResponse.Message = "Email or Password is Incorrect"; 
+                return authResponse;
+            }
+
+            var jwtSecurityToken = await CreateJwtToken(user);
+
+            authResponse.IsAuthenticated = true;
+            authResponse.Email = user.email;
+            authResponse.UserId = user.id;
+            authResponse.Token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+            authResponse.ExpiresIn = jwtSecurityToken.ValidTo;  
+
+
+
+            return authResponse;
         }
 
         private async Task<JwtSecurityToken> CreateJwtToken(user _user)
