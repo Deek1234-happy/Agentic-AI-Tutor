@@ -25,7 +25,9 @@ namespace AgenticAITutor.Services
         }
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
-            if (await userRepository.GetByEmailAsync(request.Email) is not null)
+
+
+            if (await userRepository.GetByEmailAsync(request.Email.ToLower()) is not null)
                 return new AuthResponse { Message = "Email is Already Registered!" };
 
             var user = new user
@@ -38,7 +40,7 @@ namespace AgenticAITutor.Services
 
             await userRepository.AddAsync(user);
 
-            var jwtSecurityToken = await CreateJwtToken(user);
+            var jwtSecurityToken = CreateJwtToken(user);
 
             return new AuthResponse
             {
@@ -53,7 +55,7 @@ namespace AgenticAITutor.Services
         {
             var authResponse = new AuthResponse();
 
-            var user = await userRepository.GetByEmailAsync(request.Email);
+            var user = await userRepository.GetByEmailAsync(request.Email.ToLower());
 
             if (user is null || !passwordHasher.Verify(request.Password,user.password_hash))
             { 
@@ -61,7 +63,7 @@ namespace AgenticAITutor.Services
                 return authResponse;
             }
 
-            var jwtSecurityToken = await CreateJwtToken(user);
+            var jwtSecurityToken = CreateJwtToken(user);
 
             authResponse.IsAuthenticated = true;
             authResponse.Email = user.email;
@@ -74,7 +76,7 @@ namespace AgenticAITutor.Services
             return authResponse;
         }
 
-        private async Task<JwtSecurityToken> CreateJwtToken(user _user)
+        private JwtSecurityToken CreateJwtToken(user _user)
         {
             var claims = new[]
             {
@@ -86,10 +88,10 @@ namespace AgenticAITutor.Services
             var signingCredentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256);
 
             var jwtSecurityToken = new JwtSecurityToken(
-                issuer : jwt.Issuer,
+                issuer: jwt.Issuer,
                 audience: jwt.Audience,
-                claims:claims,
-                expires:DateTime.Now.AddDays(jwt.DurationInDays),
+                claims: claims,
+                expires: DateTime.Now.AddDays(jwt.DurationInDays),
                 signingCredentials: signingCredentials
                 );
 

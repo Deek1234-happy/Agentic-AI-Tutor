@@ -19,8 +19,8 @@ namespace AgenticAITutor.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAsync([FromBody]RegisterRequest request)
         {
-            if(!ModelState.IsValid)
-                return BadRequest(ModelState);
+            //if(!ModelState.IsValid)
+            //    return BadRequest(ModelState);
 
             var result = await authService.RegisterAsync(request);
 
@@ -33,8 +33,8 @@ namespace AgenticAITutor.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> LoginAsync([FromBody] LoginRequest request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            //if (!ModelState.IsValid)
+            //    return BadRequest(ModelState);
 
             var result = await authService.LoginAsync(request);
 

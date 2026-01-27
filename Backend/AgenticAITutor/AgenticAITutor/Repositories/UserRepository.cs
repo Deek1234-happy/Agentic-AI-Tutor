@@ -19,7 +19,7 @@ namespace AgenticAITutor.Repositories
         }
         public async Task AddAsync(user user)
         {
-            dbContext.users.Add(user);
+            await dbContext.users.AddAsync(user);
             await dbContext.SaveChangesAsync();
         }
 

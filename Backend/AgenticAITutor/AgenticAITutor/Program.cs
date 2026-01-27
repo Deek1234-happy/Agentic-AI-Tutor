@@ -7,10 +7,13 @@ using AgenticAITutor.Data;
 using AgenticAITutor.Helpers;
 using AgenticAITutor.Repositories;
 using AgenticAITutor.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+
 
 namespace AgenticAITutor
 {
@@ -59,6 +62,10 @@ namespace AgenticAITutor
             });
 
             builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+
+            // Fluent Validation Services 
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            builder.Services.AddFluentValidationAutoValidation();
 
             var app = builder.Build();
 
