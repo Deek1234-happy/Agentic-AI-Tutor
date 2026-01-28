@@ -7,3 +7,5 @@ pillow
 pdf2image
 python-docx
 python-pptx
+sentence-transformers 
+torch
