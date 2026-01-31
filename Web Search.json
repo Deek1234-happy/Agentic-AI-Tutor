@@ -1,0 +1,162 @@
+{
+  "name": "Web Search",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{$env.TAVILY_API_KEY}}" 
+            },
+            {
+              "name": "query",
+              "value": "={{$json[\"body\"][\"query\"]}}"
+            },
+            {
+              "name": "max_results",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -144,
+        0
+      ],
+      "id": "3c76d684-6b39-4aaa-befe-7e6644fc952b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "web-search",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -448,
+        0
+      ],
+      "id": "74dfac60-2c97-4d05-99af-02712927b6bd",
+      "name": "Webhook – User Input",
+      "webhookId": "be4295e4-56d3-448f-8007-82ae1e406ec9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b206bdc8-bc4d-484b-9d7b-bedee96061ed",
+              "name": "Source",
+              "value": "Web Search Results",
+              "type": "string"
+            },
+            {
+              "id": "61080595-9e93-429b-9816-371589a2137c",
+              "name": "Note",
+              "value": "These results are external and were NOT used to generate the answer.",
+              "type": "string"
+            },
+            {
+              "id": "1fd518fa-316a-40bc-902f-4af70227c423",
+              "name": "Results",
+              "value": "={{$json.results}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        112,
+        0
+      ],
+      "id": "0e2d4519-d200-4c6e-8408-f4400477b973",
+      "name": "Web Search Results",
+      "notesInFlow": false,
+      "alwaysOutputData": true,
+      "notes": "This Node formats external web search results for display only"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        0
+      ],
+      "id": "67588b92-5226-4a3f-ae7f-9b31043a6dcd",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook – User Input": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Web Search Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Web Search Results": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "da2708c3-e049-4e39-b92d-457f142826ab",
+  "meta": {
+    "instanceId": "4bcee6f1f3de0f230f03d1413ae167e758123b76540c5647c8a183ad085836e3"
+  },
+  "id": "8GM0adtBJxry3LVM",
+  "tags": []
+}
