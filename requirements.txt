@@ -9,3 +9,6 @@ python-docx
 python-pptx
 sentence-transformers 
 torch
+faiss-cpu
+numpy
+requests
