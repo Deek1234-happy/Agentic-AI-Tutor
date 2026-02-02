@@ -30,12 +30,12 @@ namespace AgenticAITutor.Services
             if (await userRepository.GetByEmailAsync(request.Email.ToLower()) is not null)
                 return new AuthResponse { Message = "Email is Already Registered!" };
 
-            var user = new user
+            var user = new User
             {
-                first_name = request.FirstName,
-                last_name = request.LastName,
-                email = request.Email.ToLower(),
-                password_hash = passwordHasher.Hash(request.Password)
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email.ToLower(),
+                PasswordHash = passwordHasher.Hash(request.Password)
             };
 
             await userRepository.AddAsync(user);
@@ -44,8 +44,8 @@ namespace AgenticAITutor.Services
 
             return new AuthResponse
             {
-                Email = user.email,
-                UserId = user.id,
+                Email = user.Email,
+                UserId = user.Id,
                 IsAuthenticated = true,
                 Token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken),
                 ExpiresIn = jwtSecurityToken.ValidTo
@@ -57,17 +57,20 @@ namespace AgenticAITutor.Services
 
             var user = await userRepository.GetByEmailAsync(request.Email.ToLower());
 
-            if (user is null || !passwordHasher.Verify(request.Password,user.password_hash))
+            if (user is null || !passwordHasher.Verify(request.Password,user.PasswordHash))
             { 
                 authResponse.Message = "Email or Password is Incorrect"; 
                 return authResponse;
             }
 
+            user.LastLogin = DateTime.Now;
+            await userRepository.UpdateAsync(user);
+
             var jwtSecurityToken = CreateJwtToken(user);
 
             authResponse.IsAuthenticated = true;
-            authResponse.Email = user.email;
-            authResponse.UserId = user.id;
+            authResponse.Email = user.Email;
+            authResponse.UserId = user.Id;
             authResponse.Token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
             authResponse.ExpiresIn = jwtSecurityToken.ValidTo;  
 
@@ -76,12 +79,12 @@ namespace AgenticAITutor.Services
             return authResponse;
         }
 
-        private JwtSecurityToken CreateJwtToken(user _user)
+        private JwtSecurityToken CreateJwtToken(User user)
         {
             var claims = new[]
             {
-                new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email, _user.email),
-                new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti, _user.id.ToString())
+                new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti, user.Id.ToString())
             };
 
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key));

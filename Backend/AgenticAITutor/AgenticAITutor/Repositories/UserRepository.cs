@@ -13,13 +13,19 @@ namespace AgenticAITutor.Repositories
             this.dbContext = dbContext;
         }
 
-        public async Task<user?> GetByEmailAsync(string email)
+        public async Task<User?> GetByEmailAsync(string email)
         {
-            return await dbContext.users.FirstOrDefaultAsync(u => u.email == email);
+            return await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
-        public async Task AddAsync(user user)
+        public async Task AddAsync(User user)
         {
-            await dbContext.users.AddAsync(user);
+            await dbContext.Users.AddAsync(user);
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(User user)
+        {
+            dbContext.Users.Update(user);
             await dbContext.SaveChangesAsync();
         }
 

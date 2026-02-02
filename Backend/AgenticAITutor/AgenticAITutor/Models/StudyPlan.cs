@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AgenticAITutor.Models;
 
-[Table("quizzes", Schema = "quiz")]
-public partial class Quiz
+[Table("study_plans", Schema = "planner")]
+public partial class StudyPlan
 {
     [Key]
     [Column("id")]
@@ -16,24 +16,23 @@ public partial class Quiz
     [Column("user_id")]
     public Guid? UserId { get; set; }
 
-    [Column("topic")]
-    [StringLength(255)]
-    public string? Topic { get; set; }
+    [Column("start_date")]
+    public DateOnly StartDate { get; set; }
 
-    [Column("difficulty")]
-    [StringLength(50)]
-    public string? Difficulty { get; set; }
+    [Column("end_date")]
+    public DateOnly EndDate { get; set; }
 
     [Column("created_at", TypeName = "timestamp without time zone")]
     public DateTime? CreatedAt { get; set; }
 
-    [InverseProperty("Quiz")]
-    public virtual ICollection<QuizAttempt> QuizAttempts { get; set; } = new List<QuizAttempt>();
-
-    [InverseProperty("Quiz")]
-    public virtual ICollection<QuizQuestion> QuizQuestions { get; set; } = new List<QuizQuestion>();
+    [InverseProperty("Plan")]
+    public virtual ICollection<StudyPlanItem> StudyPlanItems { get; set; } = new List<StudyPlanItem>();
 
     [ForeignKey("UserId")]
-    [InverseProperty("Quizzes")]
+    [InverseProperty("StudyPlans")]
     public virtual User? User { get; set; }
+
+    [ForeignKey("PlanId")]
+    [InverseProperty("Plans")]
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 }

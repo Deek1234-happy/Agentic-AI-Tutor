@@ -7,40 +7,55 @@ using Microsoft.EntityFrameworkCore;
 namespace AgenticAITutor.Models;
 
 [Table("documents", Schema = "content")]
-[Index("user_id", "content_hash", Name = "documents_user_id_content_hash_key", IsUnique = true)]
-public partial class document
+[Index("UserId", "ContentHash", Name = "documents_user_id_content_hash_key", IsUnique = true)]
+public partial class Document
 {
     [Key]
-    public Guid id { get; set; }
+    [Column("id")]
+    public Guid Id { get; set; }
 
-    public Guid? user_id { get; set; }
+    [Column("user_id")]
+    public Guid UserId { get; set; }
 
+    [Column("filename")]
     [StringLength(255)]
-    public string filename { get; set; } = null!;
+    public string Filename { get; set; } = null!;
 
+    [Column("file_type")]
     [StringLength(50)]
-    public string file_type { get; set; } = null!;
+    public string FileType { get; set; } = null!;
 
-    public int? file_size { get; set; }
+    [Column("file_size")]
+    public int? FileSize { get; set; }
 
-    public string storage_path { get; set; } = null!;
+    [Column("storage_path")]
+    public string StoragePath { get; set; } = null!;
 
+    [Column("content_hash")]
     [StringLength(64)]
-    public string content_hash { get; set; } = null!;
+    public string ContentHash { get; set; } = null!;
 
-    [Column(TypeName = "timestamp without time zone")]
-    public DateTime? upload_time { get; set; }
+    [Column("upload_time", TypeName = "timestamp without time zone")]
+    public DateTime? UploadTime { get; set; }
 
-    public bool? is_deleted { get; set; }
+    [Column("is_deleted")]
+    public bool? IsDeleted { get; set; }
 
-    [InverseProperty("document")]
-    public virtual ICollection<document_chunk> document_chunks { get; set; } = new List<document_chunk>();
+    [Column("subject_id")]
+    public Guid? SubjectId { get; set; }
 
-    [ForeignKey("user_id")]
-    [InverseProperty("documents")]
-    public virtual user? user { get; set; }
+    [InverseProperty("Document")]
+    public virtual ICollection<DocumentChunk> DocumentChunks { get; set; } = new List<DocumentChunk>();
 
-    [ForeignKey("document_id")]
-    [InverseProperty("documents")]
-    public virtual ICollection<study_plan> plans { get; set; } = new List<study_plan>();
+    [ForeignKey("SubjectId")]
+    [InverseProperty("Documents")]
+    public virtual Subject? Subject { get; set; }
+
+    [ForeignKey("UserId")]
+    [InverseProperty("Documents")]
+    public virtual User User { get; set; } = null!;
+
+    [ForeignKey("DocumentId")]
+    [InverseProperty("Documents")]
+    public virtual ICollection<StudyPlan> Plans { get; set; } = new List<StudyPlan>();
 }

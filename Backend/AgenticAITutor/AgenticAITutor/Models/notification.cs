@@ -6,27 +6,34 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AgenticAITutor.Models;
 
-public partial class notification
+[Table("notifications")]
+public partial class Notification
 {
     [Key]
-    public Guid id { get; set; }
+    [Column("id")]
+    public Guid Id { get; set; }
 
-    public Guid? user_id { get; set; }
+    [Column("user_id")]
+    public Guid? UserId { get; set; }
 
+    [Column("title")]
     [StringLength(255)]
-    public string? title { get; set; }
+    public string? Title { get; set; }
 
-    public string? message { get; set; }
+    [Column("message")]
+    public string? Message { get; set; }
 
+    [Column("type")]
     [StringLength(50)]
-    public string? type { get; set; }
+    public string? Type { get; set; }
 
-    public bool? is_read { get; set; }
+    [Column("is_read")]
+    public bool? IsRead { get; set; }
 
-    [Column(TypeName = "timestamp without time zone")]
-    public DateTime? created_at { get; set; }
+    [Column("created_at", TypeName = "timestamp without time zone")]
+    public DateTime? CreatedAt { get; set; }
 
-    [ForeignKey("user_id")]
-    [InverseProperty("notifications")]
-    public virtual user? user { get; set; }
+    [ForeignKey("UserId")]
+    [InverseProperty("Notifications")]
+    public virtual User? User { get; set; }
 }

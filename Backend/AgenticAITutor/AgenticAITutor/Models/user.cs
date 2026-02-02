@@ -7,56 +7,65 @@ using Microsoft.EntityFrameworkCore;
 namespace AgenticAITutor.Models;
 
 [Table("users", Schema = "auth")]
-[Index("email", Name = "users_email_key", IsUnique = true)]
-public partial class user
+[Index("Email", Name = "users_email_key", IsUnique = true)]
+public partial class User
 {
     [Key]
-    public Guid id { get; set; }
+    [Column("id")]
+    public Guid Id { get; set; }
 
+    [Column("first_name")]
     [StringLength(255)]
-    public string first_name { get; set; } = null!;
+    public string FirstName { get; set; } = null!;
 
+    [Column("last_name")]
     [StringLength(255)]
-    public string last_name { get; set; } = null!;
+    public string LastName { get; set; } = null!;
 
+    [Column("email")]
     [StringLength(255)]
-    public string email { get; set; } = null!;
+    public string Email { get; set; } = null!;
 
-    public string password_hash { get; set; } = null!;
+    [Column("password_hash")]
+    public string PasswordHash { get; set; } = null!;
 
+    [Column("role")]
     [StringLength(50)]
-    public string? role { get; set; }
+    public string? Role { get; set; }
 
-    [Column(TypeName = "timestamp without time zone")]
-    public DateTime? created_at { get; set; }
+    [Column("created_at", TypeName = "timestamp without time zone")]
+    public DateTime? CreatedAt { get; set; }
 
-    [Column(TypeName = "timestamp without time zone")]
-    public DateTime? last_login { get; set; }
+    [Column("last_login", TypeName = "timestamp without time zone")]
+    public DateTime? LastLogin { get; set; }
 
-    [InverseProperty("user")]
-    public virtual ICollection<activity_log> activity_logs { get; set; } = new List<activity_log>();
+    [InverseProperty("User")]
+    public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<chat_session> chat_sessions { get; set; } = new List<chat_session>();
+    [InverseProperty("User")]
+    public virtual ICollection<ChatSession> ChatSessions { get; set; } = new List<ChatSession>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<document> documents { get; set; } = new List<document>();
+    [InverseProperty("User")]
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
-    [InverseProperty("user")]
-    public virtual notification_preference? notification_preference { get; set; }
+    [InverseProperty("User")]
+    public virtual NotificationPreference? NotificationPreference { get; set; }
 
-    [InverseProperty("user")]
-    public virtual ICollection<notification> notifications { get; set; } = new List<notification>();
+    [InverseProperty("User")]
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<quiz_attempt> quiz_attempts { get; set; } = new List<quiz_attempt>();
+    [InverseProperty("User")]
+    public virtual ICollection<QuizAttempt> QuizAttempts { get; set; } = new List<QuizAttempt>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<quiz> quizzes { get; set; } = new List<quiz>();
+    [InverseProperty("User")]
+    public virtual ICollection<Quiz> Quizzes { get; set; } = new List<Quiz>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<study_plan> study_plans { get; set; } = new List<study_plan>();
+    [InverseProperty("User")]
+    public virtual ICollection<StudyPlan> StudyPlans { get; set; } = new List<StudyPlan>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<user_topic_progress> user_topic_progresses { get; set; } = new List<user_topic_progress>();
+    [InverseProperty("User")]
+    public virtual ICollection<Subject> Subjects { get; set; } = new List<Subject>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<UserTopicProgress> UserTopicProgresses { get; set; } = new List<UserTopicProgress>();
 }
