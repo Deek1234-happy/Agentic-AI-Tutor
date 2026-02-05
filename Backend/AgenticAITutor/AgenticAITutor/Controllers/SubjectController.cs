@@ -44,65 +44,69 @@ namespace AgenticAITutor.Controllers
                 return Unauthorized("Invalid Token : User ID Not Found");
 
             var subjects = await subjectService.GetAllAsync(userId);
-            return Ok(subjects);
+            List<SubjectModel> subjectModels = new List<SubjectModel>();
+            foreach(var subject in subjects)
+            {
+                SubjectModel subjectModel = new SubjectModel
+                {
+                    Id = subject.Id,
+                    UserId = subject.UserId,
+                    Name = subject.Name,
+                };
+                subjectModels.Add(subjectModel);
+            }
+            return Ok(subjectModels);
 
         }
 
-        [HttpGet("{name}")]
-        public async Task<IActionResult> Get(string name)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(Guid id)
         {
             var userId = User.GetUserId();
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token : User ID Not Found");
+
+            Subject subject = await subjectService.GetAsync(id, userId);
+            
+            if (subject == null)
+                return NotFound("Subject is not found");
 
             SubjectModel subjectModel = new SubjectModel
             {
-                UserId = userId,
-                Name = name.ToLower()
+                Id = id,
+                Name = subject.Name,
+                UserId = userId
             };
-            Subject subject = await subjectService.GetAsync(subjectModel);
-            
-            if (subject == null)
-                return NotFound($"Subject {name} is not found");
-            return Ok(subject);
+            return Ok(subjectModel);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> Update([FromBody] UpdateSubjectRequest updateSubjectRequest)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] SubjectModel subjectModel)
         {
             var userId = User.GetUserId();
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token : User ID Not Found");
 
-            
-            var result = await subjectService.UpdateAsync(updateSubjectRequest.OldName.ToLower(), updateSubjectRequest.NewName.ToLower(), userId);
+            subjectModel.UserId = userId;
+            var result = await subjectService.UpdateAsync(id, subjectModel);
 
-            if (result.Contains("no Subject"))
-                return NotFound(result);
+            if (!result.Success)
+                return BadRequest(result.Message);
 
-            if (result.Contains("already have"))
-                return BadRequest(result);
-
-            return Ok(result);
+            return Ok(result.Message);
         }
 
-        [HttpDelete("{name}")]
-        public async Task<IActionResult> Delete(string name)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
             var userId = User.GetUserId();
 
-            var model = new SubjectModel
-            {
-                Name = name.ToLower(),
-                UserId = userId
-            };
+            var result = await subjectService.DeleteAsync(id, userId);
 
-            var result = await subjectService.DeleteAsync(model);
+            if (!result.Success)
+                return BadRequest(result.Message);
 
-            if (result.Contains("no Subject"))
-                return NotFound(result);
-
-            return Ok(result);
+            return Ok(result.Message);
         }
     }
 }

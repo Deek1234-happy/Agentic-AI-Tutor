@@ -44,6 +44,10 @@ public partial class Document
     [Column("subject_id")]
     public Guid? SubjectId { get; set; }
 
+    [Column("processing_status")]
+    [StringLength(20)]
+    public string ProcessingStatus { get; set; } = null!;
+
     [InverseProperty("Document")]
     public virtual ICollection<DocumentChunk> DocumentChunks { get; set; } = new List<DocumentChunk>();
 

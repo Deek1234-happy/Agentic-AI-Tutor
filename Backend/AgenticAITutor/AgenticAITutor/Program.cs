@@ -70,19 +70,25 @@ namespace AgenticAITutor
             builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
             builder.Services.AddScoped<ISubjectService, SubjectService>();
 
+            builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+            builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+            builder.Services.AddScoped<IDocumentService, DocumentService>();
+
 
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            //if (app.Environment.IsDevelopment())
-            //{
+            if (app.Environment.IsDevelopment())
+            {
                 app.UseSwagger();
                 app.UseSwaggerUI();
-            //}
+            }
 
             app.UseHttpsRedirection();
 
-            app.UseAuthentication(); // ---------------
+            app.UseStaticFiles();
+
+            app.UseAuthentication(); 
             app.UseAuthorization();
 
 

@@ -7,8 +7,8 @@ namespace AgenticAITutor.Services
     {
         Task<string> AddAsync(SubjectModel subjectModel);
         Task<List<Subject?>> GetAllAsync(Guid userId);
-        Task<Subject?> GetAsync(SubjectModel subjectModel);
-        Task<string> DeleteAsync(SubjectModel subjectModel);
-        Task<string> UpdateAsync(string oldName, string newName, Guid id);
+        Task<Subject?> GetAsync(Guid subjectId, Guid userId);
+        Task<ServiceResponse<string>> DeleteAsync(Guid subjectId, Guid userId);
+        Task<ServiceResponse<string>> UpdateAsync(Guid subjectId, SubjectModel subjectModel);
     }
 }

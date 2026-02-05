@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AgenticAITutor.Models;
 
 [Table("subjects", Schema = "content")]
-[Index("Name", Name = "subjects_name_key", IsUnique = true)]
+[Index("UserId", "Name", Name = "unique_subject_per_user", IsUnique = true)]
 public partial class Subject
 {
     [Key]

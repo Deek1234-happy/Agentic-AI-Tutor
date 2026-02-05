@@ -30,15 +30,8 @@ namespace AgenticAITutor.Repositories
             return await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name ==  subjectModel.Name && s.UserId == subjectModel.UserId);
         }
 
-        public async Task DeleteByIdAsync(Guid id)
+        public async Task DeleteAsync(Subject subject)
         {
-            Subject? subject = await GetByIdAsync(id);
-            dbContext.Subjects.Remove(subject);
-            await dbContext.SaveChangesAsync();
-        }
-        public async Task DeleteByNameAndUserAsync(SubjectModel subjectModel)
-        {
-            Subject? subject = await GetByNameAndUserAsync(subjectModel);
             dbContext.Subjects.Remove(subject);
             await dbContext.SaveChangesAsync();
         }

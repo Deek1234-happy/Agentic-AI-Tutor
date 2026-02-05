@@ -241,3 +241,4 @@ D:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\Agen
 D:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\FluentValidation.DependencyInjectionExtensions.dll
 D:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\SharpGrip.FluentValidation.AutoValidation.Shared.dll
 D:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\SharpGrip.FluentValidation.AutoValidation.Mvc.dll
+D:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\AgenticAITutor.staticwebassets.runtime.json

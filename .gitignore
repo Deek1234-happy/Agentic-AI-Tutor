@@ -5,3 +5,6 @@ obj/
 *.user
 [Dd]ebug/
 [Rr]elease/
+# Ignore all uploaded documents
+wwwroot/uploads/
+**/uploads/
