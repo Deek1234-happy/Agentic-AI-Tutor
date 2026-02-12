@@ -54,6 +54,14 @@
               "target": "Package",
               "version": "[8.6.3, )"
             },
+            "Hangfire.AspNetCore": {
+              "target": "Package",
+              "version": "[1.8.23, )"
+            },
+            "Hangfire.PostgreSql": {
+              "target": "Package",
+              "version": "[1.21.0, )"
+            },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[8.0.23, )"
@@ -77,6 +85,14 @@
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
               "version": "[8.0.11, )"
+            },
+            "Pgvector": {
+              "target": "Package",
+              "version": "[0.2.1, )"
+            },
+            "Pgvector.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[0.2.1, )"
             },
             "SharpGrip.FluentValidation.AutoValidation.Mvc": {
               "target": "Package",

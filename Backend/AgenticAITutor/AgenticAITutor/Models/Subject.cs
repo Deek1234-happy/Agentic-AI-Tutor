@@ -22,6 +22,9 @@ public partial class Subject
     public Guid UserId { get; set; }
 
     [InverseProperty("Subject")]
+    public virtual ICollection<DocumentChunk> DocumentChunks { get; set; } = new List<DocumentChunk>();
+
+    [InverseProperty("Subject")]
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
     [ForeignKey("UserId")]

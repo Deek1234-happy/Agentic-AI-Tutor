@@ -1,7 +1,9 @@
-﻿using AgenticAITutor.Models;
+﻿using AgenticAITutor.BackgroundJobs;
+using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.Enums;
 using AgenticAITutor.Repositories;
+using Hangfire;
 using System.Security.Cryptography;
 
 namespace AgenticAITutor.Services
@@ -69,6 +71,17 @@ namespace AgenticAITutor.Services
                 return response;
             }
 
+            if(request.SubjectId != null && request.SubjectId != Guid.Empty)
+            {
+                var targetSubject = await subjectRepository.GetByIdAsync(request.SubjectId.Value);
+                if (targetSubject == null || targetSubject.UserId != request.UserId)
+                {
+                    response.Success = false;
+                    response.Message = "Target Subject Not Found. ";
+                    return response;
+                }
+            }
+
             //Storing The File
             string? subFolder = request.SubjectId.HasValue ? request.SubjectId.ToString() : "General";
             string? userFolder = request.UserId.ToString();
@@ -90,6 +103,8 @@ namespace AgenticAITutor.Services
             };
 
             await documentRepository.AddAsync(document);
+
+            BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
 
             response.Success = true;
             response.Data = MapToResponse(document);

@@ -39,9 +39,23 @@ public partial class DocumentChunk
     [Column("created_at", TypeName = "timestamp without time zone")]
     public DateTime? CreatedAt { get; set; }
 
+    [Column("subject_id")]
+    public Guid? SubjectId { get; set; }
+
+    [Column("user_id")]
+    public Guid? UserId { get; set; }
+
     [ForeignKey("DocumentId")]
     [InverseProperty("DocumentChunks")]
     public virtual Document? Document { get; set; }
+
+    [ForeignKey("SubjectId")]
+    [InverseProperty("DocumentChunks")]
+    public virtual Subject? Subject { get; set; }
+
+    [ForeignKey("UserId")]
+    [InverseProperty("DocumentChunks")]
+    public virtual User? User { get; set; }
 
     [ForeignKey("ChunkId")]
     [InverseProperty("Chunks")]

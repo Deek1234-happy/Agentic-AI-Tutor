@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "FQT0TQcu5FJeENOQWoOeghKdVlASkTRug7U/oMGmzBo=",
+  "Hash": "yzMcAtYnO3Rtxe1U5d36XEkZC6Hluu26ErvdcBkY4Dk=",
   "Source": "AgenticAITutor",
   "BasePath": "_content/AgenticAITutor",
   "Mode": "Default",
@@ -15,5 +15,82 @@
       "Pattern": "**"
     }
   ],
-  "Assets": []
+  "Assets": [
+    {
+      "Identity": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\0a7eb78f-9402-4b2f-a9eb-676c462f76f8\\e6f7aecf-db56-4b1e-a1c3-5a9867a3703a.docx",
+      "SourceId": "AgenticAITutor",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\",
+      "BasePath": "_content/AgenticAITutor",
+      "RelativePath": "uploads/5336b3e0-4558-473b-825a-68ad07eaa2e2/0a7eb78f-9402-4b2f-a9eb-676c462f76f8/e6f7aecf-db56-4b1e-a1c3-5a9867a3703a.docx",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\0a7eb78f-9402-4b2f-a9eb-676c462f76f8\\e6f7aecf-db56-4b1e-a1c3-5a9867a3703a.docx"
+    },
+    {
+      "Identity": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\33d19d87-7c7f-4e1f-87df-8bc2685a2882\\fd200823-6779-413e-b7c8-249456aeab34.pdf",
+      "SourceId": "AgenticAITutor",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\",
+      "BasePath": "_content/AgenticAITutor",
+      "RelativePath": "uploads/5336b3e0-4558-473b-825a-68ad07eaa2e2/33d19d87-7c7f-4e1f-87df-8bc2685a2882/fd200823-6779-413e-b7c8-249456aeab34.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\33d19d87-7c7f-4e1f-87df-8bc2685a2882\\fd200823-6779-413e-b7c8-249456aeab34.pdf"
+    },
+    {
+      "Identity": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\General\\a90a0110-88bd-4c06-b734-5c98aa80dac7.pdf",
+      "SourceId": "AgenticAITutor",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\",
+      "BasePath": "_content/AgenticAITutor",
+      "RelativePath": "uploads/5336b3e0-4558-473b-825a-68ad07eaa2e2/General/a90a0110-88bd-4c06-b734-5c98aa80dac7.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\General\\a90a0110-88bd-4c06-b734-5c98aa80dac7.pdf"
+    },
+    {
+      "Identity": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\uploads\\bd99fd81-75b5-47df-8459-af34e55ac933\\33d19d87-7c7f-4e1f-87df-8bc2685a2882\\54518061-ad2c-4dc1-aa2a-1d354707caac.pdf",
+      "SourceId": "AgenticAITutor",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\",
+      "BasePath": "_content/AgenticAITutor",
+      "RelativePath": "uploads/bd99fd81-75b5-47df-8459-af34e55ac933/33d19d87-7c7f-4e1f-87df-8bc2685a2882/54518061-ad2c-4dc1-aa2a-1d354707caac.pdf",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\bd99fd81-75b5-47df-8459-af34e55ac933\\33d19d87-7c7f-4e1f-87df-8bc2685a2882\\54518061-ad2c-4dc1-aa2a-1d354707caac.pdf"
+    }
+  ]
 }

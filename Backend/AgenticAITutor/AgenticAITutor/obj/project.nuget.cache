@@ -1,12 +1,18 @@
 {
   "version": 2,
-  "dgSpecHash": "GWYiJMDpDpg=",
+  "dgSpecHash": "9epyIKpKzW8=",
   "success": true,
   "projectFilePath": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\AgenticAITutor.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\dapper\\2.0.123\\dapper.2.0.123.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\dapper.aot\\1.0.48\\dapper.aot.1.0.48.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\fluentvalidation\\10.0.0\\fluentvalidation.10.0.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\fluentvalidation.dependencyinjectionextensions\\8.6.3\\fluentvalidation.dependencyinjectionextensions.8.6.3.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\hangfire.aspnetcore\\1.8.23\\hangfire.aspnetcore.1.8.23.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\hangfire.core\\1.8.23\\hangfire.core.1.8.23.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\hangfire.netcore\\1.8.23\\hangfire.netcore.1.8.23.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\hangfire.postgresql\\1.21.0\\hangfire.postgresql.1.21.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.23\\microsoft.aspnetcore.authentication.jwtbearer.8.0.23.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\6.0.0\\microsoft.bcl.asyncinterfaces.6.0.0.nupkg.sha512",
@@ -15,6 +21,7 @@
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.codeanalysis.csharp\\4.5.0\\microsoft.codeanalysis.csharp.4.5.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.codeanalysis.csharp.workspaces\\4.5.0\\microsoft.codeanalysis.csharp.workspaces.4.5.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.codeanalysis.workspaces.common\\4.5.0\\microsoft.codeanalysis.workspaces.common.4.5.0.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.csharp\\4.7.0\\microsoft.csharp.4.7.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.entityframeworkcore\\8.0.23\\microsoft.entityframeworkcore.8.0.23.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\8.0.23\\microsoft.entityframeworkcore.abstractions.8.0.23.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\8.0.23\\microsoft.entityframeworkcore.analyzers.8.0.23.nupkg.sha512",
@@ -28,6 +35,8 @@
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\8.0.1\\microsoft.extensions.dependencyinjection.8.0.1.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.2\\microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.dependencymodel\\8.0.2\\microsoft.extensions.dependencymodel.8.0.2.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\3.0.0\\microsoft.extensions.fileproviders.abstractions.3.0.0.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.hosting.abstractions\\3.0.0\\microsoft.extensions.hosting.abstractions.3.0.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.logging\\8.0.1\\microsoft.extensions.logging.8.0.1.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.2\\microsoft.extensions.logging.abstractions.8.0.2.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.extensions.options\\8.0.2\\microsoft.extensions.options.8.0.2.nupkg.sha512",
@@ -40,8 +49,11 @@
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.identitymodel.tokens\\8.15.0\\microsoft.identitymodel.tokens.8.15.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\microsoft.openapi\\1.2.3\\microsoft.openapi.1.2.3.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\mono.texttemplating\\2.2.1\\mono.texttemplating.2.2.1.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\newtonsoft.json\\11.0.1\\newtonsoft.json.11.0.1.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\npgsql\\8.0.6\\npgsql.8.0.6.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\npgsql.entityframeworkcore.postgresql\\8.0.11\\npgsql.entityframeworkcore.postgresql.8.0.11.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\pgvector\\0.3.0\\pgvector.0.3.0.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\pgvector.entityframeworkcore\\0.2.1\\pgvector.entityframeworkcore.0.2.1.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\sharpgrip.fluentvalidation.autovalidation.mvc\\1.5.0\\sharpgrip.fluentvalidation.autovalidation.mvc.1.5.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\sharpgrip.fluentvalidation.autovalidation.shared\\1.5.0\\sharpgrip.fluentvalidation.autovalidation.shared.1.5.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\swashbuckle.aspnetcore\\6.4.0\\swashbuckle.aspnetcore.6.4.0.nupkg.sha512",
@@ -49,7 +61,7 @@
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\6.4.0\\swashbuckle.aspnetcore.swaggergen.6.4.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\6.4.0\\swashbuckle.aspnetcore.swaggerui.6.4.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.codedom\\4.4.0\\system.codedom.4.4.0.nupkg.sha512",
-    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.collections.immutable\\6.0.0\\system.collections.immutable.6.0.0.nupkg.sha512",
+    "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.collections.immutable\\9.0.1\\system.collections.immutable.9.0.1.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.composition\\6.0.0\\system.composition.6.0.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.composition.attributedmodel\\6.0.0\\system.composition.attributedmodel.6.0.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.composition.convention\\6.0.0\\system.composition.convention.6.0.0.nupkg.sha512",
@@ -63,5 +75,16 @@
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.text.encoding.codepages\\6.0.0\\system.text.encoding.codepages.6.0.0.nupkg.sha512",
     "C:\\Users\\Ahmed Maghawry\\.nuget\\packages\\system.threading.channels\\6.0.0\\system.threading.channels.6.0.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "AgenticAITutor depends on Pgvector (>= 0.2.1) but Pgvector 0.2.1 was not found. An approximate best match of Pgvector 0.3.0 was resolved.",
+      "libraryId": "Pgvector",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    }
+  ]
 }

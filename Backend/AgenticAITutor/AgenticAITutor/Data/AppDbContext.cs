@@ -7,10 +7,6 @@ namespace AgenticAITutor.Data;
 
 public partial class AppDbContext : DbContext
 {
-    public AppDbContext()
-    {
-    }
-
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
@@ -49,10 +45,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserTopicProgress> UserTopicProgresses { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=8105");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -140,6 +132,14 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Document).WithMany(p => p.DocumentChunks)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("document_chunks_document_id_fkey");
+
+            entity.HasOne(d => d.Subject).WithMany(p => p.DocumentChunks)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_DocumentChunks_Subjects_subject_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.DocumentChunks)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_DocumentChunks_isers_usert_id");
         });
 
         modelBuilder.Entity<Notification>(entity =>

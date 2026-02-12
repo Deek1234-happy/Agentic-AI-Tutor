@@ -46,6 +46,9 @@ public partial class User
     public virtual ICollection<ChatSession> ChatSessions { get; set; } = new List<ChatSession>();
 
     [InverseProperty("User")]
+    public virtual ICollection<DocumentChunk> DocumentChunks { get; set; } = new List<DocumentChunk>();
+
+    [InverseProperty("User")]
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
     [InverseProperty("User")]

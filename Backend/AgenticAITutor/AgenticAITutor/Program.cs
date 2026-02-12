@@ -1,6 +1,6 @@
-/* 
+﻿/* 
  Database Scaffolding Command
-  Scaffold-DbContext "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=8105" Npgsql.EntityFrameworkCore.PostgreSQL -OutputDir Models -Context AppDbContext -ContextDir Data -DataAnnotations -Force
+  Scaffold-DbContext "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=8105" Npgsql.EntityFrameworkCore.PostgreSQL -OutputDir Models -Context AppDbContext -ContextDir Data -DataAnnotations -Force -NoOnConfiguring
  */
 
 using AgenticAITutor.Data;
@@ -13,6 +13,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using Hangfire;
+using Hangfire.PostgreSql;
+using AgenticAITutor.BackgroundJobs;
+
+using Npgsql;
+using Pgvector.Npgsql;
+using AgenticAITutor.Filters;
 
 
 namespace AgenticAITutor
@@ -30,10 +37,23 @@ namespace AgenticAITutor
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // -----------------------------------
+            var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("DefaultConnection"));
+            dataSourceBuilder.UseVector();
+            var dataSource = dataSourceBuilder.Build();
+            builder.Services.AddSingleton(dataSource);
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+                options.UseNpgsql(dataSource, x=>x.UseVector());
             });
+            // -----------------------------------
+
+
+            //builder.Services.AddDbContext<AppDbContext>(options =>
+            //{
+            //    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
+            //    o => o.UseVector());
+            //});
 
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IAuthService, AuthService>();
@@ -74,15 +94,40 @@ namespace AgenticAITutor
             builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
 
+            builder.Services.AddHangfire(config =>
+                config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")))
+            );
+            builder.Services.AddHangfireServer();
+
+            builder.Services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();    
+            builder.Services.AddScoped<IDocumentChunkService, DocumentChunkService>();
+            builder.Services.AddTransient<DocumentChunkingJob>();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+
+                });
+            });
+
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            app.UseCors("AllowAll");
+
+            app.UseHangfireDashboard("/dashboard", new DashboardOptions
             {
+                Authorization = new[] { new HangfireAuthorizationFilter() }
+            });
+
+            // Configure the HTTP request pipeline.
+            //if (app.Environment.IsDevelopment())
+            //{
                 app.UseSwagger();
                 app.UseSwaggerUI();
-            }
+            //}
 
             app.UseHttpsRedirection();
 
