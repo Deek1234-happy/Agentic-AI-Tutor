@@ -1,47 +1,46 @@
-import faiss
-import numpy as np
-from typing import List, Dict
+# app/vector_store.py
 
-# Vector index wrapper (HNSW for fast ANN search)
+# app/vector_store.py
 
-class VectorStore:
-    def __init__(self, embedding_dim: int, hnsw_m: int = 32):
-        """
-        embedding_dim: dimension of embedding vectors
-        hnsw_m: number of neighbors in HNSW graph (higher = better recall, more memory)
-        """
-        self.embedding_dim = embedding_dim
+from sqlalchemy import text
+from .db import SessionLocal
 
-        # HNSW index with inner product (cosine similarity for normalized vectors)
-        self.index = faiss.IndexHNSWFlat(embedding_dim, hnsw_m)
-        self.index.hnsw.efSearch = 50  # search accuracy vs speed
-        self.index.hnsw.efConstruction = 200  # build quality
 
-        self.metadata: List[Dict] = []
+def search_similar_chunks(query_embedding, top_k=5):
+    db = SessionLocal()
 
-    def add(self, embeddings: List[List[float]], metadatas: List[Dict]):
-        if not embeddings:
-            return
+    try:
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
 
-        vectors = np.array(embeddings, dtype="float32")
-        self.index.add(vectors)
-        self.metadata.extend(metadatas)
+        result = db.execute(text("""
+            SELECT
+                id,
+                document_id,
+                chunk_text,
+                page_start,
+                page_end,
+                1 - (embedding <=> :query_embedding) AS score
+            FROM content.document_chunks
+            ORDER BY embedding <=> :query_embedding
+            LIMIT :top_k
+        """), {
+            "query_embedding": embedding_str,
+            "top_k": top_k
+        })
 
-    def search(self, query_embedding: List[float], top_k: int = 5):
-        if not query_embedding:
-            return []
+        rows = result.fetchall()
 
-        query_vector = np.array([query_embedding], dtype="float32")
-        scores, indices = self.index.search(query_vector, top_k)
+        return [
+            (
+                r[0],  # id
+                r[1],  # document_id
+                r[2],  # chunk_text
+                r[3],  # page_start
+                r[4],  # page_end
+                float(r[5])  # score
+            )
+            for r in rows
+        ]
 
-        results = []
-        for score, idx in zip(scores[0], indices[0]):
-            if idx < 0:
-                continue
-
-            results.append({
-                "score": float(score),
-                "metadata": self.metadata[idx]
-            })
-
-        return results
+    finally:
+        db.close()

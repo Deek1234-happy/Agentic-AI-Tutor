@@ -1,3 +1,4 @@
+# app/parsers.py
 import fitz
 import pytesseract
 from PIL import Image

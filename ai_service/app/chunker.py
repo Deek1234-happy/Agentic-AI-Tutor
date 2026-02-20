@@ -1,13 +1,14 @@
-from typing import List, Dict, Optional, Union
+# app/chunker.py
+from typing import List, Dict
 import re
 
 # ============================================================
 # Chunking configuration (soft limits)
 # ============================================================
 
-TARGET_CHUNK_TOKENS = 600
-MAX_CHUNK_TOKENS = 900
-MIN_CHUNK_TOKENS = 250
+TARGET_CHUNK_TOKENS = 300
+MAX_CHUNK_TOKENS = 450
+MIN_CHUNK_TOKENS = 150
 
 OVERLAP_RATIO = 0.15  # 15% overlap
 
@@ -17,10 +18,6 @@ OVERLAP_RATIO = 0.15  # 15% overlap
 # ============================================================
 
 def estimate_tokens(text: str) -> int:
-    """
-    Rough token estimation.
-    Works reasonably across Gemini, Grok, GPT-like models.
-    """
     words = text.split()
     return max(1, int(len(words) / 0.75))
 
@@ -33,11 +30,16 @@ def is_page_or_slide_marker(line: str) -> bool:
     return bool(re.match(r"---\s+(Page|Slide)\s+\d+\s+---", line))
 
 
+def extract_page_number(marker: str) -> int:
+    """
+    Extract numeric page/slide number from marker.
+    Example: --- Page 5 --- → 5
+    """
+    match = re.search(r"(Page|Slide)\s+(\d+)", marker)
+    return int(match.group(2)) if match else None
+
+
 def looks_like_section_header(line: str) -> bool:
-    """
-    Conservative heuristic for section headers.
-    Prefer false negatives over false positives.
-    """
     if not line:
         return False
 
@@ -109,7 +111,7 @@ def split_into_blocks(text: str) -> List[Dict]:
 
 
 # ============================================================
-# Chunk builder (FIXED METADATA LOGIC)
+# Chunk builder (UPDATED FOR page_start / page_end)
 # ============================================================
 
 def build_chunks(
@@ -123,19 +125,15 @@ def build_chunks(
     current_text_parts: List[str] = []
     current_tokens = 0
 
-    current_pages: List[str] = []
-    seen_pages = set()
-
-    current_sections: List[str] = []
-    seen_sections = set()
+    current_page_start = None
+    current_page_end = None
 
     chunk_index = 1
 
     def flush_chunk():
         nonlocal chunk_index
         nonlocal current_text_parts, current_tokens
-        nonlocal current_pages, seen_pages
-        nonlocal current_sections, seen_sections
+        nonlocal current_page_start, current_page_end
 
         if not current_text_parts:
             return
@@ -144,35 +142,26 @@ def build_chunks(
             "file_id": file_id,
             "chunk_id": f"{file_id}_chunk_{chunk_index}",
             "source_type": source_type,
-            "page_or_slide": (
-                current_pages if len(current_pages) > 1
-                else current_pages[0] if current_pages
-                else None
-            ),
-            "section": (
-                current_sections if len(current_sections) > 1
-                else current_sections[0] if current_sections
-                else None
-            ),
+            "page_start": current_page_start,
+            "page_end": current_page_end,
             "text": " ".join(current_text_parts).strip()
         })
 
         chunk_index += 1
         current_text_parts = []
         current_tokens = 0
-
-        current_pages = []
-        seen_pages = set()
-
-        current_sections = []
-        seen_sections = set()
+        current_page_start = None
+        current_page_end = None
 
     for block in blocks:
         block_text = " ".join(block["lines"])
         block_tokens = estimate_tokens(block_text)
 
-        block_page = block.get("page")
-        block_section = block.get("section")
+        block_page_marker = block.get("page")
+
+        page_number = None
+        if block_page_marker:
+            page_number = extract_page_number(block_page_marker)
 
         # Oversized block → sentence-level split
         if block_tokens > MAX_CHUNK_TOKENS:
@@ -187,13 +176,10 @@ def build_chunks(
                 current_text_parts.append(sentence)
                 current_tokens += sentence_tokens
 
-                if block_page and block_page not in seen_pages:
-                    current_pages.append(block_page)
-                    seen_pages.add(block_page)
-
-                if block_section and block_section not in seen_sections:
-                    current_sections.append(block_section)
-                    seen_sections.add(block_section)
+                if page_number:
+                    if current_page_start is None:
+                        current_page_start = page_number
+                    current_page_end = page_number
 
             continue
 
@@ -204,17 +190,15 @@ def build_chunks(
         current_text_parts.append(block_text)
         current_tokens += block_tokens
 
-        if block_page and block_page not in seen_pages:
-            current_pages.append(block_page)
-            seen_pages.add(block_page)
-
-        if block_section and block_section not in seen_sections:
-            current_sections.append(block_section)
-            seen_sections.add(block_section)
+        if page_number:
+            if current_page_start is None:
+                current_page_start = page_number
+            current_page_end = page_number
 
     flush_chunk()
 
     return apply_overlap(chunks)
+
 
 # ============================================================
 # Overlap handling (text only, metadata untouched)
@@ -249,8 +233,6 @@ def chunk_text(
     file_id: str,
     source_type: str
 ) -> List[Dict]:
-    """
-    Main entry point for dynamic chunking (US-35).
-    """
+
     blocks = split_into_blocks(text)
     return build_chunks(blocks, file_id, source_type)
