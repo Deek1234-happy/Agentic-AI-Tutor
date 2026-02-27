@@ -89,5 +89,18 @@ namespace AgenticAITutor.Controllers
 
             return Ok(documents);
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var userId = User.GetUserId();
+            if (userId == Guid.Empty)
+                return Unauthorized("Invalid Token.");
+
+            var document = await documentService.GetDocumentsByIdAsync(userId, id);
+
+            return Ok(document);
+        }
+
     }
 }

@@ -227,6 +227,14 @@ namespace AgenticAITutor.Services
             return documents.Where(d => d.IsDeleted == false).Select(MapToResponse).ToList();
         }
 
+        public async Task<DocumentResponse?> GetDocumentsByIdAsync(Guid userId, Guid id)
+        {
+            var document = await documentRepository.GetByIdAsync(id);
+            if (document is null || document.UserId != userId || document.IsDeleted == true)
+                return null;
+            return MapToResponse(document);
+        }
+
         private DocumentResponse MapToResponse(Document document)
         {
             return new DocumentResponse

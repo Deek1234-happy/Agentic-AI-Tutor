@@ -9,5 +9,6 @@ namespace AgenticAITutor.Services
         Task<ServiceResponse<string>> DeleteDocumentAsync (Guid documentId, Guid userId);
         Task<List<DocumentResponse>> GetAllDocumentsAsync(Guid userId);
         Task<List<DocumentResponse>> GetDocumentsBySubjectAsync(Guid userId, Guid subjectId);
+        Task<DocumentResponse?> GetDocumentsByIdAsync(Guid userId, Guid id);
     }
 }
