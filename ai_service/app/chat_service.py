@@ -10,6 +10,8 @@ from .rag_service import build_context, IDK_MESSAGE
 from .llm import generate_answer
 import re
 import os
+import json
+
 
 SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", 0.5))
 
@@ -107,6 +109,7 @@ You rewrite follow-up questions into fully standalone search queries.
 
 Rules:
 - Use conversation history to resolve pronouns (it, its, they, this, that, etc.)
+- Keep the user's language (answer in the same language as the original question)
 - Keep the user's language
 - Do NOT add new facts
 - Do NOT explain
@@ -161,7 +164,7 @@ Conversation history:
 {history}
 
 Question:
-{question}
+{question} 
 """
 
 def classify_history_dependency(question: str, history):
@@ -200,6 +203,7 @@ Tasks:
 2. Normalize wording for clarity.
 3. Do NOT add new facts.
 4. Return a cleaned standalone question only.
+5. Keep the language of the original question (answer in the same language)
 """
 
 def analyze_reasoning(question: str):
@@ -296,14 +300,74 @@ def decompose_question(question: str):
         return [question]
 
 
+def classify_intent_llm(message: str) -> dict:
+    prompt = f"""
+You are an intent classifier.
+
+Classify the user's message into ONE of:
+
+1) greeting_only → only greeting / small talk
+2) greeting_with_question → greeting + real question
+3) needs_answer → real question without greeting
+
+Return STRICT JSON:
+
+{{
+  "intent": "greeting_only" OR "greeting_with_question" OR "needs_answer",
+  "reply": if greeting_only → short polite greeting (1 sentence),
+           if greeting_with_question → short polite greeting (1 sentence),
+           if needs_answer → ""
+}}
+
+Rules:
+- Be flexible. Any greeting counts.
+- If message is only a greeting, the reply must include a short polite greeting **AND a helping sentence** in the same language.
+- greeting + question = greeting_with_question
+- Detect the language of the user message.
+- Return the greeting reply in the **same language** as the detected message.
+- Output JSON only.
+
+User message:
+{message}
+
+JSON:
+"""
+
+    try:
+        raw = generate_answer(prompt, temperature=0)
+        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+    except Exception:
+        pass
+
+    return {"intent": "needs_answer", "reply": ""}
+
 # ============================================================
 # MAIN CHAT LOGIC 
 # ============================================================
 
 def handle_chat(payload):
+   
 
     if not session_exists(payload.session_id):
         return {"answer": IDK_MESSAGE, "citations": []}
+    
+    # 1️⃣ Classify intent first
+    intent_result = classify_intent_llm(payload.question)
+
+    # 2️⃣ If only greeting → return immediately
+    if intent_result["intent"] == "greeting_only":
+        return {
+            "answer": intent_result["reply"],  # polite greeting
+            "citations": []
+        }
+
+    # 3️⃣ If greeting + question → save greeting to prepend later
+    prepend_greeting = ""
+    if intent_result["intent"] == "greeting_with_question":
+        prepend_greeting = intent_result["reply"] + " "
+
 
     history = get_chat_history(payload.session_id)
 
@@ -410,6 +474,8 @@ IMPORTANT RULES:
 - You may reorganize, combine, summarize, and clarify ideas from the context.
 - You may explain relationships between ideas that are explicitly supported by the context.
 - Do NOT introduce new concepts, examples, or facts not present in the context.
+- Answer the QUESTION in the **same language as it is asked**.
+- If the message starts with a greeting and you are also prepending a greeting, do NOT repeat the greeting at the beginning of your answer."
 - If the context does not provide enough information, say exactly:
 "{IDK_MESSAGE}"
 
@@ -426,6 +492,9 @@ EXPLANATION:
 """
 
     answer = generate_answer(prompt, temperature=0.1)
+    # Prepend greeting if needed
+    if prepend_greeting:
+        answer = prepend_greeting + answer
 
     print("\n=== RAW MODEL OUTPUT ===")
     print(answer)
