@@ -19,10 +19,21 @@ public partial class ChatSession
     [Column("started_at", TypeName = "timestamp without time zone")]
     public DateTime? StartedAt { get; set; }
 
+    [Column("title")]
+    [StringLength(255)]
+    public string? Title { get; set; }
+
+    [Column("updated_at", TypeName = "timestamp without time zone")]
+    public DateTime? UpdatedAt { get; set; }
+
     [InverseProperty("Session")]
     public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 
     [ForeignKey("UserId")]
     [InverseProperty("ChatSessions")]
     public virtual User? User { get; set; }
+
+    [ForeignKey("SessionId")]
+    [InverseProperty("Sessions")]
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 }

@@ -12,6 +12,7 @@ namespace AgenticAITutor.Repositories
         Task<Document?> GetByHashAsync(string contentHash, Guid userId);
         Task<List<Document>> GetAllAsync(Guid userId);
         Task<List<Document>> GetBySubjectAsync (Guid userId, Guid subjectId);
+        Task<List<Document>> GetDocumentsByIdsAsync(List<Guid> documentIds, Guid userId);
 
     }
 }

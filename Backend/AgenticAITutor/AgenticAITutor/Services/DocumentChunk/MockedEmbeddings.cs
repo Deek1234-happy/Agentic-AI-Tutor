@@ -30,7 +30,7 @@ namespace AgenticAITutor.Services
                     PageStart = i,
                     PageEnd = i,
                     TokenCount = 50,
-                    Embedding = GenerateRandomVector(1536),
+                    Embedding = GenerateRandomVector(384),
                     CreatedAt = DateTime.Now
                 };
                 chunks.Add(documentChunk);

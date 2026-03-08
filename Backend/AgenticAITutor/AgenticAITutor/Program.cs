@@ -1,6 +1,6 @@
 ﻿/* 
  Database Scaffolding Command
-  Scaffold-DbContext "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=8105" Npgsql.EntityFrameworkCore.PostgreSQL -OutputDir Models -Context AppDbContext -ContextDir Data -DataAnnotations -Force -NoOnConfiguring
+  Scaffold-DbContext "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=8105" Npgsql.EntityFrameworkCore.PostgreSQL -OutputDir Models -Context AppDbContext -ContextDir Data -DataAnnotations -Force -NoOnConfiguring -Schemas public,auth,content,planner,quiz,rag
  */
 
 using AgenticAITutor.Data;
@@ -114,6 +114,9 @@ namespace AgenticAITutor
 
             builder.Services.AddScoped<IUserService, UserService>();
 
+            
+            builder.Services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
+            builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
 
             var app = builder.Build();
 

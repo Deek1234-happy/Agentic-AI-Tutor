@@ -67,7 +67,7 @@ namespace AgenticAITutor.Services
 
             user.FirstName = request?.FirstName??user.FirstName;
             user.LastName = request?.LastName??user.LastName;
-            user.Email = request?.Email ?? user.Email;
+            user.Email = request?.Email?.ToLower() ?? user.Email;
 
             await userRepository.UpdateAsync(user); 
             return await GetByIdAsync(id);

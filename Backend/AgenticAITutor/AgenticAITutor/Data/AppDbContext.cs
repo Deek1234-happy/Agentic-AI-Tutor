@@ -99,10 +99,29 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
             entity.Property(e => e.StartedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Title).HasDefaultValueSql("'New Chat'::character varying");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.HasOne(d => d.User).WithMany(p => p.ChatSessions)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("chat_sessions_user_id_fkey");
+
+            entity.HasMany(d => d.Documents).WithMany(p => p.Sessions)
+                .UsingEntity<Dictionary<string, object>>(
+                    "ChatDocument",
+                    r => r.HasOne<Document>().WithMany()
+                        .HasForeignKey("DocumentId")
+                        .HasConstraintName("fk_document"),
+                    l => l.HasOne<ChatSession>().WithMany()
+                        .HasForeignKey("SessionId")
+                        .HasConstraintName("fk_session"),
+                    j =>
+                    {
+                        j.HasKey("SessionId", "DocumentId").HasName("chat_documents_pkey");
+                        j.ToTable("chat_documents", "rag");
+                        j.IndexerProperty<Guid>("SessionId").HasColumnName("session_id");
+                        j.IndexerProperty<Guid>("DocumentId").HasColumnName("document_id");
+                    });
         });
 
         modelBuilder.Entity<Document>(entity =>

@@ -10,7 +10,7 @@ namespace AgenticAITutor.Data
             modelBuilder.Entity<DocumentChunk>(entity =>
             {
                 entity.Property(e => e.Embedding)
-                      .HasColumnType("vector(1536)");
+                      .HasColumnType("vector(384)");
             });
         }
     }

@@ -49,5 +49,12 @@ namespace AgenticAITutor.Repositories
             return await dbContext.Documents.Where(d => d.UserId == userId && d.SubjectId == subjectId).ToListAsync();
         }
 
+        public async Task<List<Document>> GetDocumentsByIdsAsync(List<Guid> documentIds, Guid userId)
+        {
+            return await dbContext.Documents
+                .Where(d => documentIds.Contains(d.Id) && d.UserId == userId)
+                .ToListAsync();
+        }
+
     }
 }

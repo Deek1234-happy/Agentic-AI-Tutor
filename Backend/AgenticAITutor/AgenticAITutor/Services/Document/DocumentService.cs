@@ -104,6 +104,7 @@ namespace AgenticAITutor.Services
 
             await documentRepository.AddAsync(document);
 
+            // chunking the document
             BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
 
             response.Success = true;
