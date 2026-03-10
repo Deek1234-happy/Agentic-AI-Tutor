@@ -118,6 +118,11 @@ namespace AgenticAITutor
             builder.Services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
 
+            builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+            builder.Services.AddScoped<IChatMessageService, ChatMessageService>();
+
+            builder.Services.AddHttpClient();
+
             var app = builder.Build();
 
             app.UseCors("AllowAll");
