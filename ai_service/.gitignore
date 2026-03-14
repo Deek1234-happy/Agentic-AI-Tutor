@@ -1,5 +1,7 @@
 # Custom test data
 test_files/
+venv/
+.venv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
