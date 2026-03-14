@@ -308,7 +308,11 @@ def handle_chat(payload):
    
 
     if not session_exists(payload.session_id):
+<<<<<<< HEAD
         return {"answer": IDK_MESSAGE, "confidence_score": 0.0, "citations": []}
+=======
+        return {"answer": IDK_MESSAGE, "citations": []}
+>>>>>>> 371c58ad04849e8c28f98c4e3ecad876751344ee
     
     # 1️⃣ Classify intent first
     intent_result = classify_intent_llm(payload.question)
