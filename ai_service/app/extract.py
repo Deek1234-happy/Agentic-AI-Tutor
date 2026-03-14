@@ -7,6 +7,8 @@ from .router import validate_file, validate_file_type, route_file
 from .text_cleaner import clean_text
 from .chunker import chunk_text
 from .embedding import embed_texts
+from .file_loader import download_if_url
+import os
 
 router = APIRouter()
 
@@ -16,7 +18,7 @@ router = APIRouter()
 # ============================================================
 
 class FilePayload(BaseModel):
-    file_id: str
+    # file_id: str
     file_path: str
     file_type: str
 
@@ -42,21 +44,34 @@ def extract_and_chunk_file(payload: FilePayload):
     4. Apply dynamic chunking
     5. Return embedding-ready chunks
     """
+    local_file = None
+    downloaded = False
+    
     try:
         # --------------------
         # Validation
         # --------------------
-        validate_file(payload.file_path)
+        # validate_file(payload.file_path)
+        # validate_file_type(payload.file_type)
+        local_file = download_if_url(payload.file_path)
+        downloaded = local_file != payload.file_path
+        
+        validate_file(local_file)
         validate_file_type(payload.file_type)
 
         # --------------------
         # Extraction
         # --------------------
+        # raw_text = route_file(
+        #     payload.file_path,
+        #     payload.file_type
+        # )
+
         raw_text = route_file(
-            payload.file_path,
+            local_file,
             payload.file_type
         )
-
+        
         if not raw_text.strip():
             raise ValueError("Extracted text is empty")
 
@@ -70,7 +85,7 @@ def extract_and_chunk_file(payload: FilePayload):
         # --------------------
         chunks = chunk_text(
             text=cleaned_text,
-            file_id=payload.file_id,
+            # file_id=payload.file_id,
             source_type=payload.file_type
         )
 
@@ -85,13 +100,17 @@ def extract_and_chunk_file(payload: FilePayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
+    finally:
+        # remove temporary file
+        if downloaded and local_file and os.path.exists(local_file):
+            os.remove(local_file)
 # ============================================================
 # Embedding Endpoint
 # ============================================================
 class EmbeddedChunkResponse(BaseModel):
-    file_id: str
-    chunk_id: str
-    source_type: str
+    # file_id: str
+    # chunk_id: str
+    # source_type: str
     page_start: int | None
     page_end: int | None
     text: str
@@ -100,16 +119,27 @@ class EmbeddedChunkResponse(BaseModel):
 @router.post("/embed", response_model=List[EmbeddedChunkResponse])
 def extract_chunk_and_embed(payload: FilePayload):
 
+    local_file = None
+    downloaded = False
+    
     try:
-        validate_file(payload.file_path)
+        # validate_file(payload.file_path)
+        # validate_file_type(payload.file_type)
+
+        # raw_text = route_file(payload.file_path, payload.file_type)
+        local_file = download_if_url(payload.file_path)
+        downloaded = local_file != payload.file_path
+        
+        validate_file(local_file)
         validate_file_type(payload.file_type)
 
-        raw_text = route_file(payload.file_path, payload.file_type)
+        raw_text = route_file(local_file, payload.file_type)
+                
         cleaned_text = clean_text(raw_text)
 
         chunks = chunk_text(
             text=cleaned_text,
-            file_id=payload.file_id,
+            # file_id=payload.file_id,
             source_type=payload.file_type
         )
 
@@ -123,3 +153,7 @@ def extract_chunk_and_embed(payload: FilePayload):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        if downloaded and local_file and os.path.exists(local_file):
+            os.remove(local_file)

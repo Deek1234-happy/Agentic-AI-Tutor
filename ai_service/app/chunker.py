@@ -116,7 +116,7 @@ def split_into_blocks(text: str) -> List[Dict]:
 
 def build_chunks(
     blocks: List[Dict],
-    file_id: str,
+    # file_id: str,
     source_type: str
 ) -> List[Dict]:
 
@@ -139,8 +139,8 @@ def build_chunks(
             return
 
         chunks.append({
-            "file_id": file_id,
-            "chunk_id": f"{file_id}_chunk_{chunk_index}",
+            # "file_id": file_id,
+            # "chunk_id": f"{file_id}_chunk_{chunk_index}",
             "source_type": source_type,
             "page_start": current_page_start,
             "page_end": current_page_end,
@@ -230,9 +230,10 @@ def apply_overlap(chunks: List[Dict]) -> List[Dict]:
 
 def chunk_text(
     text: str,
-    file_id: str,
+    # file_id: str,
     source_type: str
 ) -> List[Dict]:
 
     blocks = split_into_blocks(text)
-    return build_chunks(blocks, file_id, source_type)
+    return build_chunks(blocks, # file_id, 
+                        source_type)

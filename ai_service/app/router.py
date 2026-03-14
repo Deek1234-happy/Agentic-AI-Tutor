@@ -6,7 +6,7 @@ from .parsers import (
     parse_pptx,
     parse_txt,
     parse_csv
-)
+) 
 
 SUPPORTED_TYPES = ["pdf", "docx", "pptx", "txt", "csv"]
 
@@ -15,11 +15,11 @@ def validate_file(file_path: str):
         raise FileNotFoundError("File does not exist")
 
 def validate_file_type(file_type: str):
-    if file_type.lower() not in SUPPORTED_TYPES:
+    if file_type.lstrip(".").lower() not in SUPPORTED_TYPES:
         raise ValueError("Unsupported file type")
 
 def route_file(file_path: str, file_type: str):
-    file_type = file_type.lower()
+    file_type = file_type.lstrip(".").lower()
 
     if file_type == "pdf":
         return parse_pdf(file_path)
