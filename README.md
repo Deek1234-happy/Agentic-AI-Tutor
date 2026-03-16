@@ -15,9 +15,9 @@ Before you start, ensure you have the following installed on your machine:
 Open your terminal and clone the project:
 ```bash
 git clone https://github.com/Rehab-Hamdy/Agentic-AI-Tutor/tree/backend
-cd AgenticAITutor
+cd AgenticAITutor '''
 
-2. Configure Your Local Environment (appsettings.Development.json)
+### 2. Configure Your Local Environment (appsettings.Development.json)
 We use appsettings.Development.json for local testing so we don't accidentally push local URLs to production.
 
 Create a file named appsettings.Development.json in the same folder as appsettings.json (if it isn't there already), and add this configuration. Make sure to change the AIService URLs to point to your running Python FastAPI server (e.g., http://127.0.0.1:8000).
