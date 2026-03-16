@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "GjffJfS8oz/Pk2zhq3o2RAaRryu3Hp+gpE4c1Wk537E=",
+  "Hash": "FQT0TQcu5FJeENOQWoOeghKdVlASkTRug7U/oMGmzBo=",
   "Source": "AgenticAITutor",
   "BasePath": "_content/AgenticAITutor",
   "Mode": "Default",
@@ -15,44 +15,5 @@
       "Pattern": "**"
     }
   ],
-  "Assets": [
-    {
-      "Identity": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\General\\7234097e-f828-46d4-a46d-a796204985ad.pdf",
-      "SourceId": "AgenticAITutor",
-      "SourceType": "Discovered",
-      "ContentRoot": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\",
-      "BasePath": "_content/AgenticAITutor",
-      "RelativePath": "uploads/5336b3e0-4558-473b-825a-68ad07eaa2e2/General/7234097e-f828-46d4-a46d-a796204985ad.pdf",
-      "AssetKind": "All",
-      "AssetMode": "All",
-      "AssetRole": "Primary",
-      "AssetMergeBehavior": "PreferTarget",
-      "AssetMergeSource": "",
-      "RelatedAsset": "",
-      "AssetTraitName": "",
-      "AssetTraitValue": "",
-      "CopyToOutputDirectory": "Never",
-      "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\General\\7234097e-f828-46d4-a46d-a796204985ad.pdf"
-    },
-    {
-      "Identity": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\General\\821bd172-81c8-4ef5-858a-9d9901304a6a.pdf",
-      "SourceId": "AgenticAITutor",
-      "SourceType": "Discovered",
-      "ContentRoot": "D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\wwwroot\\",
-      "BasePath": "_content/AgenticAITutor",
-      "RelativePath": "uploads/5336b3e0-4558-473b-825a-68ad07eaa2e2/General/821bd172-81c8-4ef5-858a-9d9901304a6a.pdf",
-      "AssetKind": "All",
-      "AssetMode": "All",
-      "AssetRole": "Primary",
-      "AssetMergeBehavior": "PreferTarget",
-      "AssetMergeSource": "",
-      "RelatedAsset": "",
-      "AssetTraitName": "",
-      "AssetTraitValue": "",
-      "CopyToOutputDirectory": "Never",
-      "CopyToPublishDirectory": "PreserveNewest",
-      "OriginalItemSpec": "wwwroot\\uploads\\5336b3e0-4558-473b-825a-68ad07eaa2e2\\General\\821bd172-81c8-4ef5-858a-9d9901304a6a.pdf"
-    }
-  ]
+  "Assets": []
 }

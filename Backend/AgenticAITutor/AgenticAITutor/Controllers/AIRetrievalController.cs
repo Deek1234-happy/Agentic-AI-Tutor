@@ -51,7 +51,7 @@ namespace AgenticAITutor.Controllers
                     {
                         ChunkId = selectedChunk.Id,
                         DocumentId = selectedChunk.DocumentId,
-                        RelevanceScore = 0.92 - (i * 0.05) // Fake varying scores
+                        //ConfidenceScore = 0.92 - (i * 0.05) // Fake varying scores
                     });
 
                     allAllowedChunks.RemoveAt(randomIndex); // Prevent picking the same chunk twice

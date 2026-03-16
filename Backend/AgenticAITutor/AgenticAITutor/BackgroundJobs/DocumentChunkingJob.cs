@@ -44,7 +44,8 @@ namespace AgenticAITutor.BackgroundJobs
                 document.ProcessingStatus = DocumentProcessingStatus.FAILED.ToString();
                 await documentRepository.UpdateAsync(document);
 
-                Console.WriteLine($"Error Processing Document {documentId}: {ex.Message}");
+                // Console.WriteLine($"Error Processing Document {documentId}: {ex.Message}");
+                throw new Exception($"Chunking failed for Document {documentId}. Error: {ex.Message}", ex);
             }
         }
     }

@@ -10,23 +10,26 @@ namespace AgenticAITutor.Services
         private readonly IChatSessionRepository sessionRepository;
         private readonly IDocumentChunkRepository chunkRepository;
         private readonly HttpClient httpClient;
+        private readonly IConfiguration configuration;
 
         public ChatMessageService(
             IChatMessageRepository messageRepository, 
             IChatSessionRepository sessionRepository, 
             IDocumentChunkRepository chunkRepository, 
-            HttpClient httpClient)
+            HttpClient httpClient,
+            IConfiguration configuration)
         {
             this.messageRepository = messageRepository;
             this.sessionRepository = sessionRepository;
             this.chunkRepository = chunkRepository;
             this.httpClient = httpClient;
+            this.configuration = configuration;
         }
 
         public async Task<ServiceResponse<AIMessageResponse>> SendMessageAsync(UserMessageRequest request)
         {
             var response = new ServiceResponse<AIMessageResponse>();
-            
+
             // Validate That The Session Is Exist and Belongs to The User
             var session = await sessionRepository.GetByIdAsync(request.SessionId, request.UserId);
             if (session == null)
@@ -35,6 +38,11 @@ namespace AgenticAITutor.Services
                 response.Message = "Session not Found or Unauthorized.";
 
                 return response;
+            }
+
+            foreach(var doc in session.Documents)
+            {
+                request?.AllowedDocumentIds?.Add(doc.Id);
             }
 
             // Save The User Message to The Database 
@@ -52,13 +60,24 @@ namespace AgenticAITutor.Services
             await sessionRepository.UpdateAsync(session);
 
             // Call The AI Endpoint 
-            string aiURL = "https://localhost:7257/api/AIRetrieval/retrieve";
+            string? aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
+            string? chatPath = configuration["AIService:ChatPath"] ?? "chat/";
+
+            string? aiURL = $"{aiBaseURL.TrimEnd('/')}/{chatPath.TrimStart('/')}";
+
 
             AIMessageResponse? aiResponse = null;
             try
             {
+                httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
                 var httpResponse = await httpClient.PostAsJsonAsync(aiURL, request);
-                httpResponse.EnsureSuccessStatusCode();
+                if (!httpResponse.IsSuccessStatusCode)
+                {
+                    string errorBody = await httpResponse.Content.ReadAsStringAsync();
+                    response.Success = false;
+                    response.Message = $"AI API Failed! Status: {httpResponse.StatusCode}. Error Details: {errorBody}";
+                    return response;
+                }
 
                 aiResponse = await httpResponse.Content.ReadFromJsonAsync<AIMessageResponse>();
             }
@@ -71,21 +90,21 @@ namespace AgenticAITutor.Services
             }
 
             // Save The AI's Answer to The Database 
-            if(aiResponse != null)
+            if (aiResponse != null)
             {
                 var aiMessage = new ChatMessage
                 {
-                    SessionId= request.SessionId,
+                    SessionId = request.SessionId,
                     Role = "AI",
                     Content = aiResponse.AIMessage ?? "No Response Generated.",
                     CreatedAt = DateTime.Now,
-                    ConfidenceScore = aiResponse.UsedChunks.FirstOrDefault()?.RelevanceScore
+                    ConfidenceScore = aiResponse.ConfidenceScore
                 };
                 // Add The Message Citation in The Database 
                 foreach (var citation in aiResponse.UsedChunks)
                 {
                     DocumentChunk chunk = await chunkRepository.GetByIdAsync(citation.ChunkId);
-                    if(chunk != null)
+                    if (chunk != null)
                         aiMessage.Chunks.Add(chunk);
                 }
 
@@ -97,6 +116,81 @@ namespace AgenticAITutor.Services
             return response;
 
         }
+        //public async Task<ServiceResponse<AIMessageResponse>> SendMessageAsync(UserMessageRequest request)
+        //{
+        //    var response = new ServiceResponse<AIMessageResponse>();
+            
+        //    // Validate That The Session Is Exist and Belongs to The User
+        //    var session = await sessionRepository.GetByIdAsync(request.SessionId, request.UserId);
+        //    if (session == null)
+        //    {
+        //        response.Success = false;
+        //        response.Message = "Session not Found or Unauthorized.";
+
+        //        return response;
+        //    }
+
+        //    // Save The User Message to The Database 
+        //    var userMessage = new ChatMessage
+        //    {
+        //        SessionId = request.SessionId,
+        //        Role = "user",
+        //        Content = request.UserMessage ?? string.Empty,
+        //        CreatedAt = DateTime.Now
+        //    };
+        //    await messageRepository.AddAsync(userMessage);
+
+        //    // Update The Session Updated Time
+        //    session.UpdatedAt = DateTime.Now;
+        //    await sessionRepository.UpdateAsync(session);
+
+        //    // Call The AI Endpoint 
+        //    string aiURL = "https://localhost:7257/api/AIRetrieval/retrieve";
+
+        //    AIMessageResponse? aiResponse = null;
+        //    try
+        //    {
+        //        var httpResponse = await httpClient.PostAsJsonAsync(aiURL, request);
+        //        httpResponse.EnsureSuccessStatusCode();
+
+        //        aiResponse = await httpResponse.Content.ReadFromJsonAsync<AIMessageResponse>();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        response.Success = false;
+        //        response.Message = $"Failed to communicate with the AI service: {ex.Message}";
+
+        //        return response;
+        //    }
+
+        //    // Save The AI's Answer to The Database 
+        //    if(aiResponse != null)
+        //    {
+        //        var aiMessage = new ChatMessage
+        //        {
+        //            SessionId= request.SessionId,
+        //            Role = "AI",
+        //            Content = aiResponse.AIMessage ?? "No Response Generated.",
+        //            CreatedAt = DateTime.Now,
+        //            ConfidenceScore = aiResponse.UsedChunks.FirstOrDefault()?.RelevanceScore
+        //        };
+        //        // Add The Message Citation in The Database 
+        //        foreach (var citation in aiResponse.UsedChunks)
+        //        {
+        //            DocumentChunk chunk = await chunkRepository.GetByIdAsync(citation.ChunkId);
+        //            if(chunk != null)
+        //                aiMessage.Chunks.Add(chunk);
+        //        }
+
+        //        await messageRepository.AddAsync(aiMessage);
+
+        //    }
+        //    response.Data = aiResponse;
+        //    response.Success = true;
+        //    return response;
+
+        //}
+
         public async Task<ServiceResponse<List<ChatMessage>>> GetSessionMessagesAsync(Guid userId, Guid sessionId)
         {
             var response = new ServiceResponse<List<ChatMessage>>();

@@ -45,7 +45,7 @@ namespace AgenticAITutor.Repositories
         {
             return await dbContext.ChatSessions
                 .Include(c=>c.Documents)
-                .FirstOrDefaultAsync(c=>c.UserId == userId && c.Id == id);
+                .FirstOrDefaultAsync(c=>c.Id == id && c.UserId == userId);
         }
 
     }

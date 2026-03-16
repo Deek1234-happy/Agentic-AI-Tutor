@@ -60,7 +60,7 @@ namespace AgenticAITutor.Services
         {
             var response = new ServiceResponse<bool>();
 
-            ChatSession? session = await chatSessionRepository.GetByIdAsync(userId, sessioId);
+            ChatSession? session = await chatSessionRepository.GetByIdAsync(sessioId, userId);
             
             if(session == null)
             {
