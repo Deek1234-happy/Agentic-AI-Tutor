@@ -4,6 +4,7 @@ from .extract import router as extract_router
 from .search import router as search_router
 from .rag import router as rag_router
 from .voice import router as voice_router
+from .web_search_chat import router as web_search_router
 
 
 app = FastAPI(
@@ -42,4 +43,9 @@ app.include_router(
     voice_router,
     prefix="/voice",
     tags=["Voice Chat"]
+)
+
+app.include_router(web_search_router,
+ prefix="/web-search",
+ tags=["Web Search"]
 )
