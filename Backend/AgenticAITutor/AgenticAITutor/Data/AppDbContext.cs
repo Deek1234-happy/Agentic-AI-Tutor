@@ -18,6 +18,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ChatSession> ChatSessions { get; set; }
 
+    public virtual DbSet<ChatWebSource> ChatWebSources { get; set; }
+
     public virtual DbSet<Document> Documents { get; set; }
 
     public virtual DbSet<DocumentChunk> DocumentChunks { get; set; }
@@ -122,6 +124,17 @@ public partial class AppDbContext : DbContext
                         j.IndexerProperty<Guid>("SessionId").HasColumnName("session_id");
                         j.IndexerProperty<Guid>("DocumentId").HasColumnName("document_id");
                     });
+        });
+
+        modelBuilder.Entity<ChatWebSource>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("chat_web_sources_pkey");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
+
+            entity.HasOne(d => d.Message).WithMany(p => p.ChatWebSources)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("chat_web_sources_message_id_fkey");
         });
 
         modelBuilder.Entity<Document>(entity =>

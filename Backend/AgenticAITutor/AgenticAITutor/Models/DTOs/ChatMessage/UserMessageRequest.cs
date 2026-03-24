@@ -16,5 +16,7 @@ namespace AgenticAITutor.Models.DTOs
         public Guid SessionId { get; set; }
         [JsonPropertyName("allowed_document_ids")]
         public List<Guid>? AllowedDocumentIds { get; set; } = new List<Guid>();
+        [Required]
+        public bool SearchWeb { get; set; } = false;
     }
 }

@@ -29,6 +29,9 @@ public partial class ChatMessage
     [Column("created_at", TypeName = "timestamp without time zone")]
     public DateTime? CreatedAt { get; set; }
 
+    [InverseProperty("Message")]
+    public virtual ICollection<ChatWebSource> ChatWebSources { get; set; } = new List<ChatWebSource>();
+
     [ForeignKey("SessionId")]
     [InverseProperty("ChatMessages")]
     public virtual ChatSession? Session { get; set; }

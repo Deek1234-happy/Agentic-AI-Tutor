@@ -36,7 +36,7 @@ namespace AgenticAITutor.Controllers
             var response = new AIMessageResponse
             {
                 AIMessage = $"This is a simulated AI response to your question '{request?.UserMessage}'. Based on your documents, The system found relevant information",
-                UsedChunks = new List<AICitationDTO>()
+                UsedChunks = new List<AICitation>()
             };
 
            if(allAllowedChunks.Count > 0 )
@@ -47,7 +47,7 @@ namespace AgenticAITutor.Controllers
                     int randomIndex = Random.Shared.Next(0, allAllowedChunks.Count);
                     var selectedChunk = allAllowedChunks[randomIndex];
 
-                    response.UsedChunks.Add(new AICitationDTO
+                    response.UsedChunks.Add(new AICitation
                     {
                         ChunkId = selectedChunk.Id,
                         DocumentId = selectedChunk.DocumentId,

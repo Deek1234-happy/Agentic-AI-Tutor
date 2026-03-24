@@ -19,20 +19,36 @@ namespace AgenticAITutor.Controllers
             this.messageService = messageService;
         }
 
-        [HttpPost]
+        [HttpPost("SendMessage")]
         public async Task<IActionResult> SendMessage([FromBody] UserMessageRequest request)
         {
             var userId = User.GetUserId();
             if(userId == Guid.Empty)
                 return Unauthorized("Invalid Token.");
 
+            if(!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             request.UserId = userId;
 
-            var response = await messageService.SendMessageAsync(request);
-            if(!response.Success)
-                return BadRequest(response.Message);
 
-            return Ok(response.Data);
+            if (request.SearchWeb)
+            {
+                var webResponse = await messageService.SendWebMessageAsync(request);
+
+                if (!webResponse.Success)
+                    return BadRequest(webResponse.Message);
+
+                return Ok(webResponse.Data);
+            }
+            else
+            {
+                var aiResponse = await messageService.SendAIMessageAsync(request);
+                if (!aiResponse.Success)
+                    return BadRequest(aiResponse.Message);
+
+                return Ok(aiResponse.Data);
+            }
         }
 
         [HttpGet("{sessionId}")]

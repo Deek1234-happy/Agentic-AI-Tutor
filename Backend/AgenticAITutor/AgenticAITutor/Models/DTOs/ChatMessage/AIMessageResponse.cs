@@ -7,9 +7,9 @@ namespace AgenticAITutor.Models.DTOs
             [JsonPropertyName("answer")]
             public string? AIMessage { get; set; }
 
-        [JsonPropertyName("confidence_score")]
-        public double ConfidenceScore { get; set; } = 0;
-        [JsonPropertyName("citations")]
-            public List<AICitationDTO>? UsedChunks { get; set; }
+            [JsonPropertyName("confidence_score")]
+            public double ConfidenceScore { get; set; } = 0;
+            [JsonPropertyName("citations")]
+            public List<AICitation>? UsedChunks { get; set; }
         }
     }

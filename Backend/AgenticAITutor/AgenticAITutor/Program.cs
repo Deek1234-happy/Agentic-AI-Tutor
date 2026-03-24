@@ -121,6 +121,9 @@ namespace AgenticAITutor
             builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
             builder.Services.AddScoped<IChatMessageService, ChatMessageService>();
 
+            builder.Services.AddScoped<IChatWebSourceRepository, ChatWebSourceRepository>();
+
+
             builder.Services.AddHttpClient();
 
             var app = builder.Build();

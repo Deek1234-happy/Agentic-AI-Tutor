@@ -2,7 +2,7 @@
 
 namespace AgenticAITutor.Models.DTOs
 {
-    public class AICitationDTO
+    public class AICitation
     {
         [JsonPropertyName("document_id")]
         public Guid? DocumentId { get; set; }
