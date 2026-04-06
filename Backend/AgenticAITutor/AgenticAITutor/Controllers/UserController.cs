@@ -4,6 +4,7 @@ using AgenticAITutor.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace AgenticAITutor.Controllers
 {
@@ -19,7 +20,14 @@ namespace AgenticAITutor.Controllers
             this.userService = userService;
         }
 
+        /// <summary>Get the current user's profile</summary>
+        /// <response code="200">Returns user profile data</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="404">User not found</response>
         [HttpGet("profile")]
+        [ProducesResponseType<UserResponse>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(404)]
         public async Task<IActionResult> GetProfile()
         {
             var userId = User.GetUserId();
@@ -33,6 +41,13 @@ namespace AgenticAITutor.Controllers
             return Ok(user.Data);
         }
 
+        /// <summary>Update the current user's profile</summary>
+        /// <response code="200">Profile updated successfully</response>
+        /// <response code="400">Validation error</response>
+        /// <response code="401">Invalid or missing token</response>
+        [ProducesResponseType<UserResponse>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(404)]
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UserUpdateRequest request)
         {
@@ -51,6 +66,13 @@ namespace AgenticAITutor.Controllers
             return Ok(result.Data);
         }
 
+        /// <summary>Delete the current user's account permanently</summary>
+        /// <response code="200">Account deleted Successfully</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation error</response>
+        [ProducesResponseType<string>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(404)]
         [HttpDelete("profile")]
         public async Task<IActionResult> DeleteProfile()
         {

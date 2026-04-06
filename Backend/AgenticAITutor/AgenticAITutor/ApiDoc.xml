@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AgenticAITutor</name>
+    </assembly>
+    <members>
+        <member name="M:AgenticAITutor.Controllers.AuthController.RegisterAsync(AgenticAITutor.Models.DTOs.Auth.RegisterRequest)">
+            <summary> Register a New User Account </summary>
+            <remarks> Returns a JWT Token on Success</remarks>
+            <response code="200">Registration successful — returns JWT token</response>
+            <response code="400">Email already exists or validation failed</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.LoginAsync(AgenticAITutor.Models.DTOs.Auth.LoginRequest)">
+            <summary> Login With Existing Credentials </summary>
+            <remarks> Returns a JWT Token on Success</remarks>
+            <response code="200">Login successful — returns JWT token</response>
+            <response code="400">Invalid email or password</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SendMessage(AgenticAITutor.Models.DTOs.UserMessageRequest)">
+            <summary>Send a message and receive an AI response</summary>
+            <remarks>
+            Set **searchWeb: true** to query the web, or **false** to query your uploaded documents.
+            Provide **allowedDocumentIds** to restrict which documents the AI can reference.
+            </remarks>
+            <response code="200">AI response with optional document citations</response>
+            <response code="400">Message processing failed</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.GetSessionMessages(System.Guid)">
+            <summary>Get all messages in a chat session</summary>
+            <param name="sessionId">Session GUID</param>
+            <response code="200">List of messages</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation Error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.CreateSession(AgenticAITutor.Models.DTOs.ChatSessionRequest)">
+            <summary>Create a new chat session</summary>
+            <response code="200">Session created — returns session data</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.GetUserSessions">
+            <summary>Get all chat sessions for the current user(Chat History)</summary>
+            <response code="200">List of chat sessions</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.UpdateSessionTitleAsync(AgenticAITutor.Models.DTOs.ChatSessionUpdate)">
+            <summary>Update the title of a chat session</summary>
+            <response code="200">Title updated</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.DeleteSessionAsync(System.Guid)">
+            <summary>Delete a chat session by ID</summary>
+            <param name="sessionId">Session GUID</param>
+            <response code="200">Session deleted</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.Upload(AgenticAITutor.Models.DTOs.DocumentRequest)">
+            <summary>Upload a new document</summary>
+            <remarks>Accepts multipart/form-data. The file is processed and chunked after upload.</remarks>
+            <response code="200">Document uploaded and processed</response>
+            <response code="400">Validation error</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.Update(AgenticAITutor.Models.DTOs.DocumentUpdate)">
+            <summary>Update document metadata (title or subject)</summary>
+            <response code="200">Document updated</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.Delete(System.Guid)">
+            <summary>Delete a document by ID</summary>
+            <param name="id">Document GUID</param>
+            <response code="200">Document deleted</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.GetAll">
+            <summary>Get all documents for the current user</summary>
+            <response code="200">List of documents</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.GetBySubject(System.Guid)">
+            <summary>Get all documents under a specific subject</summary>
+            <param name="subjectId">Subject GUID</param>
+            <response code="200">List of documents</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.GetById(System.Guid)">
+            <summary>Get a document by ID</summary>
+            <param name="id">Document GUID</param>
+            <response code="200">Document details</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Add(AgenticAITutor.Models.DTOs.SubjectModel)">
+            <summary>Create a new study subject</summary>
+            <response code="200">Subject created successfully</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation Error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.GetAll">
+            <summary>Get all subjects for the current user</summary>
+            <response code="200">List of subjects</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Get(System.Guid)">
+            <summary>Get a subject by ID</summary>
+            <param name="id">Subject GUID</param>
+            <response code="200">Subject found</response>
+            <response code="404">Subject not found</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Update(System.Guid,AgenticAITutor.Models.DTOs.SubjectModel)">
+            <summary>Update a subject by ID</summary>
+            <param name="id">Subject GUID</param>
+            <response code="200">Subject updated</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Delete(System.Guid)">
+            <summary>Delete a subject by ID</summary>
+            <param name="id">Subject GUID</param>
+            <response code="200">Subject deleted</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.UserController.GetProfile">
+            <summary>Get the current user's profile</summary>
+            <response code="200">Returns user profile data</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="404">User not found</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.UserController.UpdateProfile(AgenticAITutor.Models.DTOs.UserUpdateRequest)">
+            <summary>Update the current user's profile</summary>
+            <response code="200">Profile updated successfully</response>
+            <response code="400">Validation error</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.UserController.DeleteProfile">
+            <summary>Delete the current user's account permanently</summary>
+            <response code="200">Account deleted Successfully</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+    </members>
+</doc>

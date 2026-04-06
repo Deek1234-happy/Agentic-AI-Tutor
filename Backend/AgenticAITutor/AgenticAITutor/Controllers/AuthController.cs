@@ -16,7 +16,13 @@ namespace AgenticAITutor.Controllers
             this.authService = authService;
         }
 
+        /// <summary> Register a New User Account </summary>
+        /// <remarks> Returns a JWT Token on Success</remarks>
+        /// <response code="200">Registration successful — returns JWT token</response>
+        /// <response code="400">Email already exists or validation failed</response>
         [HttpPost("register")]
+        [ProducesResponseType<AuthResponse>(200)]
+        [ProducesResponseType<string>(400)]
         public async Task<IActionResult> RegisterAsync([FromBody]RegisterRequest request)
         {
             //if(!ModelState.IsValid)
@@ -30,7 +36,13 @@ namespace AgenticAITutor.Controllers
             return Ok(result);
         }
 
+        /// <summary> Login With Existing Credentials </summary>
+        /// <remarks> Returns a JWT Token on Success</remarks>
+        /// <response code="200">Login successful — returns JWT token</response>
+        /// <response code="400">Invalid email or password</response>
         [HttpPost("login")]
+        [ProducesResponseType<AuthResponse>(200)]
+        [ProducesResponseType<string>(400)]
         public async Task<IActionResult> LoginAsync([FromBody] LoginRequest request)
         {
             //if (!ModelState.IsValid)

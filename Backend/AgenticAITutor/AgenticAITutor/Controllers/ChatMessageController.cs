@@ -1,4 +1,5 @@
 ﻿using AgenticAITutor.Extensions;
+using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -19,6 +20,18 @@ namespace AgenticAITutor.Controllers
             this.messageService = messageService;
         }
 
+        /// <summary>Send a message and receive an AI response</summary>
+        /// <remarks>
+        /// Set **searchWeb: true** to query the web, or **false** to query your uploaded documents.
+        /// Provide **allowedDocumentIds** to restrict which documents the AI can reference.
+        /// </remarks>
+        /// <response code="200">AI response with optional document citations</response>
+        /// <response code="400">Message processing failed</response>
+        /// <response code="401">Invalid or missing token</response>
+        [ProducesResponseType<AIMessageResponse>(200)]
+        [ProducesResponseType<WebSearchResponse>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(400)]
         [HttpPost("SendMessage")]
         public async Task<IActionResult> SendMessage([FromBody] UserMessageRequest request)
         {
@@ -51,6 +64,14 @@ namespace AgenticAITutor.Controllers
             }
         }
 
+        /// <summary>Get all messages in a chat session</summary>
+        /// <param name="sessionId">Session GUID</param>
+        /// <response code="200">List of messages</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation Error</response>
+        [ProducesResponseType<List<ChatMessage>>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(400)]
         [HttpGet("{sessionId}")]
         public async Task<IActionResult> GetSessionMessages(Guid sessionId)
         {

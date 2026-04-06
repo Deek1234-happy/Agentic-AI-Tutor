@@ -22,6 +22,13 @@ namespace AgenticAITutor.Controllers
             this.subjectService = subjectService;
         }
 
+        /// <summary>Create a new study subject</summary>
+        /// <response code="200">Subject created successfully</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation Error</response>
+        [ProducesResponseType<SubjectModel>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(400)]
         [HttpPost]
         public async Task<IActionResult> Add([FromBody]SubjectModel subjectModel)
         {
@@ -36,6 +43,12 @@ namespace AgenticAITutor.Controllers
             string result = await subjectService.AddAsync(subjectModel);
             return Ok(result);
         }
+
+        /// <summary>Get all subjects for the current user</summary>
+        /// <response code="200">List of subjects</response>
+        /// <response code="401">Invalid or missing token</response>
+        [ProducesResponseType<List<SubjectModel>>(200)]
+        [ProducesResponseType<string>(401)]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -59,6 +72,14 @@ namespace AgenticAITutor.Controllers
 
         }
 
+        /// <summary>Get a subject by ID</summary>
+        /// <param name="id">Subject GUID</param>
+        /// <response code="200">Subject found</response>
+        /// <response code="404">Subject not found</response>
+        /// <response code="401">Invalid or missing token</response>
+        [ProducesResponseType<SubjectModel>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(404)]
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(Guid id)
         {
@@ -80,6 +101,13 @@ namespace AgenticAITutor.Controllers
             return Ok(subjectModel);
         }
 
+        /// <summary>Update a subject by ID</summary>
+        /// <param name="id">Subject GUID</param>
+        /// <response code="200">Subject updated</response>
+        /// <response code="401">Invalid or missing token</response>
+        [ProducesResponseType<string>(200)]
+        [ProducesResponseType<string>(400)]
+        [ProducesResponseType<string>(401)]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] SubjectModel subjectModel)
         {
@@ -96,10 +124,19 @@ namespace AgenticAITutor.Controllers
             return Ok(result.Message);
         }
 
+        /// <summary>Delete a subject by ID</summary>
+        /// <param name="id">Subject GUID</param>
+        /// <response code="200">Subject deleted</response>
+        /// <response code="401">Invalid or missing token</response>
+        [ProducesResponseType<string>(200)]
+        [ProducesResponseType<string>(400)]
+        [ProducesResponseType<string>(401)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var userId = User.GetUserId();
+            if (userId == Guid.Empty)
+                return Unauthorized("Invalid Token : User ID Not Found");
 
             var result = await subjectService.DeleteAsync(id, userId);
 

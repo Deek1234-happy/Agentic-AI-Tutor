@@ -19,6 +19,13 @@ namespace AgenticAITutor.Controllers
             this.sessionService = sessionService;
         }
 
+        /// <summary>Create a new chat session</summary>
+        /// <response code="200">Session created — returns session data</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation error</response>
+        [ProducesResponseType<ChatSessionResponse>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(400)]
         [HttpPost]
         public async Task<IActionResult> CreateSession([FromBody] ChatSessionRequest request)
         {
@@ -35,6 +42,13 @@ namespace AgenticAITutor.Controllers
             return Ok(result.Data);
         }
 
+        /// <summary>Get all chat sessions for the current user(Chat History)</summary>
+        /// <response code="200">List of chat sessions</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation error</response>
+        [ProducesResponseType<List<ChatSessionResponse>>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(400)]
         [HttpGet]
         public async Task<IActionResult> GetUserSessions()
         {
@@ -49,7 +63,13 @@ namespace AgenticAITutor.Controllers
 
             return Ok(result.Data);
         }
-
+        /// <summary>Update the title of a chat session</summary>
+        /// <response code="200">Title updated</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation error</response>
+        [ProducesResponseType<string>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(400)]
         [HttpPut]
         public async Task<IActionResult> UpdateSessionTitleAsync([FromBody] ChatSessionUpdate request)
         {
@@ -66,6 +86,14 @@ namespace AgenticAITutor.Controllers
             return Ok(result.Message);
         }
 
+        /// <summary>Delete a chat session by ID</summary>
+        /// <param name="sessionId">Session GUID</param>
+        /// <response code="200">Session deleted</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation error</response>
+        [ProducesResponseType<string>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(400)]
         [HttpDelete("{sessionId}")]
         public async Task<IActionResult> DeleteSessionAsync([FromHeader] Guid sessionId)
         {
