@@ -11,7 +11,6 @@ namespace AgenticAITutor.Services
         private readonly IDocumentRepository documentRepository;
         private readonly HttpClient httpClient;
         private readonly IConfiguration configuration;
-        private MockedEmbeddings mockedDocumentChunkService;
 
         public DocumentChunkService(IDocumentChunkRepository chunkRepository, 
             IDocumentRepository documentRepository, 
@@ -22,7 +21,6 @@ namespace AgenticAITutor.Services
             this.documentRepository = documentRepository;
             this.httpClient = httpClient;
             this.configuration = configuration;
-            this.mockedDocumentChunkService = new MockedEmbeddings(chunkRepository);
         }
 
         public async Task ChunkDocumentAsync(DocumentChunkRequest chunkRequest)

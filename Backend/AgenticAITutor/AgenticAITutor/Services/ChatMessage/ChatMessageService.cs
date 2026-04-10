@@ -1,5 +1,6 @@
 ﻿using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
+using AgenticAITutor.Models.DTOs.ChatMessage;
 using AgenticAITutor.Repositories;
 
 namespace AgenticAITutor.Services
@@ -12,6 +13,7 @@ namespace AgenticAITutor.Services
         private readonly HttpClient httpClient;
         private readonly IConfiguration configuration;
         private readonly IChatWebSourceRepository webSourceRepository;
+        private readonly IFileStorageService fileStorageService;
 
         public ChatMessageService(
             IChatMessageRepository messageRepository, 
@@ -19,7 +21,8 @@ namespace AgenticAITutor.Services
             IDocumentChunkRepository chunkRepository, 
             HttpClient httpClient,
             IConfiguration configuration,
-            IChatWebSourceRepository webSourceRepository)
+            IChatWebSourceRepository webSourceRepository,
+            IFileStorageService fileStorageService)
         {
             this.messageRepository = messageRepository;
             this.sessionRepository = sessionRepository;
@@ -27,6 +30,8 @@ namespace AgenticAITutor.Services
             this.httpClient = httpClient;
             this.configuration = configuration;
             this.webSourceRepository = webSourceRepository;
+            this.fileStorageService = fileStorageService;
+            this.httpClient.Timeout = TimeSpan.FromMinutes(10);
         }
 
         public async Task<ServiceResponse<AIMessageResponse>> SendAIMessageAsync(UserMessageRequest request)
@@ -300,6 +305,131 @@ namespace AgenticAITutor.Services
 
         }
 
+        public async Task<ServiceResponse<AIAudioResponse>> SendVoiceMessageAsync(UserAudioRequest request)
+        {
+            var response = new ServiceResponse<AIAudioResponse>();
+
+            var session = await sessionRepository.GetByIdAsync(request.SessionId, request.UserId);
+            if(session == null)
+            {
+                response.Success = false;
+                response.Message = "Session Not Found or Unauthorized";
+                return response;
+            }
+
+            // Save User Audio 
+            string userAudioRelativePath = await fileStorageService.SaveFileAsync(request.Audio, request.UserId.ToString(), request.SessionId.ToString());
+            string userAudioWebUrl = $"/{userAudioRelativePath}";
+
+            // Save User Message to The Database 
+            var userMessage = new ChatMessage
+            {
+                SessionId = request.SessionId,
+                AudioUrl = userAudioRelativePath,
+                Role = "user",
+                Content = "Voice Note",
+                CreatedAt = DateTime.Now
+            };
+            await messageRepository.AddAsync(userMessage);
+
+            session.UpdatedAt = DateTime.Now;
+            await sessionRepository.UpdateAsync(session);
+
+            // Send The Audio to The AI (Streaming Directly From Memory For Better Performance) and Receives an AI Audio
+            string aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
+            string voicePath = configuration["AIService:VoicePath"] ?? "voice/ask-audio";
+
+            string aiURL = $"{aiBaseURL.TrimEnd('/')}/{voicePath.TrimStart('/')}";
+
+            AIAudioResponse? aiResponse = null;
+            using (var multipartFormContent = new MultipartFormDataContent())
+            {
+                multipartFormContent.Add(new StringContent(request.SessionId.ToString()), "session_id");
+                multipartFormContent.Add(new StringContent(request.UserId.ToString()), "user_id");
+
+                //Stream The IFormFile Directly
+                var fileStreamContent = new StreamContent(request.Audio.OpenReadStream());
+                fileStreamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(request.Audio.ContentType);
+                multipartFormContent.Add(fileStreamContent, name: "audio", fileName: request.Audio.FileName);
+
+                try
+                {
+                    httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                    var httpResponse = await httpClient.PostAsync(aiURL, multipartFormContent);
+
+                    if (!httpResponse.IsSuccessStatusCode)
+                    {
+                        string errorBody = await httpResponse.Content.ReadAsStringAsync();
+                        response.Success = false;
+                        response.Message = $"AI Voice API Failed! Status: {httpResponse.StatusCode}. Details: {errorBody}";
+                        return response;
+                    }
+
+                    aiResponse = await httpResponse.Content.ReadFromJsonAsync<AIAudioResponse>();
+                }
+                catch (Exception ex)
+                {
+                    response.Success = false;
+                    response.Message = $"Failed to communicate with AI: {ex.Message}";
+                    return response;
+                }
+            }
+
+
+            // Download and Save AI Audio Response 
+            string? finalAiAudioWebUrl = null;
+            if (aiResponse != null && !string.IsNullOrEmpty(aiResponse.AudioUrl))
+            {
+                try
+                {
+                    Uri aiGeneratedUri = new Uri(aiResponse.AudioUrl);
+                    string downloadableAudioUrl = $"{aiBaseURL.TrimEnd('/')}{aiGeneratedUri.PathAndQuery}";
+
+                    // Download to Memory 
+                    byte[] audioBytes = await httpClient.GetByteArrayAsync(downloadableAudioUrl);
+
+                    // Save it in Uploads Folder
+                    string aiAudioRelativePath = await fileStorageService.SaveFileAsync(audioBytes, "ai_response.wav", request.UserId.ToString(), request.SessionId.ToString()); ;
+                    finalAiAudioWebUrl = $"/{aiAudioRelativePath}";
+
+                    // Update the link for the mobile frontend
+                    aiResponse.AudioUrl = $"{configuration["AppConfig:BaseURL"]}{finalAiAudioWebUrl}";
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to download AI audio: {ex.Message}");
+                }
+            }
+
+            if(aiResponse != null)
+            {
+                var aiMessage = new ChatMessage
+                {
+                    SessionId = request.SessionId,
+                    Role = "assistant",
+                    Content = aiResponse.AnswerText ?? "No Response Generated.",
+                    AudioUrl = finalAiAudioWebUrl,
+                    CreatedAt = DateTime.Now,
+                    ConfidenceScore = aiResponse.Confidence
+                };
+
+                if (aiResponse.Citations != null)
+                {
+                    foreach (var citation in aiResponse.Citations)
+                    {
+                        DocumentChunk chunk = await chunkRepository.GetByIdAsync(citation.ChunkId);
+                        if (chunk != null) aiMessage.Chunks.Add(chunk);
+                    }
+                }
+
+                await messageRepository.AddAsync(aiMessage);
+            }
+
+            response.Success = true;
+            response.Data = aiResponse;
+            return response;
+
+        }
 
         public async Task<ServiceResponse<List<ChatMessage>>> GetSessionMessagesAsync(Guid userId, Guid sessionId)
         {

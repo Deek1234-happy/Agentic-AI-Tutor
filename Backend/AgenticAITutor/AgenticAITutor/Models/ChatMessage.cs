@@ -14,7 +14,7 @@ public partial class ChatMessage
     public Guid Id { get; set; }
 
     [Column("session_id")]
-    public Guid? SessionId { get; set; }
+    public Guid SessionId { get; set; }
 
     [Column("role")]
     [StringLength(20)]
@@ -29,12 +29,15 @@ public partial class ChatMessage
     [Column("created_at", TypeName = "timestamp without time zone")]
     public DateTime? CreatedAt { get; set; }
 
+    [Column("audio_url")]
+    public string? AudioUrl { get; set; }
+
     [InverseProperty("Message")]
     public virtual ICollection<ChatWebSource> ChatWebSources { get; set; } = new List<ChatWebSource>();
 
     [ForeignKey("SessionId")]
     [InverseProperty("ChatMessages")]
-    public virtual ChatSession? Session { get; set; }
+    public virtual ChatSession Session { get; set; } = null!;
 
     [ForeignKey("MessageId")]
     [InverseProperty("Messages")]

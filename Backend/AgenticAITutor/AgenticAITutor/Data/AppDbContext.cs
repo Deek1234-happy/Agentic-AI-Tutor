@@ -73,9 +73,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.HasOne(d => d.Session).WithMany(p => p.ChatMessages)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("chat_messages_session_id_fkey");
+            entity.HasOne(d => d.Session).WithMany(p => p.ChatMessages).HasConstraintName("chat_messages_session_id_fkey");
 
             entity.HasMany(d => d.Chunks).WithMany(p => p.Messages)
                 .UsingEntity<Dictionary<string, object>>(

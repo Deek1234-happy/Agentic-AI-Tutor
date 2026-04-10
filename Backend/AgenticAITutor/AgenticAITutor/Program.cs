@@ -62,7 +62,8 @@ namespace AgenticAITutor
                     Version = "v1",
                     Title = "Agentic AI Tutor APIs"
                 });
-                options.IncludeXmlComments("D:\\.Net Projects\\Graduation Project\\Implementation\\Agentic-AI-Tutor\\Backend\\AgenticAITutor\\AgenticAITutor\\ApiDoc.xml");
+                var filePath = Path.Combine(System.AppContext.BaseDirectory, "ApiDoc.xml");
+                options.IncludeXmlComments(filePath);
 
             });
 

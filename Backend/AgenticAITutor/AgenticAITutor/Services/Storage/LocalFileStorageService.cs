@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 namespace AgenticAITutor.Services
 {
@@ -33,6 +32,26 @@ namespace AgenticAITutor.Services
             return Path.Combine("uploads", userFolder ,subFolder, uniqueFileName).Replace("\\", "/");
             
         }
+
+        public async Task<string> SaveFileAsync(byte[] fileBytes, string fileName, string userFolder, string subFolder)
+        {
+            string webRootPath = webHostEnvironment.WebRootPath;
+            if (string.IsNullOrEmpty(webRootPath))
+                webRootPath = Path.Combine(webHostEnvironment.ContentRootPath, "wwwroot");
+
+            var uploadsFolder = Path.Combine(webRootPath, "uploads", userFolder, subFolder);
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(fileName);
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            await File.WriteAllBytesAsync(filePath, fileBytes);
+
+            return Path.Combine("uploads", userFolder, subFolder, uniqueFileName).Replace("\\", "/");
+        }
+
+
         public Task DeleteFileAsync(string relativePath)
         {
             string webRootPath = webHostEnvironment.WebRootPath;

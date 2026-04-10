@@ -16,14 +16,28 @@
             <response code="200">Login successful — returns JWT token</response>
             <response code="400">Invalid email or password</response>
         </member>
-        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SendMessage(AgenticAITutor.Models.DTOs.UserMessageRequest)">
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SendAIMessage(AgenticAITutor.Models.DTOs.UserMessageRequest)">
             <summary>Send a message and receive an AI response</summary>
             <remarks>
-            Set **searchWeb: true** to query the web, or **false** to query your uploaded documents.
-            Provide **allowedDocumentIds** to restrict which documents the AI can reference.
+            Set **searchWeb: False** to query your uploaded documents.
             </remarks>
-            <response code="200">AI response with optional document citations</response>
-            <response code="400">Message processing failed</response>
+            <response code="200">AI response with document citations</response>
+            <response code="400">Message processing failed or Validation Error</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SearchWeb(AgenticAITutor.Models.DTOs.UserMessageRequest)">
+            <summary>Send a message and receive a Web Search response</summary>
+            <remarks>
+            Set **searchWeb: true** to query the web
+            </remarks>
+            <response code="200">Web Search response with Sources</response>
+            <response code="400">Message processing failed or Validation Error</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SendVoiceMessage(AgenticAITutor.Models.DTOs.ChatMessage.UserAudioRequest)">
+            <summary>Send a voice message and receive an AI voice response</summary>
+            <response code="200">AI audio response with transcript and citations</response>
+            <response code="400">Audio processing failed</response>
             <response code="401">Invalid or missing token</response>
         </member>
         <member name="M:AgenticAITutor.Controllers.ChatMessageController.GetSessionMessages(System.Guid)">
