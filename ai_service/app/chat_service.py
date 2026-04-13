@@ -300,27 +300,65 @@ JSON:
 
     return {"intent": "needs_answer", "reply": ""}
 
+
 # ============================================================
-# MAIN CHAT LOGIC 
+# KG RETRIEVAL HELPER  (non-blocking — never breaks RAG flow)
+# ============================================================
+
+def _try_kg_retrieval(
+    question:             str,
+    session_id:           str,
+    user_id:              str,
+    allowed_document_ids: list,
+) -> str:
+    """
+    Attempt a session-aware, subject-scoped KG retrieval.
+
+    Uses the session_id to resolve the subject automatically from
+    the existing rag.chat_documents + content.documents tables.
+
+    Returns IDK_MESSAGE on any error — the RAG pipeline is unaffected.
+    """
+    try:
+        from .kg_service import (
+            retrieve_subgraph_for_session,
+            generate_kg_answer,
+        )
+
+        subgraph = retrieve_subgraph_for_session(
+            question=question,
+            session_id=str(session_id),
+            user_id=str(user_id),
+            allowed_document_ids=[str(d) for d in allowed_document_ids],
+        )
+
+        kg_answer = generate_kg_answer(question=question, subgraph=subgraph)
+
+        print(f"\n[Chat] KG answer preview: {kg_answer[:200]}")
+        return kg_answer
+
+    except Exception as exc:
+        print(f"[Chat] KG retrieval failed (non-fatal): {exc}")
+        return IDK_MESSAGE
+
+
+# ============================================================
+# MAIN CHAT LOGIC
 # ============================================================
 
 def handle_chat(payload):
-   
 
     if not session_exists(payload.session_id):
-<<<<<<< HEAD
         return {"answer": IDK_MESSAGE, "confidence_score": 0.0, "citations": []}
-=======
-        return {"answer": IDK_MESSAGE, "citations": []}
->>>>>>> 371c58ad04849e8c28f98c4e3ecad876751344ee
-    
+
     # 1️⃣ Classify intent first
     intent_result = classify_intent_llm(payload.question)
 
     # 2️⃣ If only greeting → return immediately
     if intent_result["intent"] == "greeting_only":
         return {
-            "answer": intent_result["reply"],  # polite greeting
+            "answer": intent_result["reply"],
+            "confidence_score": 0.0,
             "citations": []
         }
 
@@ -385,10 +423,9 @@ def handle_chat(payload):
             user_id=payload.user_id,
             top_k=payload.top_k
         )
-        
+
         print(f"Retrieved {len(results)} chunks (before filtering)")
 
-        # Apply similarity threshold
         filtered = [r for r in results if r[5] >= SIMILARITY_THRESHOLD]
 
         print(f"Kept {len(filtered)} chunks (score >= {SIMILARITY_THRESHOLD})")
@@ -397,10 +434,6 @@ def handle_chat(payload):
             print(f"  → Doc: {r[1]} | Pages: {r[3]}-{r[4]} | Score: {r[5]}")
 
         all_retrieved.extend(filtered)
-
-    if not all_retrieved:
-        print("\nNo chunks passed similarity threshold.")
-        return {"answer": IDK_MESSAGE, "confidence_score": 0.0, "citations": []}
 
     # ============================
     # Deduplicate + Final Threshold Safety
@@ -411,23 +444,19 @@ def handle_chat(payload):
         unique[r[0]] = r
 
     retrieved = list(unique.values())
-
-    # Safety threshold re-check
     retrieved = [r for r in retrieved if r[5] >= SIMILARITY_THRESHOLD]
-
     retrieved = sorted(retrieved, key=lambda x: x[5], reverse=True)[:5]
 
-    if not retrieved:
-        print("\nAll chunks removed after threshold filtering.")
-        return {"answer": IDK_MESSAGE, "confidence_score": 0.0, "citations": []}
-
-    context = build_context(retrieved)
-
     # ============================
-    # Final synthesis
+    # RAG Answer  (original, unchanged)
     # ============================
 
-    prompt = f"""
+    rag_answer = IDK_MESSAGE
+
+    if retrieved:
+        context = build_context(retrieved)
+
+        rag_prompt = f"""
 You are an academic tutor.
 
 Your task is to provide a clear, detailed explanation as if teaching a student.
@@ -438,7 +467,7 @@ IMPORTANT RULES:
 - You may explain relationships between ideas that are explicitly supported by the context.
 - Do NOT introduce new concepts, examples, or facts not present in the context.
 - Answer the QUESTION in the **same language as it is asked**.
-- If the message starts with a greeting and you are also prepending a greeting, do NOT repeat the greeting at the beginning of your answer."
+- If the message starts with a greeting and you are also prepending a greeting, do NOT repeat the greeting at the beginning of your answer.
 - If the context does not provide enough information, say exactly:
 "{IDK_MESSAGE}"
 
@@ -453,42 +482,79 @@ QUESTION:
 
 EXPLANATION:
 """
+        try:
+            rag_answer = generate_answer(rag_prompt, temperature=0.1)
+            rag_answer = rag_answer.strip() if rag_answer else IDK_MESSAGE
+        except Exception:
+            rag_answer = IDK_MESSAGE
 
-    answer = generate_answer(prompt, temperature=0.1)
+        print("\n=== RAG ANSWER ===")
+        print(rag_answer[:300])
+        print("==================")
+
+        print("\n=== FINAL RETRIEVED CHUNKS USED ===")
+        for r in retrieved:
+            print(f"Document: {r[1]}")
+            print(f"Pages: {r[3]} - {r[4]}")
+            print(f"Score: {r[5]}")
+            print(r[2][:500])
+            print("------")
+
+    else:
+        print("\nNo chunks passed similarity threshold — skipping RAG answer.")
+
+    # ============================
+    # KG Answer  (session-aware, subject-scoped)
+    # ============================
+
+    kg_answer = _try_kg_retrieval(
+        question=payload.question,
+        session_id=payload.session_id,
+        user_id=payload.user_id,
+        allowed_document_ids=payload.allowed_document_ids,
+    )
+
+    # ============================
+    # Hybrid Fusion
+    # ============================
+
+    try:
+        from .kg_service import fuse_answers
+        final_answer = fuse_answers(
+            question=payload.question,
+            rag_answer=rag_answer,
+            kg_answer=kg_answer,
+        )
+    except Exception as exc:
+        print(f"[Chat] Fusion failed, falling back to RAG answer: {exc}")
+        final_answer = rag_answer
+
+    print("\n=== HYBRID FINAL ANSWER ===")
+    print(final_answer[:300])
+    print("===========================")
+
     # Prepend greeting if needed
     if prepend_greeting:
-        answer = prepend_greeting + answer
+        final_answer = prepend_greeting + final_answer
 
-    print("\n=== RAW MODEL OUTPUT ===")
-    print(answer)
-    print("========================")
-
-    print("\n=== FINAL RETRIEVED CHUNKS USED ===")
-    for r in retrieved:
-        print(f"Document: {r[1]}")
-        print(f"Pages: {r[3]} - {r[4]}")
-        print(f"Score: {r[5]}")
-        print(r[2][:500])
-        print("------")
-
-    if not answer or IDK_MESSAGE.lower() in answer.lower():
+    # Guard: both sources returned IDK
+    if not final_answer or IDK_MESSAGE.lower() in final_answer.lower():
         return {"answer": IDK_MESSAGE, "confidence_score": 0.0, "citations": []}
 
-    
-    confidence_score = 0
-    
+    confidence_score = 0.0
+
     citations = [
         {
             "document_id": str(r[1]),
-            "chunk_id": str(r[0]),
-            "page_start": r[3],
-            "page_end": r[4],
+            "chunk_id":    str(r[0]),
+            "page_start":  r[3],
+            "page_end":    r[4],
         }
         for r in retrieved
     ]
 
     return {
-        "answer": answer,
+        "answer":           final_answer,
         "confidence_score": confidence_score,
-        "citations": citations
+        "citations":        citations,
     }

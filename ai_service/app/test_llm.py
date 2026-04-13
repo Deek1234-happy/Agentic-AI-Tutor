@@ -1,12 +1,9 @@
-import requests
+# test_llm.py
+import sys
+import os
+sys.path.append("D:/Graduation_Project/Agentic-AI-Tutor/ai_service/app")
+from llm import test_groq_connection
 
-response = requests.post(
-    "http://localhost:11434/api/generate",
-    json={
-        "model": "phi3:mini",
-        "prompt": "Explain zero-day attack in one sentence.",
-        "stream": False
-    }
-)
-
-print(response.json())
+print("Testing Groq connection...")
+result = test_groq_connection()
+print(f"Result: {result}")

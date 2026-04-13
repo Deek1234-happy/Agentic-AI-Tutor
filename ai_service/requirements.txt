@@ -7,7 +7,9 @@ pillow
 pdf2image
 python-docx
 python-pptx
-sentence-transformers 
+sentence-transformers
+# Coqui TTS 0.22.x imports BeamSearchScorer from transformers; removed in v5 — keep v4.
+transformers>=4.41,<5
 torch
 faiss-cpu
 numpy
@@ -15,3 +17,11 @@ requests
 psycopg2-binary 
 sqlalchemy
 langdetect
+nltk
+TTS
+python-dotenv
+neo4j
+python-multipart
+pydub
+piper-tts
+faster_whisper

@@ -1,75 +1,64 @@
-from piper import PiperVoice
 import wave
-import re
 import os
+import uuid
 from pathlib import Path
+from piper import PiperVoice
+
+OUTPUT_DIR = "static/audio"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
 class PiperTTS:
 
     def __init__(self):
-        # Get current file directory
-        current_dir = os.path.dirname(os.path.abspath(__file__))
+        print("⚡ Loading Piper...")
 
-        # models folder inside app/audio
+        current_dir = os.path.dirname(os.path.abspath(__file__))
         base_path = os.path.join(current_dir, "models")
-        
-        # Create models directory if it doesn't exist
+
         Path(base_path).mkdir(parents=True, exist_ok=True)
 
-        # Load voices with automatic download support
-        # Piper will download models to the specified directory if they don't exist
-        self.en_voice = PiperVoice.load(
-            "en_US-amy-medium",
-            model_path=base_path,
-            download=True
-        )
+        model_path = os.path.join(base_path, "en_US-amy-medium.onnx")
+        config_path = os.path.join(base_path, "en_US-amy-medium.onnx.json")
 
-        self.ar_voice = PiperVoice.load(
-            "ar_JO-kareem-medium",
-            model_path=base_path,
-            download=True
-        )
+        
+        self.en_voice = PiperVoice.load(model_path, config_path)
 
-    def detect_language(self, text: str) -> str:
-        # Detect Arabic characters
-        if re.search(r'[\u0600-\u06FF]', text):
-            return "ar"
-        return "en"
-
-    def synthesize(self, text: str, output_path="response.wav") -> str:
-
-        lang = self.detect_language(text)
-        voice = self.ar_voice if lang == "ar" else self.en_voice
+    def synthesize(self, text: str, output_path: str):
 
         with wave.open(output_path, "wb") as wav_file:
             wav_file.setnchannels(1)
             wav_file.setsampwidth(2)
-            wav_file.setframerate(voice.config.sample_rate)
+            wav_file.setframerate(self.en_voice.config.sample_rate)
 
-            for chunk in voice.synthesize(text):
+            for chunk in self.en_voice.synthesize(text):
                 wav_file.writeframes(chunk.audio_int16_bytes)
 
         return output_path
-    
-    # create a stream version
+
+
+# ============================================================
+# LAZY LOAD
+# ============================================================
+
 _tts_instance = None
 
-def _initialize_tts():
-    """Lazy initialization of TTS instance"""
+def get_tts():
     global _tts_instance
     if _tts_instance is None:
-        try:
-            _tts_instance = PiperTTS()
-        except FileNotFoundError as e:
-            raise RuntimeError(
-                f"Piper TTS models not found. Please download the models to the app/audio/models directory. Error: {e}"
-            )
+        _tts_instance = PiperTTS()
     return _tts_instance
 
-def generate_speech(text: str, output_path: str = None) -> str:
-    if output_path is None:
-        import uuid
-        output_path = f"temp/response_{uuid.uuid4().hex}.wav"
 
-    tts = _initialize_tts()
-    return tts.synthesize(text, output_path)
+# ============================================================
+# GENERATE SPEECH
+# ============================================================
+
+def generate_speech(text: str):
+
+    file_name = f"{uuid.uuid4().hex}.wav"
+    output_path = os.path.join(OUTPUT_DIR, file_name)
+
+    get_tts().synthesize(text, output_path)
+
+    return output_path, "en"

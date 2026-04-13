@@ -5,4 +5,3 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 
 img = Image.open("C://Users//HP//My-Github//Agentic-AI-Tutor//test_files//arabic_test.png")
 print(pytesseract.image_to_string(img))
-
