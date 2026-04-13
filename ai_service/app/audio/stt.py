@@ -39,6 +39,10 @@ def transcribe_audio(audio_path: str) -> Tuple[str, float]:
     segments, info = model.transcribe(
         audio_path,
         beam_size=5,
+        language= None,
+        condition_on_previous_text=False,
+        task="transcribe",
+        initial_prompt = "The following audio may contain multiple languages. Transcribe exactly as spoken. Do not translate.",
         vad_filter=True
     )
 

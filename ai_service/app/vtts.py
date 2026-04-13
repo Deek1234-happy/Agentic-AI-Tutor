@@ -11,7 +11,6 @@ tts_engine = None
 
 class TTSRequest(BaseModel):
     text: str
-    session_id: str
 
 
 @router.post("/tts")
@@ -26,12 +25,6 @@ async def text_to_speech(request: TTSRequest):
         if not request.text.strip():
             raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-        # detect language
-        language = tts_engine.detect_language(request.text)
-
-        # engine selection
-        engine = "coqui" if language == "ar" else "piper"
-
         # generate audio
         audio_bytes = tts_engine.synthesize(request.text)
 
@@ -40,13 +33,7 @@ async def text_to_speech(request: TTSRequest):
 
         return StreamingResponse(
             io.BytesIO(audio_bytes),
-            media_type="audio/wav",
-            headers={
-                "X-Session-ID": request.session_id,
-                "X-Language": language,
-                "X-TTS-Engine": engine,
-                "X-Audio-Available": "true"
-            }
+            media_type="audio/wav"
         )
 
     except Exception as e:
