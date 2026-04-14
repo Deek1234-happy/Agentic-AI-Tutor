@@ -1,9 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException
 import uuid
 import os
 from app.audio.stt import transcribe_audio
-from pydantic import BaseModel
-
 
 router = APIRouter()
 
@@ -12,18 +10,9 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 MAX_SIZE = 10 * 1024 * 1024  # 10MB
 
-class STTResponse(BaseModel):
-    session_id: str
-    user_id: str
-    text: str
-    confidence: float
 
-@router.post("/stt",response_model=STTResponse)
-async def speech_to_text(
-    session_id: str = Form(...),
-    user_id: str = Form(...),
-    audio_file: UploadFile = File(...)
-):
+@router.post("/stt")
+async def speech_to_text(audio_file: UploadFile = File(...)):
     temp_path = None
 
     try:
@@ -44,23 +33,17 @@ async def speech_to_text(
         with open(temp_path, "wb") as f:
             f.write(content)
 
-        # ✅ call your STT
+        # ✅ STT
         text, confidence = transcribe_audio(temp_path)
 
-        #  logging 
         print(f"[STT] text={text}, confidence={confidence}")
 
-        return STTResponse(
-            session_id=session_id,
-            user_id=user_id,
-            text=text,
-            confidence=confidence
-        )
+        # 🎯 return text only
+        return {"text": text}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        # ✅ cleanup
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)

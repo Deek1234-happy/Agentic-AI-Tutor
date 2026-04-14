@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi import APIRouter
 from contextlib import asynccontextmanager
 import logging
 import os
@@ -16,6 +17,9 @@ from .kg_db import init_kg_schema
 from .voice import router as voice_router
 from .vstt import router as vstt_router
 from .vtts import router as vtts_route
+#from .evaluation.evaluation_service import evaluate
+from app.evaluation import evaluation
+
 
 # ============================================================
 # Lifespan — initialise Neo4j schema once at startup
@@ -114,3 +118,10 @@ app.include_router(
     prefix="/kg",
     tags=["Knowledge Graph"]
 )
+
+
+# ── Evaluation ───────────────────────────────────────────────
+
+
+
+app.include_router(evaluation.router)
