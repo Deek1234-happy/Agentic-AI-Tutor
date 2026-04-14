@@ -13,15 +13,22 @@ namespace AgenticAITutor.Services
         private readonly IDocumentRepository documentRepository;
         private readonly IFileStorageService fileStorageService;
         private readonly ISubjectRepository subjectRepository;
-        
+        private readonly IConfiguration configuration;
+        private readonly IDocumentChunkRepository chunkRepository;
         private readonly string[] allowedExtensions = { ".pdf", ".docx", ".txt", ".pptx" };
         private readonly long maxFileSize = 10 * 1024 * 1024; // 10 MB
 
-        public DocumentService(IDocumentRepository documentRepository, IFileStorageService fileStorageService, ISubjectRepository subjectRepository)
+        public DocumentService(IDocumentRepository documentRepository, 
+            IFileStorageService fileStorageService, 
+            ISubjectRepository subjectRepository, 
+            IConfiguration configuration,
+            IDocumentChunkRepository chunkRepository)
         {
             this.documentRepository = documentRepository;
             this.fileStorageService = fileStorageService;
             this.subjectRepository = subjectRepository;
+            this.configuration = configuration;
+            this.chunkRepository = chunkRepository;
         }
 
         public async Task<ServiceResponse<DocumentResponse>> UploadDocumentAsync(DocumentRequest request)
@@ -95,7 +102,7 @@ namespace AgenticAITutor.Services
                 Filename = Path.GetFileNameWithoutExtension(request.File.FileName),
                 FileSize = (int)request.File.Length,
                 FileType = extension, // Here is The File Extension
-                StoragePath = storagePath,
+                StoragePath = $"{configuration["AppConfig:BaseURL"]}/{storagePath}",
                 ContentHash = contentHash,
                 UploadTime = DateTime.Now,
                 ProcessingStatus = DocumentProcessingStatus.PENDING.ToString(),
@@ -236,6 +243,60 @@ namespace AgenticAITutor.Services
             return MapToResponse(document);
         }
 
+
+        public async Task<ServiceResponse<DocumentResponse>> RetryDocumentProcessingAsync(Guid documentId, Guid userId)
+        {
+            var response = new ServiceResponse<DocumentResponse>();
+
+            // 1. Find the document and verify ownership
+            var document = await documentRepository.GetByIdAsync(documentId);
+
+            if (document == null || document.IsDeleted == true)
+            {
+                response.Success = false;
+                response.Message = "Document Not Found.";
+                return response;
+            }
+
+            if (document.UserId != userId)
+            {
+                response.Success = false;
+                response.Message = "Unauthorized.";
+                return response;
+            }
+
+            // 2. Only allow retry when the previous attempt actually failed.
+            //    Prevent re-queuing a document that is already queued or processing.
+            if (document.ProcessingStatus != DocumentProcessingStatus.FAILED.ToString())
+            {
+                response.Success = false;
+                response.Message = document.ProcessingStatus switch
+                {
+                    "PENDING" => "Document is already queued for processing.",
+                    "PROCESSING" => "Document is currently being processed. Please wait.",
+                    "COMPLETED" => "Document has already been processed successfully.",
+                    _ => $"Retry is not allowed for status '{document.ProcessingStatus}'."
+                };
+                return response;
+            }
+
+            // 3. Clean up any partial chunks that may have been saved before the failure
+            await chunkRepository.DeleteByDocumentAsync(documentId);
+
+            // 4. Reset status back to PENDING so the UI reflects the queued state immediately
+            document.ProcessingStatus = DocumentProcessingStatus.PENDING.ToString();
+            await documentRepository.UpdateAsync(document);
+
+            // 5. Re-enqueue the background chunking job
+            BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
+
+            response.Success = true;
+            response.Message = "Document has been re-queued for processing.";
+            response.Data = MapToResponse(document);
+            return response;
+        }
+
+
         private DocumentResponse MapToResponse(Document document)
         {
             return new DocumentResponse
@@ -247,7 +308,8 @@ namespace AgenticAITutor.Services
                 FileSize = document.FileSize ?? 0,
                 FileType = document.FileType,
                 UploadTime = document.UploadTime ?? DateTime.Now,
-                ProcessingStatus = document.ProcessingStatus
+                ProcessingStatus = document.ProcessingStatus,
+                StoragePath = document.StoragePath
             };
         }
 

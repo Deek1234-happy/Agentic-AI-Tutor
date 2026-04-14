@@ -10,5 +10,6 @@ namespace AgenticAITutor.Services
         Task<List<DocumentResponse>> GetAllDocumentsAsync(Guid userId);
         Task<List<DocumentResponse>> GetDocumentsBySubjectAsync(Guid userId, Guid subjectId);
         Task<DocumentResponse?> GetDocumentsByIdAsync(Guid userId, Guid id);
+        Task<ServiceResponse<DocumentResponse>> RetryDocumentProcessingAsync(Guid documentId, Guid userId);
     }
 }

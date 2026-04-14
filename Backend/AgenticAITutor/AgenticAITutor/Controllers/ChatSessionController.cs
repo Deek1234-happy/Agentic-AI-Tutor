@@ -95,7 +95,7 @@ namespace AgenticAITutor.Controllers
         [ProducesResponseType<string>(401)]
         [ProducesResponseType<string>(400)]
         [HttpDelete("{sessionId}")]
-        public async Task<IActionResult> DeleteSessionAsync([FromHeader] Guid sessionId)
+        public async Task<IActionResult> DeleteSessionAsync(Guid sessionId)
         {
             var userId = User.GetUserId();
             if (userId == Guid.Empty)

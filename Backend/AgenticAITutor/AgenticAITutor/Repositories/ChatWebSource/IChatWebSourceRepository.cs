@@ -6,5 +6,6 @@ namespace AgenticAITutor.Repositories
     {
         Task AddAsync (ChatWebSource chatWebSource);
         Task<List<ChatWebSource>> GetByMessageIdAsync (Guid messageId);
+        Task AddRangeAsync(IEnumerable<ChatWebSource> chatWebSources);
     }
 }

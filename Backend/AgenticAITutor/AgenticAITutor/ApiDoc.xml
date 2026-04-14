@@ -20,6 +20,7 @@
             <summary>Send a message and receive an AI response</summary>
             <remarks>
             Set **searchWeb: False** to query your uploaded documents.
+            Forget About UserId and Allowed Document Ids Don't Send Them in The Request
             </remarks>
             <response code="200">AI response with document citations</response>
             <response code="400">Message processing failed or Validation Error</response>
@@ -29,15 +30,10 @@
             <summary>Send a message and receive a Web Search response</summary>
             <remarks>
             Set **searchWeb: true** to query the web
+            Forget About UserId and Allowed Document Ids Don't Send Them in The Request
             </remarks>
             <response code="200">Web Search response with Sources</response>
             <response code="400">Message processing failed or Validation Error</response>
-            <response code="401">Invalid or missing token</response>
-        </member>
-        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SendVoiceMessage(AgenticAITutor.Models.DTOs.ChatMessage.UserAudioRequest)">
-            <summary>Send a voice message and receive an AI voice response</summary>
-            <response code="200">AI audio response with transcript and citations</response>
-            <response code="400">Audio processing failed</response>
             <response code="401">Invalid or missing token</response>
         </member>
         <member name="M:AgenticAITutor.Controllers.ChatMessageController.GetSessionMessages(System.Guid)">
@@ -46,6 +42,19 @@
             <response code="200">List of messages</response>
             <response code="401">Invalid or missing token</response>
             <response code="400">Validation Error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SpeechToText(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>Convert an audio file to text (Transcribtion)</summary>
+            <response code="200">Returns the transcribed text</response>
+            <response code="400">Audio processing failed or missing file</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.TextToSpeech(System.Guid)">
+            <summary>Generate playable audio for an existing AI message</summary>
+            <param name="messageId">The GUID of the AI's chat message</param>
+            <response code="200">Returns the URL of the generated audio file</response>
+            <response code="400">TTS generation failed or unauthorized access</response>
+            <response code="401">Invalid or missing token</response>
         </member>
         <member name="M:AgenticAITutor.Controllers.ChatSessionController.CreateSession(AgenticAITutor.Models.DTOs.ChatSessionRequest)">
             <summary>Create a new chat session</summary>
@@ -103,13 +112,25 @@
             <response code="200">List of documents</response>
             <response code="401">Invalid or missing token</response>
         </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.RetryProcessing(System.Guid)">
+            <summary>Retry processing a document that previously failed</summary>
+            <param name="id">Document GUID</param>
+            <remarks>
+            Only documents with a **FAILED** processing status can be retried.
+            Attempting to retry a PENDING, PROCESSING, or COMPLETED document will return 400.
+            On success the document status is reset to PENDING and the chunking job is re-queued.
+            </remarks>
+            <response code="200">Document re-queued — returns updated document</response>
+            <response code="400">Document is not in FAILED status, or validation error</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
         <member name="M:AgenticAITutor.Controllers.DocumentController.GetById(System.Guid)">
             <summary>Get a document by ID</summary>
             <param name="id">Document GUID</param>
             <response code="200">Document details</response>
             <response code="401">Invalid or missing token</response>
         </member>
-        <member name="M:AgenticAITutor.Controllers.SubjectController.Add(AgenticAITutor.Models.DTOs.SubjectModel)">
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Add(AgenticAITutor.Models.DTOs.SubjectRequest)">
             <summary>Create a new study subject</summary>
             <response code="200">Subject created successfully</response>
             <response code="401">Invalid or missing token</response>
@@ -127,7 +148,7 @@
             <response code="404">Subject not found</response>
             <response code="401">Invalid or missing token</response>
         </member>
-        <member name="M:AgenticAITutor.Controllers.SubjectController.Update(System.Guid,AgenticAITutor.Models.DTOs.SubjectModel)">
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Update(System.Guid,AgenticAITutor.Models.DTOs.SubjectRequest)">
             <summary>Update a subject by ID</summary>
             <param name="id">Subject GUID</param>
             <response code="200">Subject updated</response>

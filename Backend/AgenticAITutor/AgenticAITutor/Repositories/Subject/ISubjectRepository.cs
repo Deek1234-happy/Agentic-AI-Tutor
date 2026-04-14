@@ -9,7 +9,7 @@ namespace AgenticAITutor.Repositories
         Task DeleteAsync(Subject subject);
         Task UpdateAsync(Subject subject);
         Task<Subject?> GetByIdAsync(Guid id);
-        Task<Subject?> GetByNameAndUserAsync(SubjectModel subjectModel);
+        Task<Subject?> GetByNameAndUserAsync(SubjectRequest subjectModel);
         Task<List<Subject>> GetUserSubjectsAsync(Guid userId);
     }
 }

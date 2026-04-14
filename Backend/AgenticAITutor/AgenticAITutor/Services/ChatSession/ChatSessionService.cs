@@ -48,7 +48,19 @@ namespace AgenticAITutor.Services
                     Title = chatSession.Title,
                     StartedAt = chatSession.StartedAt,
                     UpdatedAt = chatSession.UpdatedAt,
-                    NumberOfDocuments = chatSession.Documents.Count
+                    NumberOfDocuments = chatSession.Documents.Count,
+                    Documents = chatSession.Documents.Select(document => new DocumentResponse
+                    {
+                        Id = document.Id,
+                        SubjectId = document.SubjectId,
+                        UserId = document.UserId,
+                        FileName = document.Filename,
+                        FileType = document.FileType,
+                        FileSize = document.FileSize,
+                        UploadTime = document.UploadTime,
+                        ProcessingStatus = document.ProcessingStatus,
+                        StoragePath = document.StoragePath
+                    }).ToList()
                 };
 
                 response.Success = true;
@@ -112,7 +124,19 @@ namespace AgenticAITutor.Services
                 Title = s.Title,
                 StartedAt = s.StartedAt,
                 UpdatedAt = s.UpdatedAt,
-                NumberOfDocuments = s.Documents.Count
+                NumberOfDocuments = s.Documents.Count,
+                Documents = s.Documents.Select(document => new DocumentResponse
+                {
+                    Id = document.Id,
+                    SubjectId = document.SubjectId,
+                    UserId = document.UserId,
+                    FileName = document.Filename,
+                    FileType = document.FileType,
+                    FileSize = document.FileSize,
+                    UploadTime = document.UploadTime,
+                    ProcessingStatus = document.ProcessingStatus,
+                    StoragePath = document.StoragePath
+                }).ToList()
             }).ToList();
 
             var response = new ServiceResponse<List<ChatSessionResponse>>

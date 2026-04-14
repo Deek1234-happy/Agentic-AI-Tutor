@@ -7,5 +7,6 @@
         public DateTime? StartedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int NumberOfDocuments { get; set; }
+        public List<DocumentResponse> Documents { get; set; }
     }
 }

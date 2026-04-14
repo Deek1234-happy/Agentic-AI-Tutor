@@ -26,28 +26,30 @@ namespace AgenticAITutor.Controllers
         /// <response code="200">Subject created successfully</response>
         /// <response code="401">Invalid or missing token</response>
         /// <response code="400">Validation Error</response>
-        [ProducesResponseType<SubjectModel>(200)]
+        [ProducesResponseType<SubjectResponse>(200)]
         [ProducesResponseType<string>(401)]
         [ProducesResponseType<string>(400)]
         [HttpPost]
-        public async Task<IActionResult> Add([FromBody]SubjectModel subjectModel)
+        public async Task<IActionResult> Add([FromBody]SubjectRequest subjectRequest)
         {
-            if(!ModelState.IsValid) 
-                return BadRequest(ModelState);
-
             var userId = User.GetUserId();
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token : User ID Not Found");
 
-            subjectModel.UserId = userId;
-            string result = await subjectService.AddAsync(subjectModel);
-            return Ok(result);
+            subjectRequest.UserId = userId;
+            var result = await subjectService.AddAsync(subjectRequest);
+            if(!result.Success)
+                return BadRequest(result.Message);
+
+            SubjectResponse subjectResponse = result?.Data;
+            
+            return Ok(subjectResponse);
         }
 
         /// <summary>Get all subjects for the current user</summary>
         /// <response code="200">List of subjects</response>
         /// <response code="401">Invalid or missing token</response>
-        [ProducesResponseType<List<SubjectModel>>(200)]
+        [ProducesResponseType<List<SubjectResponse>>(200)]
         [ProducesResponseType<string>(401)]
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -56,19 +58,9 @@ namespace AgenticAITutor.Controllers
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token : User ID Not Found");
 
-            var subjects = await subjectService.GetAllAsync(userId);
-            List<SubjectModel> subjectModels = new List<SubjectModel>();
-            foreach(var subject in subjects)
-            {
-                SubjectModel subjectModel = new SubjectModel
-                {
-                    Id = subject.Id,
-                    UserId = subject.UserId,
-                    Name = subject.Name,
-                };
-                subjectModels.Add(subjectModel);
-            }
-            return Ok(subjectModels);
+            var subjectResponses = await subjectService.GetAllAsync(userId);
+
+            return Ok(subjectResponses);
 
         }
 
@@ -77,7 +69,7 @@ namespace AgenticAITutor.Controllers
         /// <response code="200">Subject found</response>
         /// <response code="404">Subject not found</response>
         /// <response code="401">Invalid or missing token</response>
-        [ProducesResponseType<SubjectModel>(200)]
+        [ProducesResponseType<SubjectResponse>(200)]
         [ProducesResponseType<string>(401)]
         [ProducesResponseType<string>(404)]
         [HttpGet("{id}")]
@@ -87,18 +79,13 @@ namespace AgenticAITutor.Controllers
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token : User ID Not Found");
 
-            Subject subject = await subjectService.GetAsync(id, userId);
+            var result = await subjectService.GetAsync(id, userId);
             
-            if (subject == null)
-                return NotFound("Subject is not found");
+            if (!result.Success)
+                return NotFound(result.Message);
 
-            SubjectModel subjectModel = new SubjectModel
-            {
-                Id = id,
-                Name = subject.Name,
-                UserId = userId
-            };
-            return Ok(subjectModel);
+            SubjectResponse subjectResponse = result?.Data;
+            return Ok(subjectResponse);
         }
 
         /// <summary>Update a subject by ID</summary>
@@ -109,7 +96,7 @@ namespace AgenticAITutor.Controllers
         [ProducesResponseType<string>(400)]
         [ProducesResponseType<string>(401)]
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] SubjectModel subjectModel)
+        public async Task<IActionResult> Update(Guid id, [FromBody] SubjectRequest subjectModel)
         {
             var userId = User.GetUserId();
             if (userId == Guid.Empty)

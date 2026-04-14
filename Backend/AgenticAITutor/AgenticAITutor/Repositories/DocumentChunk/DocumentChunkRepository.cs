@@ -35,6 +35,19 @@ namespace AgenticAITutor.Repositories
             await dbContext.SaveChangesAsync();
         }
 
+        public async Task DeleteByDocumentAsync(Guid documentId)
+        {
+            var chunks = await dbContext.DocumentChunks
+                .Where(c => c.DocumentId == documentId)
+                .ToListAsync();
+
+            if (chunks.Any())
+            {
+                dbContext.DocumentChunks.RemoveRange(chunks);
+                await dbContext.SaveChangesAsync();
+            }
+        }
+
         public async Task<List<DocumentChunk>> GetAllAsync(Guid userId)
         {
             return await dbContext.DocumentChunks.Where(c => c.UserId == userId).ToListAsync();

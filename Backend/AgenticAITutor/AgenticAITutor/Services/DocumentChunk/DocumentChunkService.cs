@@ -28,13 +28,9 @@ namespace AgenticAITutor.Services
             var document = await documentRepository.GetByIdAsync(chunkRequest.DocumentId);
             if (document == null)
                 throw new Exception("Document Not Found");
-
-            string? baseURL = configuration["AppConfig:BaseURL"] ?? "https://localhost:7257"; // "http://agenticaitutorapi.runasp.net";
-            string fullDownloadURL = $"{baseURL.TrimEnd('/')}/{document.StoragePath}";
-
             AIChunkRequest aiRequest = new AIChunkRequest
             {
-                DocumentPath = fullDownloadURL,
+                DocumentPath = document.StoragePath,
                 DocumentType = document.FileType
             };
 

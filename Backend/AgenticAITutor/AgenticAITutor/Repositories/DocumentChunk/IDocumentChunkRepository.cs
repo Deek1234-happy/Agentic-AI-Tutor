@@ -8,6 +8,7 @@ namespace AgenticAITutor.Repositories
         Task AddRangeAsync(List<DocumentChunk> chunks);
         Task UpdateAsync(DocumentChunk chunk);
         Task DeleteAsync(DocumentChunk chunk);
+        Task DeleteByDocumentAsync(Guid documentId);
         Task<DocumentChunk?> GetByIdAsync(Guid id);
         Task<List<DocumentChunk>> GetAllAsync(Guid userId);
         Task<List<DocumentChunk>> GetByDocumentAsync(Guid documentId, Guid userId);

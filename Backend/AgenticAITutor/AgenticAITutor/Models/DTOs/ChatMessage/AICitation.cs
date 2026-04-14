@@ -9,8 +9,8 @@ namespace AgenticAITutor.Models.DTOs
         [JsonPropertyName("chunk_id")]
         public Guid ChunkId { get; set; }
         [JsonPropertyName("page_start")]
-        public int PageStart { get; set; }
+        public int? PageStart { get; set; }
         [JsonPropertyName("page_end")]
-        public int PageEnd { get; set; }
+        public int? PageEnd { get; set; }
     }
 }

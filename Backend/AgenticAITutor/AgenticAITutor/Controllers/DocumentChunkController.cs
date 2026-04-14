@@ -1,5 +1,6 @@
 ﻿using AgenticAITutor.Extensions;
 using AgenticAITutor.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +8,7 @@ namespace AgenticAITutor.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DocumentChunkController : ControllerBase
     {
         private readonly IDocumentChunkService chunkService;

@@ -23,11 +23,11 @@ namespace AgenticAITutor.Repositories
 
         public async Task<Subject?> GetByIdAsync(Guid id)
         {
-            return await dbContext.Subjects.FirstOrDefaultAsync(s => s.Id == id);
+            return await dbContext.Subjects.Include(s => s.Documents).FirstOrDefaultAsync(s => s.Id == id);
         }
-        public async Task<Subject?> GetByNameAndUserAsync(SubjectModel subjectModel)
+        public async Task<Subject?> GetByNameAndUserAsync(SubjectRequest subjectModel)
         {
-            return await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name ==  subjectModel.Name && s.UserId == subjectModel.UserId);
+            return await dbContext.Subjects.FirstOrDefaultAsync(s => s.Name.ToLower() ==  subjectModel.Name.ToLower() && s.UserId == subjectModel.UserId);
         }
 
         public async Task DeleteAsync(Subject subject)
@@ -43,7 +43,7 @@ namespace AgenticAITutor.Repositories
 
         public async Task<List<Subject>> GetUserSubjectsAsync(Guid userId)
         {
-            List<Subject> subjects = await dbContext.Subjects.Where(s => s.UserId == userId).ToListAsync();
+            List<Subject> subjects = await dbContext.Subjects.Include(s => s.Documents).Where(s => s.UserId == userId).ToListAsync();
             return subjects;
         }
     }

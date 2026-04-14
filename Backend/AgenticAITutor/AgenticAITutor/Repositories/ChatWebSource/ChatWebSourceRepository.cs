@@ -23,5 +23,11 @@ namespace AgenticAITutor.Repositories
         {
             return await dbContext.ChatWebSources.Where(c => c.MessageId == messageId).ToListAsync();
         }
+
+        public async Task AddRangeAsync (IEnumerable<ChatWebSource> chatWebSources)
+        {
+            await dbContext.ChatWebSources.AddRangeAsync(chatWebSources);
+            await dbContext.SaveChangesAsync();
+        }
     }
 }

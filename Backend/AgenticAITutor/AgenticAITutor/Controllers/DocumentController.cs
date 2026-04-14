@@ -30,8 +30,6 @@ namespace AgenticAITutor.Controllers
         [ProducesResponseType<string>(400)]
         public async Task<IActionResult> Upload([FromForm]DocumentRequest request)
         {
-            if(!ModelState.IsValid)
-                return BadRequest(ModelState);
             var userId = User.GetUserId();
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token.");
@@ -41,7 +39,7 @@ namespace AgenticAITutor.Controllers
             var result = await documentService.UploadDocumentAsync(request);
             if(!result.Success)
                 return BadRequest(result.Message);
-            return Ok(result);
+            return Ok(result.Data);
         }
 
         /// <summary>Update document metadata (title or subject)</summary>
@@ -65,7 +63,7 @@ namespace AgenticAITutor.Controllers
             var result = await documentService.UpdateDocumentAsync(request);
             if (!result.Success)
                 return BadRequest(result.Message);
-            return Ok(result);
+            return Ok(result.Data);
         }
 
         /// <summary>Delete a document by ID</summary>
@@ -85,8 +83,8 @@ namespace AgenticAITutor.Controllers
 
             var result = await documentService.DeleteDocumentAsync(id, userId);
             if (!result.Success)
-                return BadRequest(result);
-            return Ok(result);
+                return BadRequest(result.Message);
+            return Ok(result.Data);
         }
 
         /// <summary>Get all documents for the current user</summary>
@@ -124,6 +122,32 @@ namespace AgenticAITutor.Controllers
             return Ok(documents);
         }
 
+        /// <summary>Retry processing a document that previously failed</summary>
+        /// <param name="id">Document GUID</param>
+        /// <remarks>
+        /// Only documents with a **FAILED** processing status can be retried.
+        /// Attempting to retry a PENDING, PROCESSING, or COMPLETED document will return 400.
+        /// On success the document status is reset to PENDING and the chunking job is re-queued.
+        /// </remarks>
+        /// <response code="200">Document re-queued — returns updated document</response>
+        /// <response code="400">Document is not in FAILED status, or validation error</response>
+        /// <response code="401">Invalid or missing token</response>
+        [ProducesResponseType<DocumentResponse>(200)]
+        [ProducesResponseType<string>(400)]
+        [ProducesResponseType<string>(401)]
+        [HttpPost("{id}/retry-processing")]
+        public async Task<IActionResult> RetryProcessing(Guid id)
+        {
+            var userId = User.GetUserId();
+            if (userId == Guid.Empty)
+                return Unauthorized("Invalid Token.");
+
+            var result = await documentService.RetryDocumentProcessingAsync(id, userId);
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Data);
+        }
 
         /// <summary>Get a document by ID</summary>
         /// <param name="id">Document GUID</param>

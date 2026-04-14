@@ -1,14 +1,14 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace AgenticAITutor.Models.DTOs
 {
-    public class SubjectModel
+    public class SubjectRequest
     {
-        [Required]
-        public Guid Id { get; set; }
         [Required]
         [StringLength(255)]
         public string Name { get; set; }
+        [JsonIgnore]
         [Required]
         public Guid UserId { get; set; }
     }

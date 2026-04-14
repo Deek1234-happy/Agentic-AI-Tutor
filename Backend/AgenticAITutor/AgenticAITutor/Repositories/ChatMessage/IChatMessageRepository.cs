@@ -6,5 +6,7 @@ namespace AgenticAITutor.Repositories
     {
         Task<ChatMessage> AddAsync (ChatMessage message);
         Task<List<ChatMessage>> GetBySessionIdAsync(Guid sessionId);
+        Task<ChatMessage> GetByIdAsync(Guid id);
+        Task UpdateAsync(ChatMessage message);
     }
 }

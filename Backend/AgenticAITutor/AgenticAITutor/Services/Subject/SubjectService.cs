@@ -13,41 +13,102 @@ namespace AgenticAITutor.Services
             this.subjectRepository = subjectRepository;
         }
 
-        public async Task<string> AddAsync(SubjectModel subjectModel)
+        public async Task<ServiceResponse<SubjectResponse>> AddAsync(SubjectRequest subjectRequest)
         {
-            Subject? subject = await subjectRepository.GetByNameAndUserAsync(subjectModel);
+            var response = new ServiceResponse<SubjectResponse>();
+
+
+            Subject? subject = await subjectRepository.GetByNameAndUserAsync(subjectRequest);
             if (subject != null)
-                return "Subject is Already Exists";
+            {
+                response.Success = false;
+                response.Message = "Subject is Already Exists";
+                return response;
+            }
 
             subject = new Subject
             {
-                Name = subjectModel.Name.ToLower(),
-                UserId = subjectModel.UserId
+                Name = subjectRequest.Name.ToLower(),
+                UserId = subjectRequest.UserId
             };
             await subjectRepository.AddAsync(subject);
-            return "Subject Added Sccessfully";
+
+            response.Success = true;
+            response.Data = new SubjectResponse
+            {
+                Id = subject.Id,    
+                UserId = subject.UserId,
+                Name = subject.Name
+            };
+
+            return response;
         }
 
-        public async Task<List<Subject?>> GetAllAsync(Guid userId)
+        public async Task<List<SubjectResponse>> GetAllAsync(Guid userId)
         {
             List<Subject> subjects = await subjectRepository.GetUserSubjectsAsync(userId);
-            return subjects;
+            
+            var subjectResponses = subjects.Select(subject => new SubjectResponse 
+            {
+                Id = subject.Id,
+                UserId = subject.UserId,
+                Name = subject.Name,
+                Documents = subject.Documents.Select(document => new DocumentResponse
+                {
+                    Id = document.Id,
+                    SubjectId = document.SubjectId,
+                    UserId = document.UserId,
+                    FileName = document.Filename,
+                    FileType = document.FileType,
+                    FileSize = document.FileSize,
+                    UploadTime = document.UploadTime,
+                    ProcessingStatus = document.ProcessingStatus,
+                    StoragePath = document.StoragePath
+                }).ToList()
+            }).ToList();
+
+            return subjectResponses;
         }
-        public async Task<Subject?> GetAsync(Guid subjectId, Guid userId)
+        public async Task<ServiceResponse<SubjectResponse?>> GetAsync(Guid subjectId, Guid userId)
         {
+            var response = new ServiceResponse<SubjectResponse?>();
+
             Subject? subject = await subjectRepository.GetByIdAsync(subjectId);
-
             if (subject != null && subject.UserId == userId)
-                return subject;
+            {
+                response.Success = true;
+                response.Data = new SubjectResponse
+                {
+                    Id = subject.Id,
+                    UserId = subject.UserId,
+                    Name = subject.Name,
+                    Documents = subject.Documents.Select(document => new DocumentResponse
+                    {
+                        Id = document.Id,
+                        SubjectId = document.SubjectId,
+                        UserId = document.UserId,
+                        FileName = document.Filename,
+                        FileType = document.FileType,
+                        FileSize = document.FileSize,
+                        UploadTime = document.UploadTime,
+                        ProcessingStatus = document.ProcessingStatus,
+                        StoragePath = document.StoragePath,
 
-            return null;
+                    }).ToList()
+                };
+                return response;
+            }
+
+            response.Success = false;
+            response.Message = "Subject Not Found";
+            return response;
         }
         public async Task<ServiceResponse<string>> DeleteAsync(Guid subjectId, Guid userId)
         {
             var response = new ServiceResponse<string>();
-            Subject? subject = await GetAsync(subjectId, userId);
+            Subject? subject = await subjectRepository.GetByIdAsync(subjectId);
 
-            if (subject == null)
+            if (subject == null || subject.UserId != userId)
             {
                 response.Success = false;
                 response.Message = "Subject Not Found";
@@ -59,21 +120,21 @@ namespace AgenticAITutor.Services
             response.Message = "Subject Deleted Successfully";
             return response;
         }
-        public async Task<ServiceResponse<string>> UpdateAsync(Guid subjectId, SubjectModel subjectModel)
+        public async Task<ServiceResponse<string>> UpdateAsync(Guid subjectId, SubjectRequest subjectRequest)
         {
             var response = new ServiceResponse<string>();
 
-            Subject? subject = await GetAsync(subjectId, subjectModel.UserId);
-            if (subject == null)
+            Subject? subject = await subjectRepository.GetByIdAsync(subjectId);
+            if (subject == null || subject.UserId != subjectRequest.UserId)
             { 
                 response.Success = false;
                 response.Message = "Subject Not Found";
                 return response; 
             }
-            if (!string.Equals(subject.Name, subjectModel.Name, StringComparison.CurrentCultureIgnoreCase))
+            if (!string.Equals(subject.Name, subjectRequest.Name, StringComparison.CurrentCultureIgnoreCase))
             {
                 // Only check DB if the name is actually changing
-                var duplicateCheck = await subjectRepository.GetByNameAndUserAsync(subjectModel);
+                var duplicateCheck = await subjectRepository.GetByNameAndUserAsync(subjectRequest);
 
                 // Ensure we aren't detecting the current record as a duplicate (though the Name check above handles most cases)
                 if (duplicateCheck != null && duplicateCheck.Id != subjectId)
@@ -84,7 +145,7 @@ namespace AgenticAITutor.Services
                 }
             }
 
-            subject.Name = subjectModel.Name.ToLower();
+            subject.Name = subjectRequest.Name.ToLower();
             await subjectRepository.UpdateAsync(subject);
 
             response.Success = true;
