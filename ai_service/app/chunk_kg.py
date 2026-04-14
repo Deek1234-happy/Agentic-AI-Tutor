@@ -1,9 +1,11 @@
 # app/chunk_kg.py
 #
-# POST /chunk — parse file, chunk, insert each chunk into Postgres, run KG
-# extraction + Neo4j upsert per chunk (no batch wait).
+# POST /chunk — parse file, chunk, run KG extraction + Neo4j upsert per chunk
+# (no batch wait). Document must already exist in content.documents; chunks
+# are NOT written to PostgreSQL.
 
 import os
+import uuid
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
@@ -16,7 +18,6 @@ from .file_loader import download_if_url
 from .kg_extractor import extract_entities_and_relations
 from .kg_store import (
     get_subject_title,
-    insert_document_chunk_row,
     merge_cross_subject_edges,
     resolve_document_by_file_path,
     save_graph,
@@ -68,10 +69,11 @@ def _public_kg_update(entities: List[Dict], relationships: List[Dict]) -> Dict:
 @router.post("/", response_model=List[ChunkStepResponse])
 def chunk_file_and_incremental_kg(payload: ChunkFilePayload):
     """
-    Resolve `document_id` / `subject_id` from `content.documents` using `file_path`,
-    then chunk the file and for **each** chunk: insert `document_chunks`, extract
-    KG triples, save to Neo4j (dedup via MERGE), and link to entities in other
-    documents in the same subject when names match.
+    Resolve `document_id` / `subject_id` from `content.documents` using `file_path`
+    (document must already exist — same as RAG registration). For each text chunk:
+    assign an ephemeral `chunk_id` (not stored in Postgres), extract KG triples,
+    save to Neo4j (dedup via MERGE), and link to entities in other documents in
+    the same subject when names match.
     """
     local_file = None
     downloaded = False
@@ -131,13 +133,7 @@ def chunk_file_and_incremental_kg(payload: ChunkFilePayload):
             if not text:
                 continue
 
-            chunk_id = insert_document_chunk_row(
-                document_id=document_id,
-                user_id=user_id,
-                chunk_text=text,
-                page_start=ch.get("page_start"),
-                page_end=ch.get("page_end"),
-            )
+            chunk_id = str(uuid.uuid4())
 
             extracted = extract_entities_and_relations(
                 text=text,
@@ -171,7 +167,7 @@ def chunk_file_and_incremental_kg(payload: ChunkFilePayload):
                         entities=pub["entities"],
                         relationships=pub["relationships"],
                     ),
-                    status="inserted",
+                    status="indexed",
                 )
             )
 

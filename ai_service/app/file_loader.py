@@ -48,6 +48,16 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".csv"}
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
+def allow_internal_network() -> bool:
+    """Opt-in bypass for local development only."""
+    return os.getenv("ALLOW_INTERNAL_NETWORK", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def is_private_ip(hostname: str) -> bool:
     """
     Prevent SSRF attacks by blocking internal IPs
@@ -92,7 +102,7 @@ def download_if_url(file_path: str) -> str:
         # ------------------------------------------------
         # Block internal network access (SSRF protection)
         # ------------------------------------------------
-        if is_private_ip(parsed.hostname):
+        if not allow_internal_network() and is_private_ip(parsed.hostname):
             raise ValueError("Access to internal network is blocked")
 
         # ------------------------------------------------

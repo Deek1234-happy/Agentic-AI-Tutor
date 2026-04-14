@@ -182,45 +182,6 @@ def resolve_document_by_file_path(file_path: str) -> Optional[Dict]:
         db.close()
 
 
-def insert_document_chunk_row(
-    *,
-    document_id: str,
-    user_id: str,
-    chunk_text: str,
-    page_start: Optional[int],
-    page_end: Optional[int],
-    embedding: Optional[list] = None,
-) -> str:
-    """Insert one row into content.document_chunks; returns new chunk id."""
-    chunk_id = str(uuid.uuid4())
-    db = SessionLocal()
-    try:
-        db.execute(
-            sql_text("""
-                INSERT INTO content.document_chunks
-                    (id, document_id, user_id, chunk_text, page_start, page_end, embedding)
-                VALUES
-                    (:id, :did, :uid, :ct, :ps, :pe, :embedding)
-            """),
-            {
-                "id": chunk_id,
-                "did": str(document_id),
-                "uid": str(user_id),
-                "ct": chunk_text,
-                "ps": page_start,
-                "pe": page_end,
-                "embedding": embedding,
-            },
-        )
-        db.commit()
-        return chunk_id
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-
 # ════════════════════════════════════════════════════════════════
 # Neo4j — structural node upserts
 # ════════════════════════════════════════════════════════════════

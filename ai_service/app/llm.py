@@ -3,9 +3,11 @@
 import os
 import requests
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Load .env file
-load_dotenv()
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
 
 # ===============================
 # LLM Provider Configuration
@@ -27,7 +29,9 @@ def generate_answer(prompt: str, temperature: float = 0.1) -> str:
     You can switch providers without changing function name.
     """
 
-    if not LLM_API_KEY:
+    # Re-read in case env vars were loaded after module import.
+    api_key = os.getenv("LLM_API_KEY") or LLM_API_KEY
+    if not api_key:
         raise RuntimeError("LLM_API_KEY is not set in environment variables")
 
     payload = {
@@ -39,7 +43,7 @@ def generate_answer(prompt: str, temperature: float = 0.1) -> str:
     }
 
     headers = {
-        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
 
