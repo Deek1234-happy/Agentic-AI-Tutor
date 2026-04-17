@@ -186,7 +186,7 @@ uvicorn app.main:app --reload
 **Output:**
 
 ```
-INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     Uvicorn running on http://8000
 INFO:     Application startup complete
 ```
 
