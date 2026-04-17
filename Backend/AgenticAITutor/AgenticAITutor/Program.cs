@@ -3,24 +3,24 @@
   Scaffold-DbContext "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=8105" Npgsql.EntityFrameworkCore.PostgreSQL -OutputDir Models -Context AppDbContext -ContextDir Data -DataAnnotations -Force -NoOnConfiguring -Schemas public,auth,content,planner,quiz,rag
  */
 
+using AgenticAITutor.BackgroundJobs;
 using AgenticAITutor.Data;
+using AgenticAITutor.Filters;
 using AgenticAITutor.Helpers;
 using AgenticAITutor.Repositories;
 using AgenticAITutor.Services;
 using FluentValidation;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Hangfire;
 using Hangfire.PostgreSql;
-using AgenticAITutor.BackgroundJobs;
-
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Npgsql;
 using Pgvector.Npgsql;
-using AgenticAITutor.Filters;
-using Microsoft.OpenApi.Models;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using System.Text;
 
 
 namespace AgenticAITutor
@@ -154,7 +154,28 @@ namespace AgenticAITutor
             builder.Services.AddScoped<IChatWebSourceRepository, ChatWebSourceRepository>();
 
 
-            builder.Services.AddHttpClient();
+            // builder.Services.AddHttpClient();
+
+            builder.Services.AddHttpClient(nameof(ChatMessageService), client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(10);
+                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+            });
+
+            builder.Services.AddHttpClient(nameof(DocumentChunkService), client =>
+            {
+                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+            });
+
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // Match your 10 MB business rule
+            });
+
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.Limits.MaxRequestBodySize = 10 * 1024 * 1024;
+            });
 
             var app = builder.Build();
 

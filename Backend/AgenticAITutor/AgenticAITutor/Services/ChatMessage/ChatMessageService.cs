@@ -21,7 +21,7 @@ namespace AgenticAITutor.Services
             IChatMessageRepository messageRepository, 
             IChatSessionRepository sessionRepository, 
             IDocumentChunkRepository chunkRepository, 
-            HttpClient httpClient,
+            IHttpClientFactory httpClientFactory,
             IConfiguration configuration,
             IChatWebSourceRepository webSourceRepository,
             IFileStorageService fileStorageService)
@@ -29,7 +29,7 @@ namespace AgenticAITutor.Services
             this.messageRepository = messageRepository;
             this.sessionRepository = sessionRepository;
             this.chunkRepository = chunkRepository;
-            this.httpClient = httpClient;
+            this.httpClient = httpClientFactory.CreateClient(nameof(ChatMessageService)); ;
             this.configuration = configuration;
             this.webSourceRepository = webSourceRepository;
             this.fileStorageService = fileStorageService;
@@ -79,7 +79,7 @@ namespace AgenticAITutor.Services
             AIMessageResponse? aiResponse = null;
             try
             {
-                httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
                 var httpResponse = await httpClient.PostAsJsonAsync(aiURL, request);
                 if (!httpResponse.IsSuccessStatusCode)
                 {
@@ -171,7 +171,7 @@ namespace AgenticAITutor.Services
             WebSearchResponse? webSearchResponse = null;
             try
             {
-                httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
                 var httpResponse = await httpClient.PostAsJsonAsync(webSearchURL, webSearchRequest);
                 if (!httpResponse.IsSuccessStatusCode)
                 {
@@ -482,7 +482,7 @@ namespace AgenticAITutor.Services
 
                 try
                 {
-                    httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                    //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
                     var sttHttpResponse = await httpClient.PostAsync(sttURL, multipartFormContent);
 
                     if (!sttHttpResponse.IsSuccessStatusCode)
@@ -547,7 +547,7 @@ namespace AgenticAITutor.Services
 
             try
             {
-                httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
                 var ttsHttpResponse = await httpClient.PostAsJsonAsync(ttsURL, ttsRequest);
 
                 if (!ttsHttpResponse.IsSuccessStatusCode)

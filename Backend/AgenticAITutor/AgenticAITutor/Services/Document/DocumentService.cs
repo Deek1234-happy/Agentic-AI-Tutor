@@ -102,7 +102,7 @@ namespace AgenticAITutor.Services
                 Filename = Path.GetFileNameWithoutExtension(request.File.FileName),
                 FileSize = (int)request.File.Length,
                 FileType = extension, // Here is The File Extension
-                StoragePath = $"{configuration["AppConfig:BaseURL"]}/{storagePath}",
+                StoragePath = storagePath,
                 ContentHash = contentHash,
                 UploadTime = DateTime.Now,
                 ProcessingStatus = DocumentProcessingStatus.PENDING.ToString(),
@@ -309,7 +309,7 @@ namespace AgenticAITutor.Services
                 FileType = document.FileType,
                 UploadTime = document.UploadTime ?? DateTime.Now,
                 ProcessingStatus = document.ProcessingStatus,
-                StoragePath = document.StoragePath
+                StoragePath = $"{configuration["AppConfig:BaseURL"]}/{document.StoragePath}"
             };
         }
 

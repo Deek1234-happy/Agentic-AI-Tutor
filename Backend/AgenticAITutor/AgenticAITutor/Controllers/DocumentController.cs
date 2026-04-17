@@ -28,6 +28,8 @@ namespace AgenticAITutor.Controllers
         [ProducesResponseType<DocumentResponse>(200)]
         [ProducesResponseType<string>(401)]
         [ProducesResponseType<string>(400)]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]
         public async Task<IActionResult> Upload([FromForm]DocumentRequest request)
         {
             var userId = User.GetUserId();

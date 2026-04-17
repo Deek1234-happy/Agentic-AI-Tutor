@@ -14,12 +14,12 @@ namespace AgenticAITutor.Services
 
         public DocumentChunkService(IDocumentChunkRepository chunkRepository, 
             IDocumentRepository documentRepository, 
-            HttpClient httpClient, 
+            IHttpClientFactory httpClientFactory, 
             IConfiguration configuration)
         {
             this.chunkRepository = chunkRepository;
             this.documentRepository = documentRepository;
-            this.httpClient = httpClient;
+            this.httpClient = httpClientFactory.CreateClient(nameof(DocumentChunkService));
             this.configuration = configuration;
         }
 
@@ -30,7 +30,7 @@ namespace AgenticAITutor.Services
                 throw new Exception("Document Not Found");
             AIChunkRequest aiRequest = new AIChunkRequest
             {
-                DocumentPath = document.StoragePath,
+                DocumentPath = $"{configuration["AppConfig:BaseURL"]}/{document.StoragePath}",
                 DocumentType = document.FileType
             };
 
@@ -39,7 +39,7 @@ namespace AgenticAITutor.Services
 
             string? aiURL = $"{aiBaseURL.TrimEnd('/')}/{chunkingPath.TrimStart('/')}";
 
-            httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+            //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
 
             var response = await httpClient.PostAsJsonAsync(aiURL, aiRequest);
             if (!response.IsSuccessStatusCode)

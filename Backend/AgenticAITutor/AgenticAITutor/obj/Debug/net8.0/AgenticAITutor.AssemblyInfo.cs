@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AgenticAITutor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8849fb9a6e7097cc5d96f89d55844b61a6879b51")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7b7c3153aec3a446bd08ff867444999fb34effdd")]
 [assembly: System.Reflection.AssemblyProductAttribute("AgenticAITutor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AgenticAITutor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
