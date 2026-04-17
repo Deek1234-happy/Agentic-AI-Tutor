@@ -1,9 +1,10 @@
 # app/kg_store.py
 
+import difflib
 import os
 import re as _re
 import uuid
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from urllib.parse import unquote
 
 from sqlalchemy import text as sql_text
@@ -178,6 +179,38 @@ def resolve_document_by_file_path(file_path: str) -> Optional[Dict]:
                 "filename":    str(r[3]) if r[3] else basename,
             }
         return None
+    finally:
+        db.close()
+
+
+def get_existing_chunks_for_document(document_id: str) -> List[Dict]:
+    """
+    Read pre-existing chunks for a document from PostgreSQL.
+    This is read-only and never writes or generates chunks.
+    """
+    db = SessionLocal()
+    try:
+        result = db.execute(
+            sql_text(
+                """
+                SELECT id, chunk_text, page_start, page_end
+                FROM content.document_chunks
+                WHERE document_id = :did
+                ORDER BY page_start NULLS FIRST, page_end NULLS FIRST, id ASC
+                """
+            ),
+            {"did": str(document_id)},
+        )
+        rows = result.fetchall()
+        return [
+            {
+                "chunk_id": str(r[0]),
+                "text": str(r[1]) if r[1] is not None else "",
+                "page_start": r[2],
+                "page_end": r[3],
+            }
+            for r in rows
+        ]
     finally:
         db.close()
 
@@ -576,6 +609,137 @@ def get_subject_graph(subject_id: str, user_id: str) -> Dict:
 #   avoids path aggregation entirely and is O(edges) not O(paths²).
 # ════════════════════════════════════════════════════════════════
 
+# Flexible seed matching (e.g. context-aware chat): partial names, titles stripped.
+_TITLE_PREFIX_RE = _re.compile(
+    r"^(?:dr\.?|doctor|prof\.?|professor|mr\.?|mrs\.?|ms\.?|miss|sir|madam)\s+",
+    _re.IGNORECASE,
+)
+# Honorifics may appear after "Who is …" as well — strip globally.
+_TITLE_ANYWHERE_RE = _re.compile(
+    r"\b(?:dr|doctor|prof|professor|mr|mrs|ms|miss|sir|madam)\.?\s+",
+    _re.IGNORECASE,
+)
+
+
+def _normalize_label_for_match(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = _TITLE_PREFIX_RE.sub("", s)
+    s = _TITLE_ANYWHERE_RE.sub("", s)
+    s = _re.sub(r"[^\w\s]", " ", s)
+    s = _re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def normalize_query_entity_hint(s: str) -> str:
+    """Normalize a user or graph entity label for comparison (titles, punctuation)."""
+    return _normalize_label_for_match(s)
+
+
+def _token_set(norm: str) -> set:
+    return {t for t in norm.split() if len(t) > 1}
+
+
+def _score_entity_name_match(query_norm: str, candidate_norm: str) -> float:
+    if not query_norm or not candidate_norm:
+        return 0.0
+    if query_norm == candidate_norm:
+        return 1.0
+    if query_norm in candidate_norm or candidate_norm in query_norm:
+        return 0.92
+    qt = _token_set(query_norm)
+    ct = _token_set(candidate_norm)
+    if not qt:
+        return 0.0
+    if qt <= ct:
+        return 0.88
+    inter = qt & ct
+    ratio = len(inter) / len(qt) if qt else 0.0
+    if ratio >= 0.66:
+        return 0.55 + 0.3 * ratio
+    return difflib.SequenceMatcher(None, query_norm, candidate_norm).ratio()
+
+
+def list_entities_in_scope_for_matching(
+    subject_id:   str,
+    user_id:      str,
+    document_ids: Optional[List[str]] = None,
+    limit:        int = 2500,
+) -> List[Dict]:
+    """Distinct Entity rows in subject (optionally restricted to documents) for fuzzy seed resolution."""
+    doc_clause = ""
+    params: Dict = {"sid": subject_id, "uid": user_id, "limit": limit}
+    if document_ids:
+        doc_clause = "AND e.document_id IN $doc_ids"
+        params["doc_ids"] = document_ids
+
+    cypher = f"""
+        MATCH (e:Entity)
+        WHERE e.subject_id = $sid
+          AND e.user_id    = $uid
+          AND e.name IS NOT NULL
+          AND trim(e.name) <> ''
+          {doc_clause}
+        RETURN DISTINCT e.name AS name, e.type AS type, e.document_id AS document_id
+        LIMIT $limit
+    """
+    with get_session() as s:
+        rows = s.run(cypher, **params).data()
+    return [dict(r) for r in rows]
+
+
+def resolve_flexible_entity_seeds(
+    query_hints:  List[str],
+    subject_id:   str,
+    user_id:      str,
+    document_ids: Optional[List[str]] = None,
+    min_score:    float = 0.55,
+) -> List[str]:
+    """
+    Map short / partial query strings to canonical Entity.name values in Neo4j.
+    Used when exact toLower(name) IN $hints finds no seeds.
+    """
+    hints = [str(h).strip() for h in (query_hints or []) if h and str(h).strip()]
+    if not hints:
+        return []
+
+    candidates = list_entities_in_scope_for_matching(
+        subject_id=subject_id,
+        user_id=user_id,
+        document_ids=document_ids,
+    )
+    if not candidates:
+        return []
+
+    cand_norms: List[Tuple[str, str]] = []
+    for c in candidates:
+        name = c.get("name")
+        if not name:
+            continue
+        cand_norms.append((name, _normalize_label_for_match(name)))
+
+    resolved: List[str] = []
+    seen_lower: set = set()
+
+    for hint in hints:
+        qn = _normalize_label_for_match(hint)
+        if not qn:
+            continue
+        best_name: Optional[str] = None
+        best_score = 0.0
+        for orig, cn in cand_norms:
+            sc = _score_entity_name_match(qn, cn)
+            if sc > best_score:
+                best_score = sc
+                best_name = orig
+        if best_name and best_score >= min_score:
+            bl = best_name.lower()
+            if bl not in seen_lower:
+                seen_lower.add(bl)
+                resolved.append(best_name)
+
+    return resolved
+
+
 def get_subgraph_for_query(
     query_entities: List[str],
     subject_id:     str,
@@ -583,6 +747,7 @@ def get_subgraph_for_query(
     document_ids:   Optional[List[str]] = None,
     hops:           int = 2,
     limit:          int = 60,
+    flexible_seed_match: bool = False,
 ) -> Dict:
     """
     Return the hop-bounded neighbourhood around the query entities.
@@ -627,6 +792,24 @@ def get_subgraph_for_query(
     with get_session() as s:
         seed_res   = s.run(seed_cypher, **params)
         seed_rows  = seed_res.data()          # list of dicts with name/type/document_id
+
+    if not seed_rows and flexible_seed_match:
+        resolved_names = resolve_flexible_entity_seeds(
+            query_entities,
+            subject_id=subject_id,
+            user_id=user_id,
+            document_ids=document_ids,
+        )
+        if resolved_names:
+            print(
+                f"[KG Store] Flexible seed match: hints={query_entities!r} "
+                f"→ resolved={resolved_names!r}"
+            )
+            lower_names = [n.lower() for n in resolved_names]
+            params["names"] = lower_names
+            with get_session() as s:
+                seed_res = s.run(seed_cypher, **params)
+                seed_rows = seed_res.data()
 
     if not seed_rows:
         return {"entities": [], "relationships": []}

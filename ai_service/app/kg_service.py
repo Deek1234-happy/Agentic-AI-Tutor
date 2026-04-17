@@ -29,6 +29,7 @@ from .kg_store import (
     get_documents_for_subject,
     get_subject_id_for_session,
     get_subject_for_document,
+    normalize_query_entity_hint,
     # delete
     delete_document_graph,
     delete_subject_graph,
@@ -248,6 +249,24 @@ def identify_query_entities(question: str) -> List[str]:
     return []
 
 
+def _fallback_hints_from_question(question: str) -> List[str]:
+    """Cheap hints when the LLM NER returns nothing or misses a short name."""
+    q = (question or "").strip()
+    if not q:
+        return []
+    q = re.sub(
+        r"^(?:who|what|when|where|why|how)\s+(?:is|are|was|were)\s+",
+        "",
+        q,
+        flags=re.I,
+    )
+    q = re.sub(r"^(?:tell\s+me\s+about|define|explain)\s+", "", q, flags=re.I)
+    q = q.strip().rstrip("?.!").strip()
+    if len(q) >= 2:
+        return [q]
+    return []
+
+
 # ════════════════════════════════════════════════════════════════
 # Subject-scoped subgraph retrieval
 # ════════════════════════════════════════════════════════════════
@@ -258,9 +277,24 @@ def retrieve_subgraph_for_subject(
     user_id:      str,
     document_ids: Optional[List[str]] = None,
     hops:         int = 2,
+    flexible_seed_match: bool = False,
 ) -> Dict:
     """Identify query entities then fetch the hop-bounded subgraph."""
     query_entities = identify_query_entities(question)
+    if flexible_seed_match:
+        merged: List[str] = []
+        seen_m: Set[str] = set()
+        for e in query_entities + _fallback_hints_from_question(question):
+            if not e:
+                continue
+            s = str(e).strip()
+            if not s:
+                continue
+            key = s.lower()
+            if key not in seen_m:
+                seen_m.add(key)
+                merged.append(s)
+        query_entities = merged
     print(f"\n[KG Service] Query entities: {query_entities}")
 
     subgraph = get_subgraph_for_query(
@@ -269,6 +303,7 @@ def retrieve_subgraph_for_subject(
         user_id=user_id,
         document_ids=document_ids,
         hops=hops,
+        flexible_seed_match=flexible_seed_match,
     )
 
     print(
@@ -301,6 +336,7 @@ def retrieve_subgraph_for_session(
         user_id=user_id,
         document_ids=[str(d) for d in allowed_document_ids],
         hops=hops,
+        flexible_seed_match=True,
     )
 
 
@@ -329,19 +365,23 @@ def focus_subgraph_for_query(
         return {"entities": [], "relationships": []}
 
     q_terms = identify_query_entities(question)
+    q_terms = list(dict.fromkeys(
+        [str(t).strip() for t in q_terms if t and str(t).strip()]
+        + _fallback_hints_from_question(question)
+    ))
     q_lower = question.lower()
 
     def name_matches_query(name: str) -> bool:
         if not name:
             return False
-        nl = name.lower()
+        nl = normalize_query_entity_hint(name)
         for t in q_terms:
             if not t:
                 continue
-            tl = t.strip().lower()
+            tl = normalize_query_entity_hint(t)
             if tl and (tl == nl or tl in nl or nl in tl):
                 return True
-        return bool(nl in q_lower)
+        return bool(nl and nl in normalize_query_entity_hint(question))
 
     seeds: Set[str] = {e["name"] for e in entities if name_matches_query(e.get("name", ""))}
     if not seeds:

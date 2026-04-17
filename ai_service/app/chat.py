@@ -25,10 +25,30 @@ class Citation(BaseModel):
     page_end: int | None
 
 
+class KGContextEntity(BaseModel):
+    id: str
+    label: str
+    type: str
+
+
+class KGContextRelationship(BaseModel):
+    source: str
+    relation: str
+    target: str
+
+
+class KGContextPayload(BaseModel):
+    entities: List[KGContextEntity]
+    relationships: List[KGContextRelationship]
+
+
 class ChatResponse(BaseModel):
     answer: str
     confidence_score: float
     citations: List[Citation]
+    kg_context: KGContextPayload
+    entities_used: int
+    relations_used: int
 
 
 @router.post("/", response_model=ChatResponse)

@@ -53,6 +53,9 @@ class SubgraphResponse(BaseModel):
     entities:      List[EntityModel]
     relationships: List[RelationshipModel]
 
+class StatusResponse(BaseModel):
+    status: str
+
 
 # ════════════════════════════════════════════════════════════════
 # POST /kg/build
@@ -469,14 +472,9 @@ def list_subject_documents(subject_id: str, user_id: str):
 # DELETE /kg/document/{document_id}
 # ════════════════════════════════════════════════════════════════
 
-class DeleteKGResponse(BaseModel):
-    document_id:   str
-    deleted_nodes: int
-
-
 @router.delete(
     "/document/{document_id}",
-    response_model=DeleteKGResponse,
+    response_model=StatusResponse,
     summary="Delete document KG",
 )
 def delete_document_kg(document_id: str, user_id: str):
@@ -486,10 +484,10 @@ def delete_document_kg(document_id: str, user_id: str):
     PostgreSQL data is NOT affected.
     """
     try:
-        deleted = remove_document_graph(document_id=document_id, user_id=user_id)
-        return {"document_id": document_id, "deleted_nodes": deleted}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        remove_document_graph(document_id=document_id, user_id=user_id)
+        return StatusResponse(status="success")
+    except Exception:
+        return StatusResponse(status="failed")
 
 
 # ════════════════════════════════════════════════════════════════
@@ -501,14 +499,9 @@ def delete_document_kg(document_id: str, user_id: str):
 #   PostgreSQL data is NOT affected.
 # ════════════════════════════════════════════════════════════════
 
-class DeleteSubjectKGResponse(BaseModel):
-    subject_id:    str
-    deleted_nodes: int
-
-
 @router.delete(
     "/subject/{subject_id}",
-    response_model=DeleteSubjectKGResponse,
+    response_model=StatusResponse,
     summary="Delete entire subject KG",
 )
 def delete_subject_kg(subject_id: str, user_id: str):
@@ -518,7 +511,7 @@ def delete_subject_kg(subject_id: str, user_id: str):
     PostgreSQL data (content.subjects, content.documents) is NOT touched.
     """
     try:
-        deleted = remove_subject_graph(subject_id=subject_id, user_id=user_id)
-        return {"subject_id": subject_id, "deleted_nodes": deleted}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        remove_subject_graph(subject_id=subject_id, user_id=user_id)
+        return StatusResponse(status="success")
+    except Exception:
+        return StatusResponse(status="failed")

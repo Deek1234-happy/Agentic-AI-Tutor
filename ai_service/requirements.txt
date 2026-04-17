@@ -8,17 +8,18 @@ pdf2image
 python-docx
 python-pptx
 sentence-transformers
-# Coqui TTS 0.22.x imports BeamSearchScorer from transformers; removed in v5 — keep v4.
-transformers>=4.41,<5
-torch
+# Keep transformers in a torch 2.1-compatible range for this stack.
+transformers==4.41.2
+torch==2.1.2  # Compatible with TTS 0.22.0 (requires torch>=2.1)
+torchaudio==2.1.2  # Must match torch major/minor
 faiss-cpu
-numpy
+numpy==1.26.4
 requests
 psycopg2-binary 
 sqlalchemy
 langdetect
 nltk
-TTS
+TTS==0.22.0  # Fixed version for compatibility
 python-dotenv
 neo4j
 python-multipart

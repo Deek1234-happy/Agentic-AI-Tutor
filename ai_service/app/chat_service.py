@@ -310,18 +310,22 @@ def _try_kg_retrieval(
     session_id:           str,
     user_id:              str,
     allowed_document_ids: list,
-) -> str:
+) -> dict:
     """
     Attempt a session-aware, subject-scoped KG retrieval.
 
     Uses the session_id to resolve the subject automatically from
     the existing rag.chat_documents + content.documents tables.
 
-    Returns IDK_MESSAGE on any error — the RAG pipeline is unaffected.
+    Returns answer + structured KG context. On any error, returns
+    an empty KG payload and IDK_MESSAGE.
     """
+    empty_kg = {"entities": [], "relationships": []}
     try:
         from .kg_service import (
             retrieve_subgraph_for_session,
+            focus_subgraph_for_query,
+            subgraph_to_kg_context,
             generate_kg_answer,
         )
 
@@ -332,14 +336,26 @@ def _try_kg_retrieval(
             allowed_document_ids=[str(d) for d in allowed_document_ids],
         )
 
-        kg_answer = generate_kg_answer(question=question, subgraph=subgraph)
+        focused = focus_subgraph_for_query(subgraph, question)
+        kg_context = subgraph_to_kg_context(focused)
+        kg_answer = generate_kg_answer(question=question, subgraph=focused)
 
         print(f"\n[Chat] KG answer preview: {kg_answer[:200]}")
-        return kg_answer
+        return {
+            "answer": kg_answer,
+            "kg_context": kg_context,
+            "entities_used": len(kg_context["entities"]),
+            "relations_used": len(kg_context["relationships"]),
+        }
 
     except Exception as exc:
         print(f"[Chat] KG retrieval failed (non-fatal): {exc}")
-        return IDK_MESSAGE
+        return {
+            "answer": IDK_MESSAGE,
+            "kg_context": empty_kg,
+            "entities_used": 0,
+            "relations_used": 0,
+        }
 
 
 # ============================================================
@@ -347,9 +363,17 @@ def _try_kg_retrieval(
 # ============================================================
 
 def handle_chat(payload):
+    empty_kg = {"entities": [], "relationships": []}
 
     if not session_exists(payload.session_id):
-        return {"answer": IDK_MESSAGE, "confidence_score": 0.0, "citations": []}
+        return {
+            "answer": IDK_MESSAGE,
+            "confidence_score": 0.0,
+            "citations": [],
+            "kg_context": empty_kg,
+            "entities_used": 0,
+            "relations_used": 0,
+        }
 
     # 1️⃣ Classify intent first
     intent_result = classify_intent_llm(payload.question)
@@ -359,7 +383,10 @@ def handle_chat(payload):
         return {
             "answer": intent_result["reply"],
             "confidence_score": 0.0,
-            "citations": []
+            "citations": [],
+            "kg_context": empty_kg,
+            "entities_used": 0,
+            "relations_used": 0,
         }
 
     # 3️⃣ If greeting + question → save greeting to prepend later
@@ -507,12 +534,13 @@ EXPLANATION:
     # KG Answer  (session-aware, subject-scoped)
     # ============================
 
-    kg_answer = _try_kg_retrieval(
+    kg_result = _try_kg_retrieval(
         question=payload.question,
         session_id=payload.session_id,
         user_id=payload.user_id,
         allowed_document_ids=payload.allowed_document_ids,
     )
+    kg_answer = kg_result["answer"]
 
     # ============================
     # Hybrid Fusion
@@ -539,7 +567,14 @@ EXPLANATION:
 
     # Guard: both sources returned IDK
     if not final_answer or IDK_MESSAGE.lower() in final_answer.lower():
-        return {"answer": IDK_MESSAGE, "confidence_score": 0.0, "citations": []}
+        return {
+            "answer": IDK_MESSAGE,
+            "confidence_score": 0.0,
+            "citations": [],
+            "kg_context": kg_result["kg_context"],
+            "entities_used": kg_result["entities_used"],
+            "relations_used": kg_result["relations_used"],
+        }
 
     confidence_score = 0.0
 
@@ -557,4 +592,7 @@ EXPLANATION:
         "answer":           final_answer,
         "confidence_score": confidence_score,
         "citations":        citations,
+        "kg_context":       kg_result["kg_context"],
+        "entities_used":    kg_result["entities_used"],
+        "relations_used":   kg_result["relations_used"],
     }
