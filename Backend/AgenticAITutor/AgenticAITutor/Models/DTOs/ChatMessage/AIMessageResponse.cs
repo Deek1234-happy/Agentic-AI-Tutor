@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Npgsql.EntityFrameworkCore.PostgreSQL.Query.Expressions.Internal;
+using System.Text.Json.Serialization;
 
 namespace AgenticAITutor.Models.DTOs
     {
@@ -11,5 +12,8 @@ namespace AgenticAITutor.Models.DTOs
             public double ConfidenceScore { get; set; } = 0;
             [JsonPropertyName("citations")]
             public List<AICitation>? UsedChunks { get; set; }
+
+            [JsonPropertyName("kg_context")]
+            public KgContextData? KgContext { get; set; }
         }
     }

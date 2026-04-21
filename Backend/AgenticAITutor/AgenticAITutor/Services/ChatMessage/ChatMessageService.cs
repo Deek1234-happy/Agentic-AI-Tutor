@@ -4,6 +4,7 @@ using AgenticAITutor.Models.DTOs.ChatMessage;
 using AgenticAITutor.Repositories;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Data;
+using System.Text.Json;
 
 namespace AgenticAITutor.Services
 {
@@ -108,7 +109,8 @@ namespace AgenticAITutor.Services
                     Role = "assistant",
                     Content = aiResponse.AIMessage ?? "No Response Generated.",
                     CreatedAt = DateTime.Now,
-                    ConfidenceScore = aiResponse.ConfidenceScore
+                    ConfidenceScore = aiResponse.ConfidenceScore,
+                    KgContext = aiResponse.KgContext != null ? JsonSerializer.Serialize(aiResponse.KgContext) : null
                 };
                 // Add The Message Citation in The Database 
                 foreach (var citation in aiResponse?.UsedChunks)
@@ -417,7 +419,11 @@ namespace AgenticAITutor.Services
                         DocumentId = chunk.DocumentId,
                         PageStart = chunk.PageStart,
                         PageEnd = chunk.PageEnd
-                    }).ToList() ?? new List<AICitation>()
+                    }).ToList() ?? new List<AICitation>(),
+
+                    KgContext = !string.IsNullOrEmpty(message.KgContext)
+                    ? JsonSerializer.Deserialize<KgContextData>(message.KgContext)
+                    : null
 
                 }).ToList();
 
@@ -460,9 +466,9 @@ namespace AgenticAITutor.Services
             var allowedMimeTypes = new[] { "audio/wav", "audio/mpeg", "audio/mp4", "audio/ogg", "audio/x-m4a", "audio/flac", "audio/mp3" };
 
             var fileExtension = Path.GetExtension(audioFile.FileName).ToLowerInvariant();
-            var mimeType = audioFile.ContentType.ToLowerInvariant();
+            // var mimeType = audioFile.ContentType.ToLowerInvariant();
 
-            if (!allowedExtensions.Contains(fileExtension) || !allowedMimeTypes.Contains(mimeType))
+            if (!allowedExtensions.Contains(fileExtension) /*|| !allowedMimeTypes.Contains(mimeType)*/)
             {
                 response.Success = false;
                 response.Message = $"Invalid audio format. Allowed formats are: {string.Join(", ", allowedExtensions)}";

@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models;
+using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Repositories;
 
@@ -8,11 +8,19 @@ namespace AgenticAITutor.Services
     {
         private readonly IChatSessionRepository chatSessionRepository;
         private readonly IDocumentRepository documentRepository;
+        private readonly IChatMessageRepository messageRepository;
+        private readonly IFileStorageService fileStorageService;
 
-        public ChatSessionService(IChatSessionRepository chatSessionRepository, IDocumentRepository documentRepository)
+        public ChatSessionService(
+            IChatSessionRepository chatSessionRepository, 
+            IDocumentRepository documentRepository,
+            IChatMessageRepository messageRepository,
+            IFileStorageService fileStorageService)
         {
             this.chatSessionRepository = chatSessionRepository;
             this.documentRepository = documentRepository;
+            this.messageRepository = messageRepository;
+            this.fileStorageService = fileStorageService;
         }
 
         public async Task<ServiceResponse<ChatSessionResponse>> CreateSessionAsync(ChatSessionRequest request)
@@ -59,6 +67,7 @@ namespace AgenticAITutor.Services
                         FileSize = document.FileSize,
                         UploadTime = document.UploadTime,
                         ProcessingStatus = document.ProcessingStatus,
+                        KGStatus = document.KgStatus,
                         StoragePath = document.StoragePath
                     }).ToList()
                 };
@@ -79,6 +88,16 @@ namespace AgenticAITutor.Services
                 response.Success = false;
                 response.Message = "Chat Session Not Found";
                 return response; 
+            }
+
+            // Clean up orphaned audio files before the DB cascade deletes the messages
+            var messages = await messageRepository.GetBySessionIdAsync(session.Id);
+            foreach(var message in messages)
+            {
+                if (!string.IsNullOrEmpty(message.AudioUrl))
+                {
+                    await fileStorageService.DeleteFileAsync(message.AudioUrl);
+                }
             }
 
             await chatSessionRepository.DeleteAsync(session);
@@ -135,6 +154,7 @@ namespace AgenticAITutor.Services
                     FileSize = document.FileSize,
                     UploadTime = document.UploadTime,
                     ProcessingStatus = document.ProcessingStatus,
+                    KGStatus = document.KgStatus,
                     StoragePath = document.StoragePath
                 }).ToList()
             }).ToList();

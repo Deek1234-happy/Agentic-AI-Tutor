@@ -12,9 +12,9 @@ namespace AgenticAITutor.Models.DTOs
         public double? ConfidenceScore { get; set; }
         public DateTime? CreatedAt { get; set; }
         public string? AudioUrl { get; set; }
-        public string? Transcript { get; set; }
         public virtual List<WebSources> WebSource { get; set; } = new List<WebSources>();
         public virtual List<AICitation> AICitation { get; set; } = new List<AICitation>();
+        public KgContextData? KgContext { get; set; }
 
     }
 }

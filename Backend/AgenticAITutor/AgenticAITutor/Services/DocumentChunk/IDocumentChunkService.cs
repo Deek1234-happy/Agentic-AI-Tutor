@@ -7,5 +7,6 @@ namespace AgenticAITutor.Services
     {
         Task ChunkDocumentAsync(DocumentChunkRequest chunkRequest);
         Task<List<DocumentChunkResponse>> GetDocumentChunksAsync(Guid documentId, Guid userId);
+        Task KGChunkDocumentAsync(KGChunkRequest kGChunkRequest);
     }
 }

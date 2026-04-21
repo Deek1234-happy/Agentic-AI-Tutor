@@ -295,10 +295,10 @@ E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\Agen
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\staticwebassets.development.json
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\staticwebassets.build.endpoints.json
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\swae.build.ex.cache
-E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\AgenticA.50534626.Up2Date
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\AgenticAITutor.dll
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\refint\AgenticAITutor.dll
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\AgenticAITutor.pdb
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\AgenticAITutor.genruntimeconfig.cache
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\ref\AgenticAITutor.dll
+E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models.DTOs;
+using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.Enums;
 using AgenticAITutor.Repositories;
 using AgenticAITutor.Services;
@@ -46,6 +46,39 @@ namespace AgenticAITutor.BackgroundJobs
 
                 // Console.WriteLine($"Error Processing Document {documentId}: {ex.Message}");
                 throw new Exception($"Chunking failed for Document {documentId}. Error: {ex.Message}", ex);
+            }
+        }
+        public async Task KGChunkDocument (Guid documentId)
+        {
+            var document = await documentRepository.GetByIdAsync(documentId);
+            if (document == null)
+                return;
+
+            if (document.ProcessingStatus != DocumentProcessingStatus.COMPLETED.ToString())
+            {
+                throw new InvalidOperationException($"Cannot start KG chunking. Document processing status is {document.ProcessingStatus}. Expected COMPLETED.");
+            }
+
+            try
+            {
+                document.KgStatus = KGChunkingStatus.PROCESSING.ToString();
+                await documentRepository.UpdateAsync(document);
+
+
+                KGChunkRequest kGChunkRequest = new KGChunkRequest { DocumentId = documentId };
+
+                await chunkService.KGChunkDocumentAsync(kGChunkRequest);
+
+                document.KgStatus = KGChunkingStatus.COMPLETED.ToString();
+                await documentRepository.UpdateAsync(document);
+            }
+            catch (Exception ex)
+            {
+                document.KgStatus = KGChunkingStatus.FAILED.ToString();
+                await documentRepository.UpdateAsync(document);
+
+                // Console.WriteLine($"Error Processing Document {documentId}: {ex.Message}");
+                throw new Exception($"KGChunking failed for Document {documentId}. Error: {ex.Message}", ex);
             }
         }
     }

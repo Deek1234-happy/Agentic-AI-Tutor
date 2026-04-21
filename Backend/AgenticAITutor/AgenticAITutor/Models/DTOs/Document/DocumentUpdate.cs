@@ -9,7 +9,6 @@ namespace AgenticAITutor.Models.DTOs
         [Required]
         public Guid UserId { get; set; }
         public string? NewName { get; set; }
-        public Guid? NewSubjectId { get; set; }
-        public bool MoveToGeneral { get; set; } = false;
+        public Guid NewSubjectId { get; set; }
     }
 }

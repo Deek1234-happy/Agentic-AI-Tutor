@@ -8,3 +8,8 @@ obj/
 # Ignore all uploaded documents
 wwwroot/uploads/
 **/uploads/
+# Ignore ASP.NET Core Application Settings (Contains Secrets)
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+secrets.json

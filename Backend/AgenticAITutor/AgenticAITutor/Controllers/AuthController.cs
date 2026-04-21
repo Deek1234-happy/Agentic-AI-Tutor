@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models.DTOs.Auth;
+using AgenticAITutor.Models.DTOs.Auth;
 using AgenticAITutor.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,8 +17,13 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary> Register a New User Account </summary>
-        /// <remarks> Returns a JWT Token on Success</remarks>
-        /// <response code="200">Registration successful — returns JWT token</response>
+        /// <remarks> 
+        /// Creates a new user in the database and returns a JWT Token.
+        /// **Required Fields:** `FirstName`, `LastName`, `Email`, `Password`.
+        /// Passwords must match and follow security standards (e.g., minimum length).
+        /// </remarks>
+        /// <param name="request">The user registration details</param>
+        /// <response code="200">Registration successful — returns AuthResponse containing the JWT token</response>
         /// <response code="400">Email already exists or validation failed</response>
         [HttpPost("register")]
         [ProducesResponseType<AuthResponse>(200)]
@@ -34,8 +39,12 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary> Login With Existing Credentials </summary>
-        /// <remarks> Returns a JWT Token on Success</remarks>
-        /// <response code="200">Login successful — returns JWT token</response>
+        /// <remarks> 
+        /// Authenticates the user and returns a JWT Token on Success.
+        /// The JWT Token must be included in the `Authorization: Bearer {token}` header for all secured endpoints.
+        /// </remarks>
+        /// <param name="request">The user's login credentials (Email and Password)</param>
+        /// <response code="200">Login successful — returns AuthResponse containing the JWT token</response>
         /// <response code="400">Invalid email or password</response>
         [HttpPost("login")]
         [ProducesResponseType<AuthResponse>(200)]

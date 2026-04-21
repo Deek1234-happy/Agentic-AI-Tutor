@@ -141,13 +141,10 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
             entity.Property(e => e.ContentHash).IsFixedLength();
-            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.ProcessingStatus).HasDefaultValueSql("'PENDING'::character varying");
             entity.Property(e => e.UploadTime).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.HasOne(d => d.Subject).WithMany(p => p.Documents)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_documents_subject");
+            entity.HasOne(d => d.Subject).WithMany(p => p.Documents).HasConstraintName("fk_documents_subject");
 
             entity.HasOne(d => d.User).WithMany(p => p.Documents).HasConstraintName("documents_user_id_fkey");
         });

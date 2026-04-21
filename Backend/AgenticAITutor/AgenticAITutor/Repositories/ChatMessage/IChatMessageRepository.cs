@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models;
+using AgenticAITutor.Models;
 
 namespace AgenticAITutor.Repositories
 {

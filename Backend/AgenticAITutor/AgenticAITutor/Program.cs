@@ -1,4 +1,4 @@
-﻿/* 
+/* 
  Database Scaffolding Command
   Scaffold-DbContext "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=8105" Npgsql.EntityFrameworkCore.PostgreSQL -OutputDir Models -Context AppDbContext -ContextDir Data -DataAnnotations -Force -NoOnConfiguring -Schemas public,auth,content,planner,quiz,rag
  */
@@ -29,6 +29,21 @@ namespace AgenticAITutor
     {
         public static void Main(string[] args)
         {
+            AppDomain.CurrentDomain.FirstChanceException += (sender, e) =>
+            {
+                // Only log "serious" exceptions, skip common noise
+                if (e.Exception is OutOfMemoryException
+                    || e.Exception is AccessViolationException
+                    || e.Exception is StackOverflowException
+                    || e.Exception is System.Net.Sockets.SocketException
+                    || e.Exception is Npgsql.NpgsqlException
+                    || e.Exception is Npgsql.PostgresException)
+                {
+                    Console.WriteLine($"[FIRST-CHANCE] {e.Exception.GetType().Name}: {e.Exception.Message}");
+                }
+            };
+
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -70,6 +85,7 @@ namespace AgenticAITutor
             // -----------------------------------
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("DefaultConnection"));
             dataSourceBuilder.UseVector();
+            dataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = 5; ////////////////////////////////////////////////////////
             var dataSource = dataSourceBuilder.Build();
             builder.Services.AddSingleton(dataSource);
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -124,10 +140,16 @@ namespace AgenticAITutor
             builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
 
+
+            // Hangfire
             builder.Services.AddHangfire(config =>
                 config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")))
             );
-            builder.Services.AddHangfireServer();
+
+            builder.Services.AddHangfireServer(options =>
+            {
+                options.WorkerCount = 2; // Use only 2 workers instead of the default 20
+            });
 
             builder.Services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();    
             builder.Services.AddScoped<IDocumentChunkService, DocumentChunkService>();
@@ -159,13 +181,16 @@ namespace AgenticAITutor
             builder.Services.AddHttpClient(nameof(ChatMessageService), client =>
             {
                 client.Timeout = TimeSpan.FromMinutes(10);
-                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                // client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
             });
 
             builder.Services.AddHttpClient(nameof(DocumentChunkService), client =>
             {
-                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                // client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
             });
+
+            builder.Services.AddHttpClient(nameof(DocumentService));
+            builder.Services.AddHttpClient(nameof(SubjectService));
 
             builder.Services.Configure<FormOptions>(options =>
             {
@@ -189,11 +214,17 @@ namespace AgenticAITutor
             // Configure the HTTP request pipeline.
             //if (app.Environment.IsDevelopment())
             //{
-                app.UseSwagger();
-                app.UseSwaggerUI();
+            app.UseSwagger();
+            app.UseSwaggerUI(options =>
+            {
+                // Sort endpoints by HTTP method (GET, POST, PUT, DELETE) within their tags
+                options.ConfigObject.AdditionalItems["operationsSorter"] = "method";
+            });
             //}
 
+            
             app.UseHttpsRedirection();
+            
 
             app.UseStaticFiles();
 

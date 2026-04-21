@@ -38,22 +38,23 @@ public partial class Document
     [Column("upload_time", TypeName = "timestamp without time zone")]
     public DateTime? UploadTime { get; set; }
 
-    [Column("is_deleted")]
-    public bool? IsDeleted { get; set; }
-
     [Column("subject_id")]
-    public Guid? SubjectId { get; set; }
+    public Guid SubjectId { get; set; }
 
     [Column("processing_status")]
     [StringLength(20)]
     public string ProcessingStatus { get; set; } = null!;
+
+    [Column("kg_status")]
+    [StringLength(20)]
+    public string? KgStatus { get; set; }
 
     [InverseProperty("Document")]
     public virtual ICollection<DocumentChunk> DocumentChunks { get; set; } = new List<DocumentChunk>();
 
     [ForeignKey("SubjectId")]
     [InverseProperty("Documents")]
-    public virtual Subject? Subject { get; set; }
+    public virtual Subject Subject { get; set; } = null!;
 
     [ForeignKey("UserId")]
     [InverseProperty("Documents")]

@@ -6,7 +6,7 @@ A production-ready ASP.NET Core Web API that powers an intelligent tutoring syst
 
 ## 📐 Architecture Overview
 
-```
+```text
 ┌────────────────────────────────────────────────────────┐
 │                  ASP.NET Core Web API                  │
 │  Controllers → Services → Repositories → PostgreSQL    │
@@ -77,10 +77,48 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE DATABASE "AgenticAITutor";
 ```
 
-### 3. Configure the Application
+### 3. Initialize Configuration Files
 
-Open `appsettings.Development.json` and fill in your local values:
+For security reasons, `appsettings.json` and `appsettings.Development.json` are excluded from the repository. You must create them manually in the project root directory (`AgenticAITutor/AgenticAITutor/`).
 
+**1. Create `appsettings.json` (Production Settings)**
+Create a file named `appsettings.json` and add the following template. Update the JWT Key and production database string when deploying:
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=your_prod_db_host;Port=5432;Database=AgenticAITutor;Username=postgres;Password=YOUR_PROD_PASSWORD"
+  },
+  "AppConfig": {
+    "BaseURL": "https://your-production-url.com"
+  },
+  "AIService": {
+    "BaseURL": "http://your-ai-service-url",
+    "ChunkingPath": "extract/embed",
+    "ChatPath": "chat/",
+    "WebSearchPath": "web-search",
+    "STTPath": "audio/stt",
+    "TTSPath": "audio/tts",
+    "KGSubjectDeletePath": "kg/subject",
+    "KGDocumentDeletePath": "kg/document"
+  },
+  "JWT": {
+    "Key": "REPLACE_WITH_A_VERY_LONG_SECURE_RANDOM_SECRET_KEY",
+    "Issuer": "AgenticAITutor",
+    "Audience": "AgenticAITutorUsers",
+    "DurationInDays": 30
+  }
+}
+```
+
+**2. Create `appsettings.Development.json` (Local Development Settings)**
+Create a file named `appsettings.Development.json`. This overrides the `appsettings.json` during local development:
 ```json
 {
   "Logging": {
@@ -90,15 +128,23 @@ Open `appsettings.Development.json` and fill in your local values:
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=YOUR_PASSWORD"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=AgenticAITutor;Username=postgres;Password=YOUR_LOCAL_PASSWORD"
   },
   "AppConfig": {
     "BaseURL": "https://localhost:7257"
+  },
+  "AIService": {
+    "BaseURL": "http://localhost:8000",
+    "ChunkingPath": "extract/embed",
+    "ChatPath": "chat/",
+    "WebSearchPath": "web-search",
+    "STTPath": "audio/stt",
+    "TTSPath": "audio/tts",
+    "KGSubjectDeletePath": "kg/subject",
+    "KGDocumentDeletePath": "kg/document"
   }
 }
 ```
-
-> **Note:** `appsettings.json` holds production values (cloud DB, live AI service URL). For local development, always use `appsettings.Development.json` — it takes precedence when `ASPNETCORE_ENVIRONMENT=Development`.
 
 ### 4. Apply Database Migrations / Scaffold
 
@@ -139,7 +185,7 @@ dotnet restore
 
 Key packages the project depends on:
 
-```
+```text
 Microsoft.EntityFrameworkCore
 Npgsql.EntityFrameworkCore.PostgreSQL
 Pgvector
@@ -155,18 +201,7 @@ Swashbuckle.AspNetCore
 
 ### 6. Configure the AI Service URL
 
-The .NET API talks to a Python AI microservice for document chunking, chat, web search, STT, and TTS. Set the base URL in `appsettings.Development.json` (add the `AIService` block if it's not there):
-
-```json
-"AIService": {
-  "BaseURL": "http://localhost:8000",
-  "ChunkingPath": "extract/embed",
-  "ChatPath": "chat/",
-  "WebSearchPath": "web-search",
-  "STTPath": "audio/stt",
-  "TTSPath": "audio/tts"
-}
-```
+The .NET API talks to a Python AI microservice for document chunking, chat, web search, STT, and TTS. Ensure the base URL in `appsettings.Development.json` correctly points to your local Python service (default: `http://localhost:8000`).
 
 If the Python service is not running locally yet, the API will still start. Any endpoint that calls the AI service will return a `400` error with a descriptive message rather than crashing.
 
@@ -189,7 +224,7 @@ Once running, navigate to:
 
 ## 🗂️ Project Structure
 
-```
+```text
 AgenticAITutor/
 │
 ├── Controllers/            # HTTP endpoints (Auth, Chat, Documents, Subjects, User)
@@ -240,9 +275,10 @@ Token lifetime is configured in `appsettings.json` under `JWT.DurationInDays` (d
 | Document | POST | `/api/document` | Upload a document (PDF, DOCX, TXT, PPTX) |
 | Document | GET | `/api/document` | List all documents |
 | Document | GET | `/api/document/{id}` | Get document by ID |
+| Document | GET | `/api/document/{id}/download` | Securely download or view a document inline |
 | Document | GET | `/api/document/subject/{subjectId}` | Documents by subject |
 | Document | PUT | `/api/document` | Rename or move document |
-| Document | DELETE | `/api/document/{id}` | Soft-delete document |
+| Document | DELETE | `/api/document/{id}` | Permanently delete document (DB, Files, & KG) |
 | Document | POST | `/api/document/{id}/retry-processing` | Retry a failed chunking job |
 | Chat Session | POST | `/api/chatsession` | Create a chat session |
 | Chat Session | GET | `/api/chatsession` | Get all sessions (chat history) |
@@ -276,7 +312,7 @@ The database is organized into multiple PostgreSQL schemas:
 
 When a document is uploaded, it is immediately saved to disk and a **Hangfire background job** is enqueued to process it asynchronously:
 
-```
+```text
 Upload → Save file → Set status PENDING → Enqueue DocumentChunkingJob
                                                     ↓
                                          Set status PROCESSING
@@ -297,7 +333,7 @@ Monitor jobs at `/dashboard`. If a document gets stuck in `FAILED`, use the **re
 
 Uploaded files are stored under `wwwroot/uploads/` following this structure:
 
-```
+```text
 wwwroot/
 └── uploads/
     └── {userId}/
@@ -305,7 +341,7 @@ wwwroot/
         └── {subjectId}/      ← Documents assigned to a subject
 ```
 
-The `StoragePath` stored in the database is the **relative path only** (e.g., `uploads/abc-123/General/file.pdf`). The full public URL is constructed at the response layer by prepending `AppConfig:BaseURL`.
+The `StoragePath` stored in the database is the **relative path only** (e.g., `uploads/abc-123/General/file.pdf`). To access files securely, the frontend should use the `/api/document/{id}/download` endpoint with the JWT Bearer token.
 
 ---
 

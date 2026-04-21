@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Extensions;
+using AgenticAITutor.Extensions;
 using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.DTOs.ChatMessage;
@@ -23,11 +23,13 @@ namespace AgenticAITutor.Controllers
 
         /// <summary>Send a message and receive an AI response</summary>
         /// <remarks>
-        /// Set **searchWeb: False** to query your uploaded documents.
-        /// Forget About UserId and Allowed Document Ids Don't Send Them in The Request
+        /// Sends a user message to the AI.
+        /// Set **searchWeb: False** to query your uploaded documents contextually.
+        /// **Note:** Do not send `UserId` or `AllowedDocumentIds` in the request body; they are resolved automatically on the backend from the Token and Session.
         /// </remarks>
-        /// <response code="200">AI response with document citations</response>
-        /// <response code="400">Message processing failed or Validation Error</response>
+        /// <param name="request">Contains the `SessionId`, `UserMessage`, and `SearchWeb` (must be false).</param>
+        /// <response code="200">Returns AIMessageResponse containing the AI's answer, confidence score, and document citations</response>
+        /// <response code="400">Message processing failed, Validation Error, or SearchWeb is true</response>
         /// <response code="401">Invalid or missing token</response>
         [ProducesResponseType<AIMessageResponse>(200)]
         [ProducesResponseType<string>(401)]
@@ -57,11 +59,13 @@ namespace AgenticAITutor.Controllers
 
         /// <summary>Send a message and receive a Web Search response</summary>
         /// <remarks>
-        /// Set **searchWeb: true** to query the web
-        /// Forget About UserId and Allowed Document Ids Don't Send Them in The Request
+        /// Sends a user message to the AI but forces it to search the live web for answers instead of local documents.
+        /// Set **searchWeb: True**.
+        /// **Note:** Do not send `UserId` or `AllowedDocumentIds` in the request body.
         /// </remarks>
-        /// <response code="200">Web Search response with Sources</response>
-        /// <response code="400">Message processing failed or Validation Error</response>
+        /// <param name="request">Contains the `SessionId`, `UserMessage`, and `SearchWeb` (must be true).</param>
+        /// <response code="200">Returns WebSearchResponse containing the AI's answer and the web sources</response>
+        /// <response code="400">Message processing failed, Validation Error, or SearchWeb is false</response>
         /// <response code="401">Invalid or missing token</response>
         [ProducesResponseType<WebSearchResponse>(200)]
         [ProducesResponseType<string>(401)]
@@ -140,9 +144,15 @@ namespace AgenticAITutor.Controllers
             return Ok(response.Data);
         }
 
-        /// <summary>Convert an audio file to text (Transcribtion)</summary>
+        /// <summary>Convert an audio file to text (Transcription)</summary>
+        /// <remarks>
+        /// Transcribes a spoken audio file into text using the AI Speech-To-Text model.
+        /// Useful for capturing user voice queries before sending them to the AI.
+        /// Accepts standard audio formats (wav, mp3, m4a, etc.). Max size: 10MB.
+        /// </remarks>
+        /// <param name="audio_file">The binary audio file (multipart/form-data)</param>
         /// <response code="200">Returns the transcribed text</response>
-        /// <response code="400">Audio processing failed or missing file</response>
+        /// <response code="400">Audio processing failed, invalid format, or missing file</response>
         /// <response code="401">Invalid or missing token</response>
         [HttpPost("STT")]
         [Consumes("multipart/form-data")]
@@ -167,9 +177,13 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Generate playable audio for an existing AI message</summary>
+        /// <remarks>
+        /// Generates a Text-To-Speech (TTS) audio file for a specific message that the AI previously generated.
+        /// If the audio was already generated before, it returns the cached URL instantly.
+        /// </remarks>
         /// <param name="messageId">The GUID of the AI's chat message</param>
-        /// <response code="200">Returns the URL of the generated audio file</response>
-        /// <response code="400">TTS generation failed or unauthorized access</response>
+        /// <response code="200">Returns TTSResponse with the URL of the generated/cached audio file</response>
+        /// <response code="400">TTS generation failed, message not found, or unauthorized access</response>
         /// <response code="401">Invalid or missing token</response>
         [HttpPost("{messageId}/TTS")]
         [ProducesResponseType<TTSResponse>(200)] // Perfect Swagger Docs!

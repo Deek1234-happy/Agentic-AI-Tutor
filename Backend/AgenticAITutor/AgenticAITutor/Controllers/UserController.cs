@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Extensions;
+using AgenticAITutor.Extensions;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +21,10 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Get the current user's profile</summary>
-        /// <response code="200">Returns user profile data</response>
+        /// <remarks>
+        /// Fetches the profile data (FirstName, LastName, Email) for the currently authenticated user.
+        /// </remarks>
+        /// <response code="200">Returns UserResponse profile data</response>
         /// <response code="401">Invalid or missing token</response>
         /// <response code="404">User not found</response>
         [HttpGet("profile")]
@@ -42,7 +45,11 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Update the current user's profile</summary>
-        /// <response code="200">Profile updated successfully</response>
+        /// <remarks>
+        /// Updates the authenticated user's Data
+        /// </remarks>
+        /// <param name="request">Contains the new `FirstName` `LastName` and/or `Email`.</param>
+        /// <response code="200">Profile updated successfully — returns UserResponse</response>
         /// <response code="400">Validation error</response>
         /// <response code="401">Invalid or missing token</response>
         [ProducesResponseType<UserResponse>(200)]

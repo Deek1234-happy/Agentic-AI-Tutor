@@ -6,6 +6,7 @@ namespace AgenticAITutor.Models.DTOs
     {
         [Required]
         public Guid UserId { get; set; }
+        [Required]
         public List<Guid> DocumentIds { get; set; } = new List<Guid>();
     }
 }

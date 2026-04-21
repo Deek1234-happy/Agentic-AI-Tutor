@@ -32,6 +32,9 @@ public partial class ChatMessage
     [Column("audio_url")]
     public string? AudioUrl { get; set; }
 
+    [Column("kg_context", TypeName = "jsonb")]
+    public string? KgContext { get; set; }
+
     [InverseProperty("Message")]
     public virtual ICollection<ChatWebSource> ChatWebSources { get; set; } = new List<ChatWebSource>();
 

@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Extensions;
+using AgenticAITutor.Extensions;
 using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Services;
@@ -23,9 +23,14 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Create a new study subject</summary>
-        /// <response code="200">Subject created successfully</response>
+        /// <remarks>
+        /// Subjects act as folders to group related documents together.
+        /// Subject names must be unique per user.
+        /// </remarks>
+        /// <param name="subjectRequest">Contains the `Name` of the new subject.</param>
+        /// <response code="200">Subject created successfully — returns SubjectResponse</response>
         /// <response code="401">Invalid or missing token</response>
-        /// <response code="400">Validation Error</response>
+        /// <response code="400">Validation Error or Subject Name already exists</response>
         [ProducesResponseType<SubjectResponse>(200)]
         [ProducesResponseType<string>(401)]
         [ProducesResponseType<string>(400)]
@@ -47,7 +52,10 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Get all subjects for the current user</summary>
-        /// <response code="200">List of subjects</response>
+        /// <remarks>
+        /// Retrieves a list of all subjects created by the authenticated user, along with a nested list of their associated Documents.
+        /// </remarks>
+        /// <response code="200">List of subjects and their documents</response>
         /// <response code="401">Invalid or missing token</response>
         [ProducesResponseType<List<SubjectResponse>>(200)]
         [ProducesResponseType<string>(401)]
@@ -89,9 +97,14 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Update a subject by ID</summary>
+        /// <remarks>
+        /// Updates the name of an existing subject.
+        /// </remarks>
         /// <param name="id">Subject GUID</param>
-        /// <response code="200">Subject updated</response>
+        /// <param name="subjectModel">Contains the new `Name` for the subject.</param>
+        /// <response code="200">Subject updated successfully</response>
         /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Validation Error or Name already exists</response>
         [ProducesResponseType<string>(200)]
         [ProducesResponseType<string>(400)]
         [ProducesResponseType<string>(401)]
@@ -112,9 +125,14 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Delete a subject by ID</summary>
+        /// <remarks>
+        /// Deletes the subject. 
+        /// **Warning:** This will also permanently delete all Documents grouped under this subject, including their physical files and AI Knowledge Graph data.
+        /// </remarks>
         /// <param name="id">Subject GUID</param>
-        /// <response code="200">Subject deleted</response>
+        /// <response code="200">Subject and its associated documents deleted</response>
         /// <response code="401">Invalid or missing token</response>
+        /// <response code="400">Subject not found or validation error</response>
         [ProducesResponseType<string>(200)]
         [ProducesResponseType<string>(400)]
         [ProducesResponseType<string>(401)]
@@ -131,6 +149,33 @@ namespace AgenticAITutor.Controllers
                 return BadRequest(result.Message);
 
             return Ok(result.Message);
+        }
+
+        /// <summary>Get documents for a subject (Dropdown Optimized)</summary>
+        /// <remarks>
+        /// Returns a lightweight list containing only the `Id` and `FileName` of the documents belonging to a subject.
+        /// Optimized for use in dropdown menus when creating a new Chat Session.
+        /// </remarks>
+        /// <param name="id">Subject GUID</param>
+        /// <response code="200">List of document dropdown items</response>
+        /// <response code="401">Invalid or missing token</response>
+        /// <response code="404">Subject not found</response>
+        [ProducesResponseType<List<DocumentDropdownResponse>>(200)]
+        [ProducesResponseType<string>(401)]
+        [ProducesResponseType<string>(404)]
+        [HttpGet("{id}/documents/dropdown")]
+        public async Task<IActionResult> GetSubjectDocumentsDropdown(Guid id)
+        {
+            var userId = User.GetUserId();
+            if (userId == Guid.Empty)
+                return Unauthorized("Invalid Token : User ID Not Found");
+
+            var result = await subjectService.GetDocumentsForDropdownAsync(id, userId);
+
+            if (!result.Success)
+                return NotFound(result.Message);
+
+            return Ok(result.Data);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models;
+using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 
 namespace AgenticAITutor.Services
@@ -10,5 +10,6 @@ namespace AgenticAITutor.Services
         Task<ServiceResponse<SubjectResponse?>> GetAsync(Guid subjectId, Guid userId);
         Task<ServiceResponse<string>> DeleteAsync(Guid subjectId, Guid userId);
         Task<ServiceResponse<string>> UpdateAsync(Guid subjectId, SubjectRequest subjectModel);
+        Task<ServiceResponse<List<DocumentDropdownResponse>>> GetDocumentsForDropdownAsync(Guid subjectId, Guid userId);
     }
 }

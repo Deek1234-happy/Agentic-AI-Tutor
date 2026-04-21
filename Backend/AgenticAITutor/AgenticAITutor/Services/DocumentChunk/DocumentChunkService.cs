@@ -1,6 +1,7 @@
 ﻿using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Repositories;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Pgvector;
 
 namespace AgenticAITutor.Services
@@ -34,23 +35,22 @@ namespace AgenticAITutor.Services
                 DocumentType = document.FileType
             };
 
-            string? aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
-            string? chunkingPath = configuration["AIService:ChunkingPath"] ?? "extract/embed";
 
-            string? aiURL = $"{aiBaseURL.TrimEnd('/')}/{chunkingPath.TrimStart('/')}";
+            string? aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
+
+            string? chunkingPath = configuration["AIService:ChunkingPath"] ?? "extract/embed";
+            string? chunkingUrl = $"{aiBaseURL.TrimEnd('/')}/{chunkingPath.TrimStart('/')}";
 
             //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
 
-            var response = await httpClient.PostAsJsonAsync(aiURL, aiRequest);
-            if (!response.IsSuccessStatusCode)
+            var chunkingResponse = await httpClient.PostAsJsonAsync(chunkingUrl, aiRequest);
+            if (!chunkingResponse.IsSuccessStatusCode)
             {
-                string errorBody = await response.Content.ReadAsStringAsync();
-
-                // Also, let's log the URL you sent so you can visually verify it's correct
-                throw new Exception($"AI API Failed! Status: {response.StatusCode}. Sent URL: {aiRequest.DocumentPath}. AI Error Details: {errorBody}");
+                string errorBody = await chunkingResponse.Content.ReadAsStringAsync();
+                throw new Exception($"AI API Failed! Status: {chunkingResponse.StatusCode}. Sent URL: {aiRequest.DocumentPath}. AI Error Details: {errorBody}");
             }
 
-            var aiChunks = await response.Content.ReadFromJsonAsync<List<AIChunkResponse>>();
+            var aiChunks = await chunkingResponse.Content.ReadFromJsonAsync<List<AIChunkResponse>>();
 
             if (aiChunks != null && aiChunks.Any())
             {
@@ -76,10 +76,29 @@ namespace AgenticAITutor.Services
             }
         }
 
-        //public async Task ChunkDocumentAsync(DocumentChunkRequest chunkRequest)
-        //{
-        //    await mockedDocumentChunkService.ChunkDocumentAsync(chunkRequest);
-        //}
+        public async Task KGChunkDocumentAsync (KGChunkRequest kGChunkRequest)
+        {
+            var document = await documentRepository.GetByIdAsync(kGChunkRequest.DocumentId);
+            if (document == null)
+                throw new Exception("Document Not Found");
+
+            string? aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
+
+            string? kgChunkingPath = configuration["AIService:KGChunkingPath"] ?? "chunk/";
+            string? kgChunkingUrl = $"{aiBaseURL.TrimEnd('/')}/{kgChunkingPath.TrimStart('/')}";
+
+            var kgChunkingResponse = await httpClient.PostAsJsonAsync(kgChunkingUrl, kGChunkRequest);
+            if(!kgChunkingResponse.IsSuccessStatusCode)
+            {
+                string errorBody = await kgChunkingResponse.Content.ReadAsStringAsync();
+                throw new Exception($"AI API Failed! Status: {kgChunkingResponse.StatusCode}. Sent ID: {kGChunkRequest.DocumentId}. AI Error Details: {errorBody}");
+
+            }
+            var kgStatus = await kgChunkingResponse.Content.ReadFromJsonAsync<KGChunkResponse>();
+
+        }
+
+        
 
         public async Task<List<DocumentChunkResponse>> GetDocumentChunksAsync(Guid documentId, Guid userId)
         {

@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.BackgroundJobs;
+using AgenticAITutor.BackgroundJobs;
 using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.Enums;
@@ -15,6 +15,7 @@ namespace AgenticAITutor.Services
         private readonly ISubjectRepository subjectRepository;
         private readonly IConfiguration configuration;
         private readonly IDocumentChunkRepository chunkRepository;
+        private readonly HttpClient httpClient;
         private readonly string[] allowedExtensions = { ".pdf", ".docx", ".txt", ".pptx" };
         private readonly long maxFileSize = 10 * 1024 * 1024; // 10 MB
 
@@ -22,13 +23,15 @@ namespace AgenticAITutor.Services
             IFileStorageService fileStorageService, 
             ISubjectRepository subjectRepository, 
             IConfiguration configuration,
-            IDocumentChunkRepository chunkRepository)
+            IDocumentChunkRepository chunkRepository,
+            IHttpClientFactory httpClientFactory)
         {
             this.documentRepository = documentRepository;
             this.fileStorageService = fileStorageService;
             this.subjectRepository = subjectRepository;
             this.configuration = configuration;
             this.chunkRepository = chunkRepository;
+            this.httpClient = httpClientFactory.CreateClient(nameof(DocumentService));
         }
 
         public async Task<ServiceResponse<DocumentResponse>> UploadDocumentAsync(DocumentRequest request)
@@ -71,7 +74,7 @@ namespace AgenticAITutor.Services
                 }
             }
             var existingDoc = await documentRepository.GetByHashAsync(contentHash, request.UserId);
-            if(existingDoc != null && existingDoc.IsDeleted == false)
+            if(existingDoc != null)
             {
                 response.Success = false;
                 response.Message = "You Have Already Uploaded This File. ";
@@ -80,7 +83,7 @@ namespace AgenticAITutor.Services
 
             if(request.SubjectId != null && request.SubjectId != Guid.Empty)
             {
-                var targetSubject = await subjectRepository.GetByIdAsync(request.SubjectId.Value);
+                var targetSubject = await subjectRepository.GetByIdAsync(request.SubjectId);
                 if (targetSubject == null || targetSubject.UserId != request.UserId)
                 {
                     response.Success = false;
@@ -90,7 +93,7 @@ namespace AgenticAITutor.Services
             }
 
             //Storing The File
-            string? subFolder = request.SubjectId.HasValue ? request.SubjectId.ToString() : "General";
+            string? subFolder = request.SubjectId != Guid.Empty ? request.SubjectId.ToString() : "General";
             string? userFolder = request.UserId.ToString();
             string? storagePath = await fileStorageService.SaveFileAsync(request.File, userFolder, subFolder);
 
@@ -106,14 +109,17 @@ namespace AgenticAITutor.Services
                 ContentHash = contentHash,
                 UploadTime = DateTime.Now,
                 ProcessingStatus = DocumentProcessingStatus.PENDING.ToString(),
-                IsDeleted = false,
+                KgStatus = KGChunkingStatus.PENDING.ToString(),
             };
 
             await documentRepository.AddAsync(document);
 
             // chunking the document
-            BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
+            var jobId = BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
 
+            // kg chunking (will only run if the normal chunking job succeeds)
+            BackgroundJob.ContinueJobWith<DocumentChunkingJob>(jobId, job => job.KGChunkDocument(document.Id));
+                        
             response.Success = true;
             response.Data = MapToResponse(document);
             response.Message = "Upload Successful";
@@ -126,7 +132,7 @@ namespace AgenticAITutor.Services
 
             var document = await documentRepository.GetByIdAsync(request.Id);
             
-            if(document == null || document.IsDeleted == true)
+            if(document == null)
             {
                 response.Success = false;
                 response.Message = "Document Not Found";
@@ -147,23 +153,23 @@ namespace AgenticAITutor.Services
                 document.Filename = request.NewName;
                 isUpdated = true;
             }
-            if(request.MoveToGeneral)
-            {
-                string? userFolder = request.UserId.ToString();
-                string? newSubFolder = "General";
+            //if(request.MoveToGeneral)
+            //{
+            //    string? userFolder = request.UserId.ToString();
+            //    string? newSubFolder = "General";
 
-                string? newStoragePath = await fileStorageService.MoveFileAsync(document.StoragePath, userFolder, newSubFolder);
-                if (newStoragePath != null)
-                    document.StoragePath = newStoragePath;
+            //    string? newStoragePath = await fileStorageService.MoveFileAsync(document.StoragePath, userFolder, newSubFolder);
+            //    if (newStoragePath != null)
+            //        document.StoragePath = newStoragePath;
 
-                document.SubjectId = null;
-                isUpdated = true;
-            }
-            else if(request.NewSubjectId.HasValue)
+            //    document.SubjectId = null;
+            //    isUpdated = true;
+            //}
+            else if(request.NewSubjectId != Guid.Empty)
             {
                 if(document.SubjectId != request.NewSubjectId)
                 {
-                    var targetSubject = await subjectRepository.GetByIdAsync(request.NewSubjectId.Value);
+                    var targetSubject = await subjectRepository.GetByIdAsync(request.NewSubjectId);
                     if(targetSubject == null || targetSubject.UserId != request.UserId)
                     {
                         response.Success = false;
@@ -202,7 +208,7 @@ namespace AgenticAITutor.Services
             var response = new ServiceResponse<string>();
 
             var document = await documentRepository.GetByIdAsync(documentId);
-            if (document == null || document.IsDeleted == true)
+            if (document == null)
             {
                 response.Success = false;
                 response.Message = "Document Not Found";
@@ -215,30 +221,49 @@ namespace AgenticAITutor.Services
                 return response;
             }
 
-            document.IsDeleted = true;
-            await documentRepository.UpdateAsync(document);
+            // 1. Notify the AI service to delete the knowledge graph data for this document
+            try
+            {
+                var aiBaseUrl = configuration["AIService:BaseURL"];
+                var kgDeletePath = configuration["AIService:KGDeletePath"];
+                var kgDeleteUrl = $"{aiBaseUrl}/{kgDeletePath}/{documentId}?user_id={userId}";
+                await httpClient.DeleteAsync(kgDeleteUrl);
+            }
+            catch
+            {
+                // Log and continue — KG cleanup failure should not block the hard delete
+            }
+
+            // 2. Delete the physical file from wwwroot/uploads
+            if (!string.IsNullOrWhiteSpace(document.StoragePath))
+            {
+                await fileStorageService.DeleteFileAsync(document.StoragePath);
+            }
+
+            // 3. Hard-delete the database record
+            await documentRepository.DeleteAsync(document);
 
             response.Data = "Deleted";
-            response.Message = "Document moved to trash.";
+            response.Message = "Document permanently deleted.";
             return response;
         }
 
         public async Task<List<DocumentResponse>> GetAllDocumentsAsync(Guid userId)
         {
             var documents = await documentRepository.GetAllAsync(userId);
-            return documents.Where(d => d.IsDeleted == false).Select(MapToResponse).ToList();
+            return documents.Select(MapToResponse).ToList();
         }
 
         public async Task<List<DocumentResponse>> GetDocumentsBySubjectAsync(Guid userId, Guid subjectId)
         {
             var documents = await documentRepository.GetBySubjectAsync(userId, subjectId);
-            return documents.Where(d => d.IsDeleted == false).Select(MapToResponse).ToList();
+            return documents.Select(MapToResponse).ToList();
         }
 
         public async Task<DocumentResponse?> GetDocumentsByIdAsync(Guid userId, Guid id)
         {
             var document = await documentRepository.GetByIdAsync(id);
-            if (document is null || document.UserId != userId || document.IsDeleted == true)
+            if (document is null || document.UserId != userId)
                 return null;
             return MapToResponse(document);
         }
@@ -251,7 +276,7 @@ namespace AgenticAITutor.Services
             // 1. Find the document and verify ownership
             var document = await documentRepository.GetByIdAsync(documentId);
 
-            if (document == null || document.IsDeleted == true)
+            if (document == null)
             {
                 response.Success = false;
                 response.Message = "Document Not Found.";
@@ -277,6 +302,11 @@ namespace AgenticAITutor.Services
                     "COMPLETED" => "Document has already been processed successfully.",
                     _ => $"Retry is not allowed for status '{document.ProcessingStatus}'."
                 };
+                if(document.KgStatus == KGChunkingStatus.FAILED.ToString())
+                {
+                    BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.KGChunkDocument(document.Id));
+                    response.Message += " However, KGChunking has been processing.";
+                }
                 return response;
             }
 
@@ -288,7 +318,10 @@ namespace AgenticAITutor.Services
             await documentRepository.UpdateAsync(document);
 
             // 5. Re-enqueue the background chunking job
-            BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
+            var jobId = BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
+
+            // 6. Re-enqueue the kg chunking as a continuation
+            BackgroundJob.ContinueJobWith<DocumentChunkingJob>(jobId, job => job.KGChunkDocument(document.Id));
 
             response.Success = true;
             response.Message = "Document has been re-queued for processing.";
@@ -303,13 +336,14 @@ namespace AgenticAITutor.Services
             {
                 Id = document.Id,
                 UserId = document.UserId,
-                SubjectId = document.SubjectId ?? Guid.Empty,
+                SubjectId = document.SubjectId,
                 FileName = document.Filename,
                 FileSize = document.FileSize ?? 0,
                 FileType = document.FileType,
                 UploadTime = document.UploadTime ?? DateTime.Now,
                 ProcessingStatus = document.ProcessingStatus,
-                StoragePath = $"{configuration["AppConfig:BaseURL"]}/{document.StoragePath}"
+                KGStatus = document.KgStatus,
+                StoragePath = document.StoragePath
             };
         }
 

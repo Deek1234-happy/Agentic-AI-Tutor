@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Extensions;
+using AgenticAITutor.Extensions;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -20,9 +20,14 @@ namespace AgenticAITutor.Controllers
         }
 
         /// <summary>Create a new chat session</summary>
-        /// <response code="200">Session created — returns session data</response>
+        /// <remarks>
+        /// Initializes a new chat session. Pass a list of `DocumentIds` to scope the AI context.
+        /// The JWT Token must be passed in the `Authorization` header.
+        /// </remarks>
+        /// <param name="request">Contains an optional list of `DocumentIds`.</param>
+        /// <response code="200">Session created — returns ChatSessionResponse</response>
         /// <response code="401">Invalid or missing token</response>
-        /// <response code="400">Validation error</response>
+        /// <response code="400">Validation error or Document ID does not belong to user</response>
         [ProducesResponseType<ChatSessionResponse>(200)]
         [ProducesResponseType<string>(401)]
         [ProducesResponseType<string>(400)]
@@ -64,9 +69,13 @@ namespace AgenticAITutor.Controllers
             return Ok(result.Data);
         }
         /// <summary>Update the title of a chat session</summary>
-        /// <response code="200">Title updated</response>
+        /// <remarks>
+        /// Allows the user or frontend to dynamically rename a chat session.
+        /// </remarks>
+        /// <param name="request">Contains the `SessionId` and the new `Title`.</param>
+        /// <response code="200">Title updated successfully</response>
         /// <response code="401">Invalid or missing token</response>
-        /// <response code="400">Validation error</response>
+        /// <response code="400">Validation error or Session Not Found</response>
         [ProducesResponseType<string>(200)]
         [ProducesResponseType<string>(401)]
         [ProducesResponseType<string>(400)]
