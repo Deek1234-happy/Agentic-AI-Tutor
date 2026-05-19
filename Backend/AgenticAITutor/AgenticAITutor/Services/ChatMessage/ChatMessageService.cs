@@ -520,12 +520,12 @@ namespace AgenticAITutor.Services
 
             // 1. Fetch the message
             var message = await messageRepository.GetByIdAsync(messageId);
-            if (message == null || message.Role != "assistant")
-            {
-                response.Success = false;
-                response.Message = "Message not found or is not an AI response.";
-                return response;
-            }
+            //if (message == null || message.Role != "assistant" || message.Role != "web")
+            //{
+            //    response.Success = false;
+            //    response.Message = "Message not found or is not an AI response.";
+            //    return response;
+            //}
 
             // 2. Security Check: Ensure the user actually owns the session this message belongs to!
             var session = await sessionRepository.GetByIdAsync(message.SessionId, userId);

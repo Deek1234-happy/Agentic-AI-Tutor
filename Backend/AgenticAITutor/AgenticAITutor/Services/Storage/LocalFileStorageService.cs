@@ -59,10 +59,11 @@ namespace AgenticAITutor.Services
                 webRootPath = Path.Combine(webHostEnvironment.ContentRootPath, "wwwroot");
 
             var filePath = Path.Combine(webRootPath, relativePath);
-            if(File.Exists(filePath))
-                File.Delete(filePath);
-
-            return Task.CompletedTask;
+            return Task.Run(() =>
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+            });
         }
 
         public async Task<string> MoveFileAsync(string oldRelativePath, string userFolder, string newSubFolder)
