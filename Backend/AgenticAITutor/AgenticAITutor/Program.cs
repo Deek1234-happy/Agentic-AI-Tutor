@@ -19,6 +19,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Npgsql;
 using Pgvector.Npgsql;
+using Polly;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Text;
 
@@ -85,7 +86,7 @@ namespace AgenticAITutor
             // -----------------------------------
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("DefaultConnection"));
             dataSourceBuilder.UseVector();
-            dataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = 5; ////////////////////////////////////////////////////////
+            //dataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = 5; ////////////////////////////////////////////////////////
             var dataSource = dataSourceBuilder.Build();
             builder.Services.AddSingleton(dataSource);
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -148,7 +149,7 @@ namespace AgenticAITutor
 
             builder.Services.AddHangfireServer(options =>
             {
-                options.WorkerCount = 2; // Use only 2 workers instead of the default 20
+                options.WorkerCount = 20; // Use only 2 workers instead of the default 20
             });
 
             builder.Services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();    
@@ -175,6 +176,14 @@ namespace AgenticAITutor
 
             builder.Services.AddScoped<IChatWebSourceRepository, ChatWebSourceRepository>();
 
+            // ── Quiz Agent ────────────────────────────────────────────────────
+            builder.Services.AddScoped<IQuizRepository, QuizRepository>();
+            builder.Services.AddScoped<IGenerationHashService, GenerationHashService>();
+            builder.Services.AddScoped<IQuizService, QuizService>();
+            builder.Services.AddScoped<IQuizAIClient, QuizAIClient>();
+            builder.Services.AddTransient<QuizGenerationJob>();
+            // ─────────────────────────────────────────────────────────────────
+
 
             // builder.Services.AddHttpClient();
 
@@ -191,6 +200,21 @@ namespace AgenticAITutor
 
             builder.Services.AddHttpClient(nameof(DocumentService));
             builder.Services.AddHttpClient(nameof(SubjectService));
+
+            // Quiz AI client: 120s timeout + Polly retry (3 attempts, exponential back-off)
+            builder.Services.AddHttpClient("QuizAIClient", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(120);
+            })
+            .AddTransientHttpErrorPolicy(policy =>
+                policy.WaitAndRetryAsync(
+                    retryCount: 3,
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+                    onRetry: (outcome, timespan, attempt, _) =>
+                    {
+                        Console.WriteLine(
+                            $"[QuizAIClient] Retry {attempt} after {timespan.TotalSeconds:F1}s. Reason: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
+                    }));
 
             builder.Services.Configure<FormOptions>(options =>
             {

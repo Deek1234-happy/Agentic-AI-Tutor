@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AgenticAITutor.Models;
 
 [Table("quiz_questions", Schema = "quiz")]
+[Index("QuizId", "SlotIndex", Name = "idx_quiz_questions_quiz_slot")]
 public partial class QuizQuestion
 {
     [Key]
@@ -25,6 +26,24 @@ public partial class QuizQuestion
 
     [Column("explanation")]
     public string? Explanation { get; set; }
+
+    [Column("chunk_id")]
+    public Guid? ChunkId { get; set; }
+
+    [Column("concept")]
+    [StringLength(255)]
+    public string? Concept { get; set; }
+
+    [Column("bloom_level")]
+    [StringLength(50)]
+    public string? BloomLevel { get; set; }
+
+    [Column("slot_index")]
+    public int? SlotIndex { get; set; }
+
+    [ForeignKey("ChunkId")]
+    [InverseProperty("QuizQuestions")]
+    public virtual DocumentChunk? Chunk { get; set; }
 
     [ForeignKey("QuizId")]
     [InverseProperty("QuizQuestions")]

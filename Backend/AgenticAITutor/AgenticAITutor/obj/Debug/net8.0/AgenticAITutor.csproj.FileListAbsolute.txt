@@ -301,4 +301,10 @@ E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\Agen
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\AgenticAITutor.pdb
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\AgenticAITutor.genruntimeconfig.cache
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\ref\AgenticAITutor.dll
+E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.dll
+E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\Microsoft.Extensions.Http.dll
+E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\Microsoft.Extensions.Http.Polly.dll
+E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\Polly.dll
+E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\bin\Debug\net8.0\Polly.Extensions.Http.dll
 E:\.Net Projects\Graduation Project\Implementation\Agentic-AI-Tutor\Backend\AgenticAITutor\AgenticAITutor\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

@@ -197,6 +197,7 @@ SharpGrip.FluentValidation.AutoValidation.Mvc
 Hangfire
 Hangfire.PostgreSql
 Swashbuckle.AspNetCore
+Microsoft.Extensions.Http.Polly
 ```
 
 ### 6. Configure the AI Service URL

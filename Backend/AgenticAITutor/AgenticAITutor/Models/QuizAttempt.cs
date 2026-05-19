@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AgenticAITutor.Models;
 
 [Table("quiz_attempts", Schema = "quiz")]
+[Index("UserId", "QuizId", "StartedAt", Name = "idx_attempt_user_quiz_date", IsDescending = new[] { false, false, true })]
 public partial class QuizAttempt
 {
     [Key]
@@ -24,6 +25,18 @@ public partial class QuizAttempt
 
     [Column("taken_at", TypeName = "timestamp without time zone")]
     public DateTime? TakenAt { get; set; }
+
+    [Column("started_at", TypeName = "timestamp without time zone")]
+    public DateTime? StartedAt { get; set; }
+
+    [Column("finished_at", TypeName = "timestamp without time zone")]
+    public DateTime? FinishedAt { get; set; }
+
+    [Column("attempt_number")]
+    public int AttemptNumber { get; set; }
+
+    [Column("shuffle_mapping", TypeName = "jsonb")]
+    public string? ShuffleMapping { get; set; }
 
     [ForeignKey("QuizId")]
     [InverseProperty("QuizAttempts")]

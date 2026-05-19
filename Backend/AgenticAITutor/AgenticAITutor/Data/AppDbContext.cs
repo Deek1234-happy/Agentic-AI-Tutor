@@ -154,7 +154,9 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("document_chunks_pkey");
 
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
+            entity.Property(e => e.Concepts).HasDefaultValueSql("'{}'::text[]");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Keywords).HasDefaultValueSql("'{}'::text[]");
 
             entity.HasOne(d => d.Document).WithMany(p => p.DocumentChunks)
                 .OnDelete(DeleteBehavior.Cascade)
@@ -201,10 +203,35 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.GenerationHash).IsFixedLength();
+            entity.Property(e => e.QuestionCount).HasDefaultValue(0);
+            entity.Property(e => e.Status).HasDefaultValueSql("'PENDING'::character varying");
+
+            entity.HasOne(d => d.Subject).WithMany(p => p.Quizzes)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_quiz_subject");
 
             entity.HasOne(d => d.User).WithMany(p => p.Quizzes)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("quizzes_user_id_fkey");
+
+            entity.HasMany(d => d.Documents).WithMany(p => p.Quizzes)
+                .UsingEntity<Dictionary<string, object>>(
+                    "QuizDocument",
+                    r => r.HasOne<Document>().WithMany()
+                        .HasForeignKey("DocumentId")
+                        .HasConstraintName("fk_qd_document"),
+                    l => l.HasOne<Quiz>().WithMany()
+                        .HasForeignKey("QuizId")
+                        .HasConstraintName("fk_qd_quiz"),
+                    j =>
+                    {
+                        j.HasKey("QuizId", "DocumentId").HasName("quiz_documents_pkey");
+                        j.ToTable("quiz_documents", "quiz");
+                        j.HasIndex(new[] { "DocumentId" }, "idx_quiz_docs_document");
+                        j.IndexerProperty<Guid>("QuizId").HasColumnName("quiz_id");
+                        j.IndexerProperty<Guid>("DocumentId").HasColumnName("document_id");
+                    });
         });
 
         modelBuilder.Entity<QuizAnswer>(entity =>
@@ -221,6 +248,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("quiz_attempts_pkey");
 
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
+            entity.Property(e => e.AttemptNumber).HasDefaultValue(1);
+            entity.Property(e => e.StartedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.TakenAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.HasOne(d => d.Quiz).WithMany(p => p.QuizAttempts)
@@ -248,6 +277,11 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("quiz_questions_pkey");
 
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
+            entity.Property(e => e.SlotIndex).HasDefaultValue(0);
+
+            entity.HasOne(d => d.Chunk).WithMany(p => p.QuizQuestions)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_question_chunk");
 
             entity.HasOne(d => d.Quiz).WithMany(p => p.QuizQuestions)
                 .OnDelete(DeleteBehavior.Cascade)

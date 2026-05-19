@@ -27,6 +27,9 @@ public partial class Subject
     [InverseProperty("Subject")]
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
+    [InverseProperty("Subject")]
+    public virtual ICollection<Quiz> Quizzes { get; set; } = new List<Quiz>();
+
     [ForeignKey("UserId")]
     [InverseProperty("Subjects")]
     public virtual User User { get; set; } = null!;

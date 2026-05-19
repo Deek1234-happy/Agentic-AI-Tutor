@@ -66,5 +66,9 @@ public partial class Document
 
     [ForeignKey("DocumentId")]
     [InverseProperty("Documents")]
+    public virtual ICollection<Quiz> Quizzes { get; set; } = new List<Quiz>();
+
+    [ForeignKey("DocumentId")]
+    [InverseProperty("Documents")]
     public virtual ICollection<ChatSession> Sessions { get; set; } = new List<ChatSession>();
 }

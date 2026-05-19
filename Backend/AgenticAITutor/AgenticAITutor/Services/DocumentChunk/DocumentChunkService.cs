@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models;
+using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Repositories;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -112,7 +112,13 @@ namespace AgenticAITutor.Services
                 TokenCount = c.TokenCount ?? 0,
                 PageStart = c.PageStart ?? 0,
                 PageEnd = c.PageEnd ?? 0,
-                Embedding = c.Embedding
+                Embedding = c.Embedding,
+                BloomLevel = c.BloomLevel,
+                ChunkType = c.ChunkType,
+                Concepts = c.Concepts,
+                Keywords = c.Keywords,
+                ContextPrev = c.ContextPrev,
+                ContextNext = c.ContextNext
             }).ToList();
 
             return chunksResponse;

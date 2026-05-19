@@ -45,9 +45,32 @@ public partial class DocumentChunk
     [Column("user_id")]
     public Guid? UserId { get; set; }
 
+    [Column("bloom_level")]
+    [StringLength(50)]
+    public string? BloomLevel { get; set; }
+
+    [Column("chunk_type")]
+    [StringLength(50)]
+    public string? ChunkType { get; set; }
+
+    [Column("concepts")]
+    public List<string>? Concepts { get; set; }
+
+    [Column("keywords")]
+    public List<string>? Keywords { get; set; }
+
+    [Column("context_prev")]
+    public string? ContextPrev { get; set; }
+
+    [Column("context_next")]
+    public string? ContextNext { get; set; }
+
     [ForeignKey("DocumentId")]
     [InverseProperty("DocumentChunks")]
     public virtual Document? Document { get; set; }
+
+    [InverseProperty("Chunk")]
+    public virtual ICollection<QuizQuestion> QuizQuestions { get; set; } = new List<QuizQuestion>();
 
     [ForeignKey("SubjectId")]
     [InverseProperty("DocumentChunks")]
