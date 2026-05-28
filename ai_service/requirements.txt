@@ -13,7 +13,7 @@ transformers==4.41.2
 torch==2.1.2  # Compatible with TTS 0.22.0 (requires torch>=2.1)
 torchaudio==2.1.2  # Must match torch major/minor
 faiss-cpu
-numpy==1.26.4
+numpy==1.22.0
 requests
 psycopg2-binary 
 sqlalchemy
@@ -26,3 +26,16 @@ python-multipart
 pydub
 piper-tts
 faster_whisper
+
+rank_bm25
+# For testing
+cohere==6.1.0
+ragas
+datasets
+openai
+langchain
+langchain-openai
+langchain-community
+langchain-huggingface
+langchain-google-genai
+langchain_cohere
