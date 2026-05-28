@@ -19,6 +19,8 @@ from .vstt import router as vstt_router
 from .vtts import router as vtts_route
 #from .evaluation.evaluation_service import evaluate
 from app.evaluation import evaluation
+from .quiz.quiz_router import router as quiz_router
+
 
 
 # ============================================================
@@ -122,6 +124,11 @@ app.include_router(
 
 # ── Evaluation ───────────────────────────────────────────────
 
-
-
 app.include_router(evaluation.router)
+
+# ── Quiz Processing ───────────────────────────────────────────
+app.include_router(
+    quiz_router,
+    prefix="/quiz",
+    tags=["Quiz Processing"]
+)

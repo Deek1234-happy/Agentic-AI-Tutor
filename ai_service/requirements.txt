@@ -26,3 +26,5 @@ python-multipart
 pydub
 piper-tts
 faster_whisper
+rank_bm25
+cohere
