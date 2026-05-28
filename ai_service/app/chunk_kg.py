@@ -4,11 +4,19 @@
 # No file parsing/chunk generation and no chunk writes to PostgreSQL.
 
 from typing import Dict, List
-
+from .kg_chunking_strategy import chunk_document_for_kg
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from .kg_extractor import extract_entities_and_relations
+from .kg_checkpoint import (
+    clear_checkpoint,
+    load_checkpoint,
+    mark_checkpoint_completed,
+    mark_checkpoint_failed,
+    mark_checkpoint_processing,
+    save_checkpoint,
+)
 from .kg_store import (
     get_existing_chunks_for_document,
     get_subject_title,
@@ -29,6 +37,10 @@ class ChunkFilePayload(BaseModel):
 
 class StatusResponse(BaseModel):
     status: str
+    kg_completed: bool = False
+    document_id: str | None = None
+    total_chunks: int | None = None
+    last_completed_chunk_index: int | None = None
 
 
 @router.post("/", response_model=StatusResponse)
@@ -61,7 +73,12 @@ def chunk_file_and_incremental_kg(payload: ChunkFilePayload):
                 status_code=404,
                 detail="No existing chunks found for file_id in content.document_chunks.",
             )
-
+        # Re-chunk the document with KG-optimized config (larger, no overlap) > to fix kg
+        raw_text = " ".join(
+            (ch.get("text") or "").strip() for ch in chunks
+        )
+        kg_chunks = chunk_document_for_kg(raw_text)
+        ########################################################
         subject_name = get_subject_title(subject_id)
 
         upsert_user_node(user_id)
@@ -79,16 +96,53 @@ def chunk_file_and_incremental_kg(payload: ChunkFilePayload):
         )
 
         processed = 0
-        prev_tail = ""
+        cp = load_checkpoint(document_id)
+        cp.total_chunks = len(kg_chunks)
+        mark_checkpoint_processing(cp)
+        # Default behavior:
+        # - If last run stopped mid-way, resume from the next unprocessed chunk.
+        # - Otherwise (no checkpoint / completed / chunk-count mismatch), start fresh.
+        if (
+            cp.total_chunks is not None
+            and cp.total_chunks == len(kg_chunks)
+            and int(cp.last_completed_chunk_index) < (len(kg_chunks) - 1)
+        ):
+            start_idx = max(-1, int(cp.last_completed_chunk_index)) + 1
+        else:
+            clear_checkpoint(document_id)
+            cp = load_checkpoint(document_id)
+            cp.total_chunks = len(kg_chunks)
+            start_idx = 0
+        prev_tail = cp.previous_chunk_tail or ""
 
-        for idx, ch in enumerate(chunks):
-            text = (ch.get("text") or "").strip()
+        # Resume case: checkpoint says all chunks are already processed.
+        if start_idx >= len(kg_chunks):
+            mark_checkpoint_completed(cp)
+            return StatusResponse(
+                status="success",
+                kg_completed=True,
+                document_id=document_id,
+                total_chunks=len(kg_chunks),
+                last_completed_chunk_index=cp.last_completed_chunk_index,
+            )
+
+        # for idx, ch in enumerate(chunks):
+        #     if idx < start_idx:
+        #         continue
+        #     text = (ch.get("text") or "").strip()
+        #     if not text:
+        #         continue
+
+        #     chunk_id = str(ch.get("chunk_id") or "")
+        #     if not chunk_id:
+        #         continue
+        for idx, chunk_text in enumerate(kg_chunks):
+            if idx < start_idx:
+                continue
+            text = chunk_text.strip()
             if not text:
                 continue
-
-            chunk_id = str(ch.get("chunk_id") or "")
-            if not chunk_id:
-                continue
+            chunk_id = f"kg_chunk_{document_id}_{idx}"
 
             extracted = extract_entities_and_relations(
                 text=text,
@@ -113,11 +167,32 @@ def chunk_file_and_incremental_kg(payload: ChunkFilePayload):
             prev_tail = text[-800:] if len(text) > 800 else text
 
             processed += 1
+            cp.last_completed_chunk_index = idx
+            cp.previous_chunk_tail = prev_tail
+            save_checkpoint(cp)
 
         if processed == 0:
+            # Either all remaining chunks were empty, or there was nothing to do.
+            # Do not fail the request in resume mode.
+            if start_idx > 0:
+                mark_checkpoint_completed(cp)
+                return StatusResponse(
+                    status="success",
+                    kg_completed=True,
+                    document_id=document_id,
+                    total_chunks=len(kg_chunks),
+                    last_completed_chunk_index=cp.last_completed_chunk_index,
+                )
             raise HTTPException(status_code=400, detail="All chunks were empty after processing")
 
-        return StatusResponse(status="success")
+        mark_checkpoint_completed(cp)
+        return StatusResponse(
+            status="success",
+            kg_completed=True,
+            document_id=document_id,
+            total_chunks=len(kg_chunks),
+            last_completed_chunk_index=cp.last_completed_chunk_index,
+        )
 
     except HTTPException:
         raise
@@ -126,4 +201,8 @@ def chunk_file_and_incremental_kg(payload: ChunkFilePayload):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        return StatusResponse(status="failed")
+        try:
+            mark_checkpoint_failed(load_checkpoint(str(payload.file_id)))
+        except Exception:
+            pass
+        return StatusResponse(status="failed", document_id=str(payload.file_id))

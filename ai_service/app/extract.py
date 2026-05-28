@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 # ============================================================
-# Request / Response Models
+# Request / Response Models  (unchanged from original)
 # ============================================================
 
 class FilePayload(BaseModel):
@@ -30,7 +30,8 @@ class ChunkResponse(BaseModel):
     page_start: int | None
     page_end: int | None
     text: str
-    
+
+
 # ============================================================
 # Extraction + Chunking Endpoint
 # ============================================================
@@ -40,54 +41,42 @@ def extract_and_chunk_file(payload: FilePayload):
     """
     1. Validate file
     2. Extract raw text (PDF/DOCX/PPTX/TXT/CSV)
-    3. Clean text
-    4. Apply dynamic chunking
+    3. Clean text  (advanced TextCleaner — quiz-quality)
+    4. Apply semantic chunking  (SemanticChunker — quiz-quality)
     5. Return embedding-ready chunks
     """
     local_file = None
     downloaded = False
-    
+
     try:
-        # --------------------
-        # Validation
-        # --------------------
-        # validate_file(payload.file_path)
-        # validate_file_type(payload.file_type)
         local_file = download_if_url(payload.file_path)
         downloaded = local_file != payload.file_path
-        
+
         validate_file(local_file)
         validate_file_type(payload.file_type)
 
-        # --------------------
-        # Extraction
-        # --------------------
-        # raw_text = route_file(
-        #     payload.file_path,
-        #     payload.file_type
-        # )
+        raw_text = route_file(local_file, payload.file_type)
 
-        raw_text = route_file(
-            local_file,
-            payload.file_type
-        )
-        
         if not raw_text.strip():
             raise ValueError("Extracted text is empty")
 
-        # --------------------
-        # Cleaning
-        # --------------------
         cleaned_text = clean_text(raw_text)
 
-        # --------------------
-        # Dynamic chunking
-        # --------------------
         chunks = chunk_text(
             text=cleaned_text,
-            # file_id=payload.file_id,
-            source_type=payload.file_type
+            source_type=payload.file_type,
         )
+
+        # Derive a stable file_id from the filename and stamp each chunk
+        file_id = (
+            os.path.basename(payload.file_path)
+            .rsplit(".", 1)[0]
+            .lower()
+            .replace(" ", "_")
+        )
+        for idx, chunk in enumerate(chunks, start=1):
+            chunk["file_id"]  = file_id
+            chunk["chunk_id"] = f"{file_id}_chunk_{idx}"
 
         return chunks
 
@@ -101,12 +90,14 @@ def extract_and_chunk_file(payload: FilePayload):
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
     finally:
-        # remove temporary file
         if downloaded and local_file and os.path.exists(local_file):
             os.remove(local_file)
+
+
 # ============================================================
 # Embedding Endpoint
 # ============================================================
+
 class EmbeddedChunkResponse(BaseModel):
     # file_id: str
     # chunk_id: str
@@ -116,31 +107,27 @@ class EmbeddedChunkResponse(BaseModel):
     text: str
     embedding: List[float]
 
+
 @router.post("/embed", response_model=List[EmbeddedChunkResponse])
 def extract_chunk_and_embed(payload: FilePayload):
 
     local_file = None
     downloaded = False
-    
-    try:
-        # validate_file(payload.file_path)
-        # validate_file_type(payload.file_type)
 
-        # raw_text = route_file(payload.file_path, payload.file_type)
+    try:
         local_file = download_if_url(payload.file_path)
         downloaded = local_file != payload.file_path
-        
+
         validate_file(local_file)
         validate_file_type(payload.file_type)
 
         raw_text = route_file(local_file, payload.file_type)
-                
+
         cleaned_text = clean_text(raw_text)
 
         chunks = chunk_text(
             text=cleaned_text,
-            # file_id=payload.file_id,
-            source_type=payload.file_type
+            source_type=payload.file_type,
         )
 
         texts = [chunk["text"] for chunk in chunks]

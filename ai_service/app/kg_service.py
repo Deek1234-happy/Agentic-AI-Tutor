@@ -33,6 +33,8 @@ from .kg_store import (
     # delete
     delete_document_graph,
     delete_subject_graph,
+    set_document_status
+
 )
 
 
@@ -48,6 +50,7 @@ class KGValidationError(Exception):
 
 
 def validate_build_ids(document_id: str, subject_id: str) -> None:
+
     """
     Verify document_id and subject_id both exist in PostgreSQL before
     any Neo4j writes happen.  Raises KGValidationError (→ HTTP 404)
@@ -66,11 +69,9 @@ def validate_build_ids(document_id: str, subject_id: str) -> None:
             "Create the subject through the main API first."
         )
 
-
 # ════════════════════════════════════════════════════════════════
 # Build KG for one document
-# ════════════════════════════════════════════════════════════════
-
+# ════════════════════════════════════
 def build_knowledge_graph(
     chunks:       List[Dict],
     document_id:  str,
@@ -90,47 +91,58 @@ def build_knowledge_graph(
     """
     # ── Validate ─────────────────────────────────────────────
     validate_build_ids(document_id, subject_id)
+    set_document_status(document_id, "PROCESSING")
 
-    # ── Structural nodes ─────────────────────────────────────
-    upsert_user_node(user_id)
-    upsert_subject_node(
-        subject_id=subject_id,
-        subject_name=subject_name or subject_id,
-        user_id=user_id,
-    )
-    upsert_document_node(
-        document_id=document_id,
-        filename=filename or document_id,
-        subject_id=subject_id,
-        user_id=user_id,
-        doc_order=doc_order,
-    )
+    try:
 
-    # ── Extract ──────────────────────────────────────────────
-    extracted = extract_from_chunks(
-        chunks=chunks,
-        document_id=document_id,
-        subject_id=subject_id,
-        user_id=user_id,
-    )
+        # ── Structural nodes ─────────────────────────────────────
+        upsert_user_node(user_id)
+        upsert_subject_node(
+            subject_id=subject_id,
+            subject_name=subject_name or subject_id,
+            user_id=user_id,
+        )
+        upsert_document_node(
+            document_id=document_id,
+            filename=filename or document_id,
+            subject_id=subject_id,
+            user_id=user_id,
+            doc_order=doc_order,
+        )
 
-    # ── Persist ──────────────────────────────────────────────
-    save_graph(
-        entities=extracted["entities"],
-        relationships=extracted["relationships"],
-    )
+        # ── Extract ──────────────────────────────────────────────
+        extracted = extract_from_chunks(
+            chunks=chunks,
+            document_id=document_id,
+            subject_id=subject_id,
+            user_id=user_id,
+        )
 
-    print(
-        f"[KG Service] Built: doc={document_id[:8]} subj={subject_id[:8]} "
-        f"entities={len(extracted['entities'])} rels={len(extracted['relationships'])}"
-    )
+        # ── Persist ──────────────────────────────────────────────
+        save_graph(
+            entities=extracted["entities"],
+            relationships=extracted["relationships"],
+        )
+        set_document_status(document_id, "COMPLETED")
 
-    return {
-        "document_id":         document_id,
-        "subject_id":          subject_id,
-        "entities_saved":      len(extracted["entities"]),
-        "relationships_saved": len(extracted["relationships"]),
-    }
+        print(
+            f"[KG Service] Built: doc={document_id[:8]} subj={subject_id[:8]} "
+            f"entities={len(extracted['entities'])} rels={len(extracted['relationships'])}"
+        )
+
+        return {
+            "document_id":         document_id,
+            "subject_id":          subject_id,
+            "entities_saved":      len(extracted["entities"]),
+            "relationships_saved": len(extracted["relationships"]),
+            "kg_completed":        extracted.get("kg_completed", True),
+            "kg_status":           extracted.get("kg_status", "COMPLETED"),
+            "completed_at":        extracted.get("completed_at"),
+        }
+    except Exception:
+        set_document_status(document_id, "FAILED")
+        raise
+    
 
 
 # ════════════════════════════════════════════════════════════════
@@ -249,23 +261,63 @@ def identify_query_entities(question: str) -> List[str]:
     return []
 
 
+# def _fallback_hints_from_question(question: str) -> List[str]:
+#     """Cheap hints when the LLM NER returns nothing or misses a short name."""
+#     q = (question or "").strip()
+#     if not q:
+#         return []
+#     q = re.sub(
+#         r"^(?:who|what|when|where|why|how)\s+(?:is|are|was|were)\s+",
+#         "",
+#         q,
+#         flags=re.I,
+#     )
+#     q = re.sub(r"^(?:tell\s+me\s+about|define|explain)\s+", "", q, flags=re.I)
+#     q = q.strip().rstrip("?.!").strip()
+#     if len(q) >= 2:
+#         return [q]
+#     return []
 def _fallback_hints_from_question(question: str) -> List[str]:
-    """Cheap hints when the LLM NER returns nothing or misses a short name."""
+    """
+    Extract multiple candidate seed terms from the question,
+    not just the whole stripped string.
+    """
     q = (question or "").strip()
     if not q:
         return []
+
+    # strip leading question words
     q = re.sub(
-        r"^(?:who|what|when|where|why|how)\s+(?:is|are|was|were)\s+",
-        "",
-        q,
-        flags=re.I,
+        r"^(?:who|what|when|where|why|how)\s+(?:is|are|was|were|did|does|do)\s+",
+        "", q, flags=re.I,
     )
     q = re.sub(r"^(?:tell\s+me\s+about|define|explain)\s+", "", q, flags=re.I)
     q = q.strip().rstrip("?.!").strip()
-    if len(q) >= 2:
-        return [q]
-    return []
 
+    hints = []
+
+    # add the full stripped phrase
+    if len(q) >= 2:
+        hints.append(q)
+
+    # also add each capitalized word/phrase (likely proper nouns)
+    # e.g. "sacrifice by elton john" → ["Sacrifice", "Elton John"]
+    proper = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*', question)
+    hints.extend(proper)
+
+    # add individual words longer than 4 chars (catches lowercase titles)
+    words = [w for w in re.split(r'\W+', q) if len(w) > 4]
+    hints.extend(words)
+
+    # deduplicate preserving order
+    seen, out = set(), []
+    for h in hints:
+        k = h.lower().strip()
+        if k and k not in seen:
+            seen.add(k)
+            out.append(h.strip())
+
+    return out
 
 # ════════════════════════════════════════════════════════════════
 # Subject-scoped subgraph retrieval
@@ -278,9 +330,11 @@ def retrieve_subgraph_for_subject(
     document_ids: Optional[List[str]] = None,
     hops:         int = 2,
     flexible_seed_match: bool = False,
+    include_source_text: bool = False,
+    use_llm_query_entities: bool = True,
 ) -> Dict:
     """Identify query entities then fetch the hop-bounded subgraph."""
-    query_entities = identify_query_entities(question)
+    query_entities = identify_query_entities(question) if use_llm_query_entities else []
     if flexible_seed_match:
         merged: List[str] = []
         seen_m: Set[str] = set()
@@ -304,6 +358,7 @@ def retrieve_subgraph_for_subject(
         document_ids=document_ids,
         hops=hops,
         flexible_seed_match=flexible_seed_match,
+        include_source_text=include_source_text,
     )
 
     print(

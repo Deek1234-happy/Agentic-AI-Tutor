@@ -274,6 +274,21 @@ def upsert_document_node(
 
 
 # ════════════════════════════════════════════════════════════════
+# for debugging
+#
+def set_document_status(document_id: str, status: str) -> None:
+    with get_session() as s:
+        s.run(
+            """
+            MATCH (d:Document {id: $did})
+            SET d.kg_status = $status
+            """,
+            did=document_id,
+            status=status,
+        )
+
+
+# ════════════════════════════════════════════════════════════════
 # Neo4j — entity + intra-document relationship persistence
 #
 # Relationship label = the semantic type (e.g. :CALLS, :TREATS).
@@ -351,10 +366,19 @@ def save_graph(entities: List[Dict], relationships: List[Dict]) -> None:
                 f"""
                 MATCH  (src:Entity {{name: $source, document_id: $did, user_id: $uid}})
                 MATCH  (tgt:Entity {{name: $target, document_id: $did, user_id: $uid}})
-                MERGE  (src)-[:{rel_type}]->(tgt)
+                MERGE  (src)-[r:{rel_type}]->(tgt)
+                SET    r.document_id = $did,
+                       r.subject_id = $sid,
+                       r.user_id = $uid,
+                       r.chunk_index = $chunk_index,
+                       r.source_text = $source_text
                 """,
                 source=source, target=target,
-                did=doc_id, uid=batch_user_id,
+                did=doc_id,
+                sid=rel.get("subject_id", entities[0].get("subject_id", "") if entities else ""),
+                uid=rel.get("user_id", batch_user_id),
+                chunk_index=rel.get("chunk_index"),
+                source_text=rel.get("source_text", ""),
             )
 
     print(
@@ -418,9 +442,6 @@ def merge_cross_subject_edges(
 
 # ════════════════════════════════════════════════════════════════
 # Neo4j — cross-document relationship persistence
-#
-# Label = semantic type (e.g. :PREREQUISITE_TO).
-# Property cross_doc=true marks it so reads can filter cross-doc edges.
 # ════════════════════════════════════════════════════════════════
 
 def save_cross_document_relations(cross_rels: List[Dict]) -> None:
@@ -467,16 +488,6 @@ def save_cross_document_relations(cross_rels: List[Dict]) -> None:
 
 # ════════════════════════════════════════════════════════════════
 # Neo4j — read: full document graph
-#
-# Issue 3 fix:
-#   The WHERE clause after MATCH (src)-[r]->(tgt) must not use
-#   type(r) NOT IN [...] as a bare WHERE — this is valid Cypher
-#   but was being written as a second WHERE on a MATCH that already
-#   had a WHERE, producing a syntax error in some driver versions.
-#
-#   Fix: use a single WHERE clause combining all conditions with AND,
-#   or filter in the RETURN using CASE. Here we use the clean Cypher
-#   WHERE on the pattern directly (no double-WHERE on one MATCH).
 # ════════════════════════════════════════════════════════════════
 
 def get_document_graph(document_id: str, user_id: str) -> Dict:
@@ -573,48 +584,13 @@ def get_subject_graph(subject_id: str, user_id: str) -> Dict:
 
 
 # ════════════════════════════════════════════════════════════════
-# Neo4j — read: query-specific subgraph (subject-scoped)
-#
-# Issue 1 fix — subgraph returns only 1 entity / 1 relationship:
-#
-#   ROOT CAUSE A: the previous expand_cypher collected paths and then
-#   tried to UNWIND path_nodes and UNWIND path_rels in sequence.
-#   After the first UNWIND + WITH DISTINCT, the list variable path_rels
-#   was no longer a list — it was a single value (cartesian product
-#   bug). Every subsequent UNWIND found only one item.
-#
-#   ROOT CAUSE B: type(r) inside ALL(r IN relationships(path) WHERE ...)
-#   is illegal in some Neo4j versions — the iteration variable `r`
-#   inside ALL() shadows relationship variables, causing NULL or
-#   errors when type() is called on it. This silently drops rows.
-#
-#   FIX — two clean, independent queries:
-#
-#   Query A: Collect ALL entity nodes reachable within hops using
-#     MATCH path = (seed)-[*1..N]-(neighbor)
-#   with only property-based WHERE clauses (no type() in ALL()).
-#   Exclude structural edge labels using a relationship type filter
-#   directly on the MATCH pattern — the only reliable way in all
-#   Neo4j versions — by listing allowed relationship labels using
-#   the pipe syntax: -[:CALLS|TREATS|INHERITS_FROM|…]->
-#   Because we cannot enumerate all semantic labels, we instead
-#   use the OPPOSITE approach: match ANY relationship, then filter
-#   out structural ones in a separate step by checking the returned
-#   entity properties (structural edges connect Entity→Document, not
-#   Entity→Entity, so filtering on both node labels being :Entity
-#   already excludes structural edges).
-#
-#   Query B: After collecting the entity names, match ALL direct
-#   relationships between those entities in one flat MATCH. This
-#   avoids path aggregation entirely and is O(edges) not O(paths²).
+# Neo4j — seed matching helpers
 # ════════════════════════════════════════════════════════════════
 
-# Flexible seed matching (e.g. context-aware chat): partial names, titles stripped.
 _TITLE_PREFIX_RE = _re.compile(
     r"^(?:dr\.?|doctor|prof\.?|professor|mr\.?|mrs\.?|ms\.?|miss|sir|madam)\s+",
     _re.IGNORECASE,
 )
-# Honorifics may appear after "Who is …" as well — strip globally.
 _TITLE_ANYWHERE_RE = _re.compile(
     r"\b(?:dr|doctor|prof|professor|mr|mrs|ms|miss|sir|madam)\.?\s+",
     _re.IGNORECASE,
@@ -692,11 +668,11 @@ def resolve_flexible_entity_seeds(
     subject_id:   str,
     user_id:      str,
     document_ids: Optional[List[str]] = None,
-    min_score:    float = 0.55,
+    min_score:    float = 0.45,  # lowered from 0.55 — catches more partial matches
 ) -> List[str]:
     """
     Map short / partial query strings to canonical Entity.name values in Neo4j.
-    Used when exact toLower(name) IN $hints finds no seeds.
+    Used when exact toLower(name) IN $hints and CONTAINS both find no seeds.
     """
     hints = [str(h).strip() for h in (query_hints or []) if h and str(h).strip()]
     if not hints:
@@ -740,6 +716,10 @@ def resolve_flexible_entity_seeds(
     return resolved
 
 
+# ════════════════════════════════════════════════════════════════
+# Neo4j — read: query-specific subgraph (subject-scoped)
+# ════════════════════════════════════════════════════════════════
+
 def get_subgraph_for_query(
     query_entities: List[str],
     subject_id:     str,
@@ -748,14 +728,15 @@ def get_subgraph_for_query(
     hops:           int = 2,
     limit:          int = 60,
     flexible_seed_match: bool = False,
+    include_source_text: bool = False,
 ) -> Dict:
     """
     Return the hop-bounded neighbourhood around the query entities.
 
-    Steps:
-      A. Find seed Entity nodes matching the query names.
-      B. Expand up to `hops` steps — collecting ALL reachable Entity nodes.
-      C. Retrieve ALL direct relationships between those nodes in one MATCH.
+    Seed resolution order:
+      1. Exact toLower(name) IN $names          — always runs
+      2. CONTAINS match in Neo4j               — fast substring fallback
+      3. Python fuzzy scorer (min_score=0.45)  — catches typos / partials
     """
     if not query_entities:
         return {"entities": [], "relationships": []}
@@ -777,7 +758,7 @@ def get_subgraph_for_query(
         doc_filter_nbr  = "AND neighbor.document_id IN $doc_ids"
         params["doc_ids"] = document_ids
 
-    # ── Query A: collect the seed nodes themselves ───────────────────────
+    # ── Step 1: exact toLower match ──────────────────────────────────────
     seed_cypher = f"""
         MATCH (seed:Entity)
         WHERE seed.subject_id    = $sid
@@ -790,39 +771,93 @@ def get_subgraph_for_query(
     """
 
     with get_session() as s:
-        seed_res   = s.run(seed_cypher, **params)
-        seed_rows  = seed_res.data()          # list of dicts with name/type/document_id
+        seed_res  = s.run(seed_cypher, **params)
+        seed_rows = seed_res.data()
 
+    # ── Step 2: CONTAINS match in Neo4j (fast, before Python fuzzy) ─────
     if not seed_rows and flexible_seed_match:
+        contains_rows = []
+        with get_session() as s:
+            for hint in lower_names:
+                if len(hint) < 3:
+                    continue
+                res = s.run(
+                    f"""
+                    MATCH (seed:Entity)
+                    WHERE seed.subject_id = $sid
+                      AND seed.user_id    = $uid
+                      AND (toLower(seed.name) CONTAINS $hint
+                           OR $hint CONTAINS toLower(seed.name))
+                      {doc_filter_seed}
+                    RETURN seed.name        AS name,
+                           seed.type        AS type,
+                           seed.document_id AS document_id
+                    LIMIT 5
+                    """,
+                    sid=subject_id,
+                    uid=user_id,
+                    hint=hint,
+                    **({'doc_ids': document_ids} if document_ids else {}),
+                )
+                contains_rows.extend(res.data())
+
+        if contains_rows:
+            # deduplicate by name
+            seen_c, deduped_c = set(), []
+            for row in contains_rows:
+                if row["name"] not in seen_c:
+                    seen_c.add(row["name"])
+                    deduped_c.append(row)
+            seed_rows = deduped_c
+            # update params so expand_cypher below uses matched names
+            params["names"] = [r["name"].lower() for r in seed_rows]
+            print(
+                f"[KG Store] CONTAINS fallback: hints={lower_names!r} "
+                f"→ matched {len(seed_rows)} seed(s)"
+            )
+
+    # ── Step 3: Python fuzzy resolver ────────────────────────────────────
+    if not seed_rows and flexible_seed_match:
+        # Expand hints: add individual tokens and adjacent pairs
+        # so "little couples new season" also tries "little", "couple", etc.
+        expanded_hints = list(query_entities)
+        for hint in query_entities:
+            tokens = [t for t in hint.split() if len(t) > 3]
+            expanded_hints.extend(tokens)
+            words = hint.split()
+            for i in range(len(words) - 1):
+                pair = f"{words[i]} {words[i+1]}"
+                if len(pair) > 4:
+                    expanded_hints.append(pair)
+        # deduplicate
+        seen_h, deduped = set(), []
+        for h in expanded_hints:
+            k = h.lower().strip()
+            if k and k not in seen_h:
+                seen_h.add(k)
+                deduped.append(h)
+
         resolved_names = resolve_flexible_entity_seeds(
-            query_entities,
+            deduped,
             subject_id=subject_id,
             user_id=user_id,
             document_ids=document_ids,
         )
         if resolved_names:
             print(
-                f"[KG Store] Flexible seed match: hints={query_entities!r} "
+                f"[KG Store] Fuzzy seed match: hints={query_entities!r} "
                 f"→ resolved={resolved_names!r}"
             )
             lower_names = [n.lower() for n in resolved_names]
             params["names"] = lower_names
             with get_session() as s:
-                seed_res = s.run(seed_cypher, **params)
+                seed_res  = s.run(seed_cypher, **params)
                 seed_rows = seed_res.data()
 
     if not seed_rows:
         return {"entities": [], "relationships": []}
 
-    # ── Query B: Expand *1..N* from each seed — only :Entity neighbours ──
-    # Using *1..N* (not *0..N*) guarantees every node in nodes(path) is a
-    # real traversal result, never the zero-hop "path of length 0" that
-    # caused non-Entity intermediate nodes (Document, Subject) to appear
-    # with name=None and type=None.
-    #
-    # The `n:Entity` label filter in the WHERE on UNWIND ensures that even
-    # if an undirected path passes through a non-Entity node at some
-    # intermediate hop, those nodes are excluded from the collected set.
+    # ── Expand *1..N* from each seed — only :Entity neighbours ──────────
     expand_cypher = f"""
         MATCH (seed:Entity)
         WHERE seed.subject_id    = $sid
@@ -858,7 +893,7 @@ def get_subgraph_for_query(
     neighbours: List[Dict] = (expand_row["neighbours"] if expand_row else None) or []
 
     # Merge seeds + neighbours, deduplicated by name
-    seen_names: set       = set()
+    seen_names: set        = set()
     entities:   List[Dict] = []
 
     for row in seed_rows:
@@ -884,8 +919,7 @@ def get_subgraph_for_query(
     if not entities:
         return {"entities": [], "relationships": []}
 
-    # ── Query B: All relationships between the found entities ─────────────
-    # We use the collected entity names as a filter — flat MATCH, no paths.
+    # ── All relationships between the found entities ──────────────────────
     entity_names = [e["name"] for e in entities]
 
     rel_params: Dict = {
@@ -908,14 +942,15 @@ def get_subgraph_for_query(
                tgt.name        AS target,
                src.document_id AS source_doc,
                tgt.document_id AS target_doc,
-               r.cross_doc     AS cross_doc
+               r.cross_doc     AS cross_doc,
+               r.chunk_index   AS chunk_index,
+               r.source_text   AS source_text
     """
 
     with get_session() as s:
         rel_res = s.run(rel_cypher, **rel_params)
-        # Deduplicate by (source, relation, target)
-        seen_rels:     set         = set()
-        relationships: List[Dict]  = []
+        seen_rels:     set        = set()
+        relationships: List[Dict] = []
         for r in rel_res:
             key = (r["source"], r["relation"], r["target"])
             if key not in seen_rels:
@@ -927,6 +962,14 @@ def get_subgraph_for_query(
                     "source_doc": r["source_doc"],
                     "target_doc": r["target_doc"],
                     "cross_doc":  bool(r["cross_doc"]),
+                    **(
+                        {
+                            "chunk_index": r["chunk_index"],
+                            "source_text": r["source_text"] or "",
+                        }
+                        if include_source_text
+                        else {}
+                    ),
                 })
 
     return {"entities": entities, "relationships": relationships}
@@ -934,9 +977,6 @@ def get_subgraph_for_query(
 
 # ════════════════════════════════════════════════════════════════
 # Neo4j — read: cross-document relationships
-#
-# Issue 3 fix: use a single WHERE clause (no double-WHERE on MATCH).
-# Filter by the cross_doc property instead of type() in WHERE.
 # ════════════════════════════════════════════════════════════════
 
 def get_cross_doc_relationships(subject_id: str, user_id: str) -> List[Dict]:
@@ -971,10 +1011,7 @@ def get_cross_doc_relationships(subject_id: str, user_id: str) -> List[Dict]:
 
 
 def get_document_cross_doc_links(document_id: str, user_id: str) -> List[Dict]:
-    """All cross-doc edges where this document is source or target.
-
-    Issue 3 fix: removed duplicate WHERE clause (was syntax error).
-    """
+    """All cross-doc edges where this document is source or target."""
     with get_session() as s:
         result = s.run(
             """
@@ -1049,21 +1086,6 @@ def get_entity_names_for_document(document_id: str, user_id: str) -> List[str]:
 
 # ════════════════════════════════════════════════════════════════
 # Neo4j — delete
-#
-# Issue 4 fix — entities not deleted:
-#
-#   ROOT CAUSE: The MATCH query for entities used a property map
-#   filter {subject_id: $sid, user_id: $uid}. If the user_id stored
-#   on the entity was set from a UUID object while the delete call
-#   passes a string (or vice-versa), the MATCH returns 0 rows.
-#
-#   FIX: Use WHERE clauses instead of property map syntax for all
-#   delete queries — this makes string comparison explicit and avoids
-#   type coercion issues. Also: count and delete in SEPARATE
-#   statements in the SAME session to avoid variable-scope loss.
-#
-#   Both document and subject deletes now use WHERE clauses and
-#   operate inside a single session per logical operation.
 # ════════════════════════════════════════════════════════════════
 
 def delete_document_graph(document_id: str, user_id: str) -> int:
@@ -1073,7 +1095,6 @@ def delete_document_graph(document_id: str, user_id: str) -> int:
     Does NOT touch PostgreSQL.
     """
     with get_session() as s:
-        # Count before delete (variable gone after DETACH DELETE)
         cnt_res = s.run(
             """
             MATCH (e:Entity)
@@ -1085,7 +1106,6 @@ def delete_document_graph(document_id: str, user_id: str) -> int:
         )
         count = int((cnt_res.single() or {"cnt": 0})["cnt"])
 
-        # Delete entities (DETACH DELETE removes all their relationships)
         s.run(
             """
             MATCH (e:Entity)
@@ -1096,7 +1116,6 @@ def delete_document_graph(document_id: str, user_id: str) -> int:
             did=document_id, uid=user_id,
         )
 
-        # Remove Document node if it has no remaining entities
         s.run(
             """
             MATCH (d:Document)
@@ -1113,15 +1132,11 @@ def delete_document_graph(document_id: str, user_id: str) -> int:
 
 def delete_subject_graph(subject_id: str, user_id: str) -> int:
     """
-    Cascading delete for an entire subject from Neo4j:
-      1. Delete all Entity nodes (DETACH DELETE removes all their edges)
-      2. Delete all Document nodes in the subject
-      3. Delete the Subject node itself
+    Cascading delete for an entire subject from Neo4j.
     Returns count of entity nodes deleted.
     Does NOT touch PostgreSQL.
     """
     with get_session() as s:
-        # Count entities before delete
         cnt_res = s.run(
             """
             MATCH (e:Entity)
@@ -1133,7 +1148,6 @@ def delete_subject_graph(subject_id: str, user_id: str) -> int:
         )
         count = int((cnt_res.single() or {"cnt": 0})["cnt"])
 
-        # Delete all Entity nodes (and their relationships)
         s.run(
             """
             MATCH (e:Entity)
@@ -1144,7 +1158,6 @@ def delete_subject_graph(subject_id: str, user_id: str) -> int:
             sid=subject_id, uid=user_id,
         )
 
-        # Delete all Document nodes under this subject
         s.run(
             """
             MATCH (d:Document)
@@ -1154,7 +1167,6 @@ def delete_subject_graph(subject_id: str, user_id: str) -> int:
             sid=subject_id,
         )
 
-        # Delete the Subject node itself
         s.run(
             """
             MATCH (sub:Subject)

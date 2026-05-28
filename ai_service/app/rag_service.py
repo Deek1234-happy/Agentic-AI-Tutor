@@ -4,6 +4,7 @@ from typing import List, Tuple
 from .embedding import embed_texts
 from .vector_store import search_similar_chunks
 from .llm import generate_answer
+from .reranker import rerank_chunks
 
 # Single source of truth
 IDK_MESSAGE = "I don't know."
@@ -20,7 +21,9 @@ def build_context(chunks: List[Tuple], max_chars: int = 6000) -> str:
     context_parts = []
     total_chars = 0
 
-    for _, _, text, _, _, _ in chunks:
+    for chunk in chunks:
+        text = chunk[2]
+
         if not text or not text.strip():
             continue
 
@@ -65,15 +68,16 @@ def answer_question(question: str, top_k: int = 5):
     """
 
     # 1️⃣ Embed question
-    query_embedding = embed_texts([question])[0]
+    #query_embedding = embed_texts([question])[0]
+    query_embedding = embed_texts([question], is_query=True)[0] #for eval .
 
     # 2️⃣ Retrieve from DB
     retrieved_chunks = search_similar_chunks(
         query_embedding=query_embedding,
-        top_k=top_k
+        top_k=10
     )
 
-    # 3️⃣ Filter weak matches (score index now = 5)
+    # 3️⃣ Filter weak matches
     retrieved_chunks = [
         r for r in retrieved_chunks
         if r[5] >= 0.5
@@ -82,6 +86,15 @@ def answer_question(question: str, top_k: int = 5):
     if not retrieved_chunks:
         return IDK_MESSAGE, []
 
+    # 4️⃣ Re-rank
+    retrieved_chunks = rerank_chunks(
+        question=question,
+        chunks=retrieved_chunks,
+        top_k=top_k
+    )
+    
+    
+
     # 4️⃣ Build context
     context = build_context(retrieved_chunks)
 
@@ -89,16 +102,16 @@ def answer_question(question: str, top_k: int = 5):
         return IDK_MESSAGE, retrieved_chunks
 
     # 5️⃣ Prompt
-    prompt = f"""
-You are an academic tutor.
+    prompt = f"""You are a precise question-answering assistant.
 
-Your task is to EXPLAIN the concept clearly as if teaching a student.
+Answer the question using ONLY the information in the CONTEXT below.
+Give a SHORT and DIRECT answer — no explanation, no extra detail.
 
-IMPORTANT RULES:
-- Use ONLY the information found in the CONTEXT.
-- You may reorganize, combine, and simplify the information.
-- Do NOT add external knowledge.
-- If the CONTEXT does not contain enough information, reply exactly with: "{IDK_MESSAGE}"
+RULES:
+Answer in as few words as possible (ideally 1-5 words)
+Do NOT explain your reasoning
+Do NOT repeat the question
+If the answer is not in the CONTEXT, reply exactly with: "{IDK_MESSAGE}"
 
 CONTEXT:
 {context}
@@ -106,8 +119,27 @@ CONTEXT:
 QUESTION:
 {question}
 
-EXPLANATION:
-"""
+ANSWER:"""
+    
+#     """
+# You are an academic tutor.
+
+# Your task is to EXPLAIN the concept clearly as if teaching a student.
+
+# IMPORTANT RULES:
+# - Use ONLY the information found in the CONTEXT.
+# - You may reorganize, combine, and simplify the information.
+# - Do NOT add external knowledge.
+# - If the CONTEXT does not contain enough information, reply exactly with: "{IDK_MESSAGE}"
+
+# CONTEXT:
+# {context}
+
+# QUESTION:
+# {question}
+
+# EXPLANATION:
+# """
 
     try:
         answer = generate_answer(prompt)
@@ -116,17 +148,17 @@ EXPLANATION:
 
     answer = answer.strip() if answer else ""
 
-    print("\n=== RAW MODEL OUTPUT ===")
-    print(answer)
-    print("======")
+    # print("\n=== RAW MODEL OUTPUT ===")
+    # print(answer)
+    # print("======")
 
-    print("\n=== RETRIEVED CHUNKS ===")
-    for r in retrieved_chunks:
-        print(f"Document: {r[1]}")
-        print(f"Pages: {r[3]} - {r[4]}")
-        print(f"Score: {r[5]}")
-        print(r[2][:500])
-        print("------")
+    # print("\n=== RETRIEVED CHUNKS ===")
+    # for r in retrieved_chunks:
+    #     print(f"Document: {r[1]}")
+    #     print(f"Pages: {r[3]} - {r[4]}")
+    #     print(f"Score: {r[5]}")
+    #     print(r[2][:500])
+    #     print("------")
 
     if not answer:
         return IDK_MESSAGE, retrieved_chunks

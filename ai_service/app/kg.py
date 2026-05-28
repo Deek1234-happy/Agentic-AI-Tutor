@@ -47,6 +47,8 @@ class RelationshipModel(BaseModel):
     source_doc: Optional[str] = None
     target_doc: Optional[str] = None
     cross_doc:  Optional[bool] = False
+    chunk_index: Optional[int] = None
+    source_text: Optional[str] = None
 
 
 class SubgraphResponse(BaseModel):
@@ -236,6 +238,9 @@ class SubjectQueryRequest(BaseModel):
     user_id:      str
     document_ids: Optional[List[str]] = None
     hops:         int = 2
+    flexible_seed_match: bool = False
+    include_source_text: bool = False
+    use_llm_query_entities: bool = True
 
 
 @router.post(
@@ -259,6 +264,9 @@ def query_subgraph_subject(payload: SubjectQueryRequest):
             user_id=payload.user_id,
             document_ids=payload.document_ids,
             hops=payload.hops,
+            flexible_seed_match=payload.flexible_seed_match,
+            include_source_text=payload.include_source_text,
+            use_llm_query_entities=payload.use_llm_query_entities,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

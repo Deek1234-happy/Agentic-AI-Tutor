@@ -1,4 +1,13 @@
 # app/parsers.py
+"""
+Document parsers for the RAG pipeline.
+Upgraded to match the Quiz parser quality:
+  - use_ocr flag on every parser (default True)
+  - PDF: skips tiny images (< 50 px) to avoid garbage OCR
+  - DOCX: table lookup by element identity (no .pop(0) race condition)
+  - PPTX: OCR guarded by use_ocr flag
+"""
+
 import fitz
 import pytesseract
 from PIL import Image
@@ -6,6 +15,7 @@ from docx import Document
 from docx.oxml.ns import qn
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
+import csv
 import io
 import os
 
@@ -13,8 +23,11 @@ import os
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
-# OCR working implementation, but with no oreder between text and images at the same page
-def parse_pdf(file_path: str) -> str:
+# ─────────────────────────────────────────────────────────────────────────────
+# PDF
+# ─────────────────────────────────────────────────────────────────────────────
+
+def parse_pdf(file_path: str, use_ocr: bool = True) -> str:
     doc = fitz.open(file_path)
     final_text = []
 
@@ -25,72 +38,82 @@ def parse_pdf(file_path: str) -> str:
         if text:
             final_text.append(text + "\n")
 
+        if not use_ocr:
+            continue
+
         images = page.get_images(full=True)
 
-        # Case 1: scanned page (almost no text)
+        # Case 1: scanned page (almost no selectable text)
         if len(text) < 100:
             pix = page.get_pixmap(dpi=300)
             img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("L")
             ocr_text = pytesseract.image_to_string(img)
-
             if ocr_text.strip():
                 final_text.append("\n[OCR PAGE TEXT]\n")
                 final_text.append(ocr_text + "\n")
 
-        # Case 2: normal page with small images
-        elif images:
+        # Case 2: normal page with embedded images (and not much text yet)
+        elif images and len(text) < 300:
             for img_info in images:
-                xref = img_info[0]
-                base_image = doc.extract_image(xref)
-                image_bytes = base_image["image"]
+                base_image = doc.extract_image(img_info[0])
 
-                img = Image.open(io.BytesIO(image_bytes)).convert("L")
-                ocr_text = pytesseract.image_to_string(img)
+                # Skip tiny decorative images
+                if base_image["width"] < 50 or base_image["height"] < 50:
+                    continue
 
-                if ocr_text.strip():
+                img = Image.open(io.BytesIO(base_image["image"])).convert("L")
+                ocr_text = pytesseract.image_to_string(img, config="--oem 3 --psm 6")
+
+                if len(ocr_text.split()) > 5:
                     final_text.append("\n[OCR IMAGE TEXT]\n")
                     final_text.append(ocr_text + "\n")
 
     return "".join(final_text)
 
-def parse_docx(file_path: str) -> str:
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DOCX
+# ─────────────────────────────────────────────────────────────────────────────
+
+def parse_docx(file_path: str, use_ocr: bool = True) -> str:
     document = Document(file_path)
     final_text = []
 
-    # Map relationship id → image bytes
     rels = document.part.rels
+    # Build lookup by element identity — avoids the .pop(0) ordering bug
+    table_lookup = {id(tbl._element): tbl for tbl in document.tables}
 
     for element in document.element.body:
 
-        # Paragraph
-        if element.tag.endswith('}p'):
+        # ── Paragraph ───────────────────────────────────────────────────────
+        if element.tag.endswith("}p"):
             paragraph_text = []
 
-            for run in element.iter(qn('w:r')):
-                text_elem = run.find(qn('w:t'))
+            for run in element.iter(qn("w:r")):
+                text_elem = run.find(qn("w:t"))
                 if text_elem is not None and text_elem.text:
                     paragraph_text.append(text_elem.text)
 
-                # Image inside paragraph → OCR
-                drawing = run.find(qn('w:drawing'))
-                if drawing is not None:
-                    for blip in drawing.iter(qn('a:blip')):
-                        rId = blip.get(qn('r:embed'))
-                        image_part = rels[rId]
-                        image_bytes = image_part.target_part.blob
-
-                        img = Image.open(io.BytesIO(image_bytes)).convert("L")
-                        ocr_text = pytesseract.image_to_string(img)
-
-                        if ocr_text.strip():
-                            paragraph_text.append("\n" + ocr_text + "\n")
+                if use_ocr:
+                    drawing = run.find(qn("w:drawing"))
+                    if drawing is not None:
+                        for blip in drawing.iter(qn("a:blip")):
+                            rId = blip.get(qn("r:embed"))
+                            image_part = rels[rId]
+                            image_bytes = image_part.target_part.blob
+                            img = Image.open(io.BytesIO(image_bytes)).convert("L")
+                            ocr_text = pytesseract.image_to_string(img)
+                            if ocr_text.strip():
+                                paragraph_text.append("\n" + ocr_text + "\n")
 
             if paragraph_text:
                 final_text.append("".join(paragraph_text) + "\n")
 
-        # Table 
-        elif element.tag.endswith('}tbl'):
-            table = document.tables.pop(0)
+        # ── Table ────────────────────────────────────────────────────────────
+        elif element.tag.endswith("}tbl"):
+            table = table_lookup.get(id(element))
+            if table is None:
+                continue
             for row in table.rows:
                 for cell in row.cells:
                     final_text.append(cell.text + " ")
@@ -99,7 +122,11 @@ def parse_docx(file_path: str) -> str:
     return "".join(final_text)
 
 
-def parse_pptx(file_path: str) -> str:
+# ─────────────────────────────────────────────────────────────────────────────
+# PPTX
+# ─────────────────────────────────────────────────────────────────────────────
+
+def parse_pptx(file_path: str, use_ocr: bool = True) -> str:
     presentation = Presentation(file_path)
     final_text = []
 
@@ -108,19 +135,15 @@ def parse_pptx(file_path: str) -> str:
 
         for shape in slide.shapes:
 
-            # TEXT SHAPES
             if shape.has_text_frame:
                 for paragraph in shape.text_frame.paragraphs:
                     if paragraph.text.strip():
                         final_text.append(paragraph.text + "\n")
 
-            # IMAGE SHAPES → OCR
-            elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+            elif use_ocr and shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 image_bytes = shape.image.blob
                 img = Image.open(io.BytesIO(image_bytes)).convert("L")
-
                 ocr_text = pytesseract.image_to_string(img)
-
                 if ocr_text.strip():
                     final_text.append("\n[OCR IMAGE TEXT]\n")
                     final_text.append(ocr_text + "\n")
@@ -128,25 +151,25 @@ def parse_pptx(file_path: str) -> str:
     return "".join(final_text)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TXT
+# ─────────────────────────────────────────────────────────────────────────────
+
 def parse_txt(file_path: str) -> str:
     try:
-        # UTF-8 encoding
         with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
-
     except UnicodeDecodeError:
-        # Fallback for other encodings
         with open(file_path, "r", encoding="latin-1") as f:
             return f.read()
 
 
-import csv
-
+# ─────────────────────────────────────────────────────────────────────────────
+# CSV
+# ─────────────────────────────────────────────────────────────────────────────
 
 def parse_csv(file_path: str) -> str:
     lines = []
-
-    # UTF-8 encoding
     try:
         file = open(file_path, newline="", encoding="utf-8")
     except UnicodeDecodeError:
@@ -154,13 +177,9 @@ def parse_csv(file_path: str) -> str:
 
     with file:
         reader = csv.reader(file)
-
         for row in reader:
-            # Skip empty rows
             if not row:
                 continue
-
-            # Join columns into readable text
             line = " | ".join(cell.strip() for cell in row if cell.strip())
             if line:
                 lines.append(line)
