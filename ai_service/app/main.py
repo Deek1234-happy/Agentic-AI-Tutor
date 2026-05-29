@@ -20,6 +20,7 @@ from .vtts import router as vtts_route
 #from .evaluation.evaluation_service import evaluate
 from app.evaluation import evaluation
 from .quiz.quiz_router import router as quiz_router
+from .quiz.quiz_generate_router import router as quiz_generate_router
 
 
 
@@ -131,4 +132,11 @@ app.include_router(
     quiz_router,
     prefix="/quiz",
     tags=["Quiz Processing"]
+)
+
+# ── Quiz MCQ Generation ──────────────────────────────────────
+app.include_router(
+    quiz_generate_router,
+    prefix="/quiz",
+    tags=["Quiz Generation"]
 )
