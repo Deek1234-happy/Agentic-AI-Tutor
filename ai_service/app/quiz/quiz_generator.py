@@ -24,6 +24,7 @@ import re
 import logging
 import os
 import time
+import torch
 from difflib import SequenceMatcher
 from typing import Dict, List, Optional, Literal
 
@@ -68,7 +69,12 @@ def _load_model():
     log.info("[QuizGen] Loading model from %s ...", _MODEL_PATH)
     _tokenizer = AutoTokenizer.from_pretrained(_MODEL_PATH)
 
-    device_map = "auto"  # uses CUDA if available, falls back to CPU
+    # device_map = "auto"  # uses CUDA if available, falls back to CPU
+    if torch.cuda.is_available():
+        device_map = {"": "cuda:0"}   # Force all layers on GPU — no offloading
+        torch.cuda.empty_cache()       # Free VRAM before loading
+    else:
+        device_map = "cpu"
     _model = AutoModelForCausalLM.from_pretrained(
         _MODEL_PATH,
         torch_dtype=torch.float16,   # Force 16-bit precision to fit in 4GB VRAM
@@ -295,6 +301,60 @@ def _shuffle_options(mcq: Dict) -> Dict:
 # REAL MODEL INFERENCE — Qwen2.5-1.5B fine-tuned (mcq-bloom-qwen-merged)
 # ═══════════════════════════════════════════════════════════════
 
+# def _real_model_call(system_prompt: str, user_prompt: str, attempt: int = 1) -> str:
+#     """
+#     Run MCQ inference with the merged fine-tuned Qwen2.5-1.5B model.
+
+#     Uses tokenizer.apply_chat_template() to match the exact ShareGPT
+#     format the model was trained on (system + user turns, then
+#     add_generation_prompt=True to trigger the assistant turn).
+
+#     The model is lazy-loaded on the first call.
+#     """
+#     import torch
+
+#     _load_model()  # no-op after first call
+
+#     messages = [
+#         {"role": "system", "content": system_prompt},
+#         {"role": "user",   "content": user_prompt},
+#     ]
+
+#     # Apply the Qwen chat template — matches training format exactly
+#     text = _tokenizer.apply_chat_template(
+#         messages, tokenize=False, add_generation_prompt=True
+#     )
+#     inputs = _tokenizer([text], return_tensors="pt").to(_model.device)
+
+#     # Determine generation parameters based on attempt
+#     do_sample = False
+#     temperature = None
+#     top_p = None
+#     if attempt == 2:
+#         do_sample = True
+#         temperature = 0.7
+#         top_p = 0.9
+
+#     with torch.no_grad():
+#         out_ids = _model.generate(
+#             **inputs,
+#             max_new_tokens=256,
+#             do_sample=do_sample,
+#             temperature=temperature,
+#             top_p=top_p,
+#             top_k=None,
+#         )
+
+#     # Strip input tokens → keep only the newly generated tokens
+#     new_ids = out_ids[0][inputs.input_ids.shape[1]:]
+#     return _tokenizer.decode(new_ids, skip_special_tokens=True)
+
+
+
+# ═══════════════════════════════════════════════════════════════
+# REAL MODEL INFERENCE — Qwen2.5-1.5B fine-tuned (mcq-bloom-qwen-merged)
+# ═══════════════════════════════════════════════════════════════
+
 def _real_model_call(system_prompt: str, user_prompt: str, attempt: int = 1) -> str:
     """
     Run MCQ inference with the merged fine-tuned Qwen2.5-1.5B model.
@@ -306,19 +366,23 @@ def _real_model_call(system_prompt: str, user_prompt: str, attempt: int = 1) -> 
     The model is lazy-loaded on the first call.
     """
     import torch
+    import functools
 
     _load_model()  # no-op after first call
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user",   "content": user_prompt},
-    ]
+    @functools.lru_cache(maxsize=2)
+    def _get_tokenized_inputs(sys_p: str, usr_p: str):
+        messages = [
+            {"role": "system", "content": sys_p},
+            {"role": "user",   "content": usr_p},
+        ]
+        text = _tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        return _tokenizer([text], return_tensors="pt")
 
-    # Apply the Qwen chat template — matches training format exactly
-    text = _tokenizer.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
-    inputs = _tokenizer([text], return_tensors="pt").to(_model.device)
+    # Fetch from cache or tokenize if new
+    inputs = _get_tokenized_inputs(system_prompt, user_prompt).to(_model.device)
 
     # Determine generation parameters based on attempt
     do_sample = False
@@ -332,7 +396,7 @@ def _real_model_call(system_prompt: str, user_prompt: str, attempt: int = 1) -> 
     with torch.no_grad():
         out_ids = _model.generate(
             **inputs,
-            max_new_tokens=512,
+            max_new_tokens=256,
             do_sample=do_sample,
             temperature=temperature,
             top_p=top_p,
@@ -489,7 +553,7 @@ def generate_mcqs(model_inputs: List[Dict]) -> List[Dict]:
     Returns:
         List of formatted MCQ response dicts.
     """
-    import torch
+    _load_model()
 
     total_start = time.time()
     results: List[Dict] = []
