@@ -26,3 +26,8 @@ temp_audio/
 .idea/
 *.swp
 *.swo
+
+ai_service/scripts/
+mcq-bloom-qwen-merged/
+ai_service/logs/
+ai_service/Quiz/

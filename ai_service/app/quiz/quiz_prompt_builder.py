@@ -88,13 +88,15 @@ SFT_SYSTEM_PROMPT = "\n".join([
     "- Justify the correct concept clearly using its meaning.",
     "",
 
-    # -- Output format (single MCQ object — NO concept/bloom_level in output)
-    "## OUTPUT FORMAT — return ONLY this JSON object:",
+    # -- Output format (single MCQ)
+    "## OUTPUT FORMAT -- return ONLY this JSON object:",
     "{",
     '  "question": "<full question stem>",',
     '  "options": {"A": "...", "B": "...", "C": "...", "D": "..."},',
     '  "answer": "<A|B|C|D>",',
-    '  "explanation": "<1-2 sentences: why correct, referencing chunk>"',
+    '  "explanation": "<1-2 sentences: why correct, referencing chunk>",',
+    '  "concept": "<the concept this question tests>",',
+    '  "bloom_level": "<bloom level>"',
     "}",
 ])
 
@@ -342,27 +344,21 @@ def build_model_input(
     )
     kw_str = ", ".join(keywords) if keywords else "(infer from text)"
 
-    # Build context fringe block (only included if present)
-    context_lines = []
-    if prev_s:
-        context_lines.append(f"Previous: {prev_s}")
-    if next_s:
-        context_lines.append(f"Next    : {next_s}")
+    concept_block = _build_concept_block(slot, all_concepts)
+
+    prev_s_disp = prev_s if prev_s else "N/A"
+    next_s_disp = next_s if next_s else "N/A"
 
     parts = [
         "## CHUNK TEXT",
         text,
         "",
-    ]
-
-    if context_lines:
-        parts += [
-            "---",
-            "",
-            "## CONTEXT (background only — do NOT write questions about these sentences)",
-        ] + context_lines + [""]
-
-    parts += [
+        "---",
+        "",
+        "## CONTEXT (background only -- do NOT write questions about these sentences)",
+        f"Previous: {prev_s_disp}",
+        f"Next    : {next_s_disp}",
+        "",
         "---",
         "",
         "## METADATA",
@@ -371,21 +367,19 @@ def build_model_input(
         "",
         "---",
         "",
-        # ── Structured conditioning tags ──
-        f"[BLOOM LEVEL]: {slot_bloom}",
-        f"[CHUNK TYPE]: {chunk_type}",
-        f"[FOCUS CONCEPT]: {concept_display}",
+        "## YOUR TASK FOR THIS QUESTION",
+        "Generate EXACTLY ONE MCQ. Not two. Not zero. One.",
+        "Return a single JSON OBJECT (not an array).",
+        "",
+        concept_block,
+        "",
+        f"BLOOM LEVEL: {slot_bloom.upper()}",
+        bloom_instr,
         "",
         "CHUNK TYPE INSTRUCTION",
         ct_instr,
         "",
-        "---",
-        "",
-        "## YOUR TASK FOR THIS QUESTION",
-        "Generate EXACTLY ONE MCQ. Not two. Not zero. One.",
-        "Return a single JSON OBJECT (not an array).",
-        f'The question MUST focus specifically on: "{concept_display}"',
-        "The correct answer MUST be grounded in the chunk text above.",
+        "FINAL REMINDER: You MUST output ONLY valid JSON format. Start your response with {",
     ]
 
     user_prompt = "\n".join(parts)
