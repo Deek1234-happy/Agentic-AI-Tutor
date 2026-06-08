@@ -72,6 +72,8 @@ namespace AgenticAITutor.Services
                     FileSize = document.FileSize,
                     UploadTime = document.UploadTime,
                     ProcessingStatus = document.ProcessingStatus,
+                    KGStatus = document.KgStatus,
+                    QuizChunkingStatus = document.QuizChunkingStatus,
                     StoragePath = document.StoragePath
                 }).ToList()
             }).ToList();
@@ -101,6 +103,8 @@ namespace AgenticAITutor.Services
                         FileSize = document.FileSize,
                         UploadTime = document.UploadTime,
                         ProcessingStatus = document.ProcessingStatus,
+                        KGStatus = document.KgStatus,
+                        QuizChunkingStatus = document.QuizChunkingStatus,
                         StoragePath = document.StoragePath,
 
                     }).ToList()

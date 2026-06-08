@@ -49,8 +49,15 @@ public partial class Document
     [StringLength(20)]
     public string? KgStatus { get; set; }
 
+    [Column("quiz_chunking_status")]
+    [StringLength(20)]
+    public string? QuizChunkingStatus { get; set; }
+
     [InverseProperty("Document")]
     public virtual ICollection<DocumentChunk> DocumentChunks { get; set; } = new List<DocumentChunk>();
+
+    [InverseProperty("Document")]
+    public virtual ICollection<QuizChunk> QuizChunks { get; set; } = new List<QuizChunk>();
 
     [ForeignKey("SubjectId")]
     [InverseProperty("Documents")]

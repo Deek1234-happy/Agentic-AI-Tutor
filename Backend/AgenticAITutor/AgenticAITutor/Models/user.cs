@@ -39,6 +39,12 @@ public partial class User
     [Column("last_login", TypeName = "timestamp without time zone")]
     public DateTime? LastLogin { get; set; }
 
+    [Column("reset_password_token")]
+    public string? ResetPasswordToken { get; set; }
+
+    [Column("reset_password_token_expiry", TypeName = "timestamp without time zone")]
+    public DateTime? ResetPasswordTokenExpiry { get; set; }
+
     [InverseProperty("User")]
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 
@@ -59,6 +65,9 @@ public partial class User
 
     [InverseProperty("User")]
     public virtual ICollection<QuizAttempt> QuizAttempts { get; set; } = new List<QuizAttempt>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<QuizChunk> QuizChunks { get; set; } = new List<QuizChunk>();
 
     [InverseProperty("User")]
     public virtual ICollection<Quiz> Quizzes { get; set; } = new List<Quiz>();

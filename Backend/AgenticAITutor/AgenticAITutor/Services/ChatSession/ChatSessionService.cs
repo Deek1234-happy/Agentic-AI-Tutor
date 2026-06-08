@@ -68,6 +68,7 @@ namespace AgenticAITutor.Services
                         UploadTime = document.UploadTime,
                         ProcessingStatus = document.ProcessingStatus,
                         KGStatus = document.KgStatus,
+                        QuizChunkingStatus = document.QuizChunkingStatus,
                         StoragePath = document.StoragePath
                     }).ToList()
                 };
@@ -155,6 +156,7 @@ namespace AgenticAITutor.Services
                     UploadTime = document.UploadTime,
                     ProcessingStatus = document.ProcessingStatus,
                     KGStatus = document.KgStatus,
+                    QuizChunkingStatus = document.QuizChunkingStatus,
                     StoragePath = document.StoragePath
                 }).ToList()
             }).ToList();

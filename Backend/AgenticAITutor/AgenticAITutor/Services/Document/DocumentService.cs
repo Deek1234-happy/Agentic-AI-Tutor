@@ -15,6 +15,7 @@ namespace AgenticAITutor.Services
         private readonly ISubjectRepository subjectRepository;
         private readonly IConfiguration configuration;
         private readonly IDocumentChunkRepository chunkRepository;
+        private readonly IBackgroundJobClient backgroundJobClient;
         private readonly HttpClient httpClient;
         private readonly string[] allowedExtensions = { ".pdf", ".docx", ".txt", ".pptx" };
         private readonly long maxFileSize = 10 * 1024 * 1024; // 10 MB
@@ -24,13 +25,15 @@ namespace AgenticAITutor.Services
             ISubjectRepository subjectRepository, 
             IConfiguration configuration,
             IDocumentChunkRepository chunkRepository,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IBackgroundJobClient backgroundJobClient)
         {
             this.documentRepository = documentRepository;
             this.fileStorageService = fileStorageService;
             this.subjectRepository = subjectRepository;
             this.configuration = configuration;
             this.chunkRepository = chunkRepository;
+            this.backgroundJobClient = backgroundJobClient;
             this.httpClient = httpClientFactory.CreateClient(nameof(DocumentService));
         }
 
@@ -110,16 +113,33 @@ namespace AgenticAITutor.Services
                 UploadTime = DateTime.Now,
                 ProcessingStatus = DocumentProcessingStatus.PENDING.ToString(),
                 KgStatus = KGChunkingStatus.PENDING.ToString(),
+                QuizChunkingStatus = DocumentProcessingStatus.PENDING.ToString()
             };
 
             await documentRepository.AddAsync(document);
 
             // chunking the document
-            var jobId = BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
+            // var jobId = BackgroundJob.Enqueue<DocumentChunkingJob>(job => job.ChunkDocument(document.Id));
 
             // kg chunking (will only run if the normal chunking job succeeds)
-            BackgroundJob.ContinueJobWith<DocumentChunkingJob>(jobId, job => job.KGChunkDocument(document.Id));
-                        
+            // BackgroundJob.ContinueJobWith<DocumentChunkingJob>(jobId, job => job.KGChunkDocument(document.Id));
+
+            try
+            {
+                var jobId = backgroundJobClient.Enqueue<DocumentChunkingJob>(
+                    job => job.ChunkDocument(document.Id));
+
+                backgroundJobClient.ContinueJobWith<DocumentChunkingJob>(
+                    jobId,
+                    job => job.KGChunkDocument(document.Id));
+            }
+            catch
+            {
+                document.ProcessingStatus = DocumentProcessingStatus.FAILED.ToString();
+                document.QuizChunkingStatus = DocumentProcessingStatus.FAILED.ToString();
+                await documentRepository.UpdateAsync(document);
+            }
+
             response.Success = true;
             response.Data = MapToResponse(document);
             response.Message = "Upload Successful";
@@ -343,6 +363,7 @@ namespace AgenticAITutor.Services
                 UploadTime = document.UploadTime ?? DateTime.Now,
                 ProcessingStatus = document.ProcessingStatus,
                 KGStatus = document.KgStatus,
+                QuizChunkingStatus = document.QuizChunkingStatus,
                 StoragePath = document.StoragePath
             };
         }

@@ -11,17 +11,20 @@ namespace AgenticAITutor.BackgroundJobs
     {
         private readonly IQuizRepository _quizRepo;
         private readonly IDocumentChunkRepository _chunkRepo;
+        private readonly IQuizChunkRepository _quizChunkRepo;
         private readonly IQuizAIClient _aiClient;
         private readonly ILogger<QuizGenerationJob> _logger;
 
         public QuizGenerationJob(
             IQuizRepository quizRepo,
             IDocumentChunkRepository chunkRepo,
+            IQuizChunkRepository quizChunkRepo,
             IQuizAIClient aiClient,
             ILogger<QuizGenerationJob> logger)
         {
             _quizRepo = quizRepo;
             _chunkRepo = chunkRepo;
+            _quizChunkRepo = quizChunkRepo;
             _aiClient = aiClient;
             _logger = logger;
         }
@@ -35,7 +38,7 @@ namespace AgenticAITutor.BackgroundJobs
         /// </summary>
         [DisableConcurrentExecution(60 * 60)]
         [AutomaticRetry(Attempts = 0)]
-        public async Task Execute(Guid quizId)
+        public async Task Execute(Guid quizId, int numberOfQuestions)
         {
             _logger.LogInformation("QuizGenerationJob started for QuizId: {QuizId}", quizId);
 
@@ -59,11 +62,11 @@ namespace AgenticAITutor.BackgroundJobs
                 }
 
                 // 2. Fetch all chunks for these documents
-                var allChunks = new List<DocumentChunk>();
+                var allChunks = new List<QuizChunk>();
                 foreach (var docId in documentIds)
                 {
                     // UserId is nullable on DocumentChunk; quiz.UserId carries it
-                    var chunks = await _chunkRepo.GetByDocumentAsync(docId, quiz.UserId ?? Guid.Empty);
+                    var chunks = await _quizChunkRepo.GetByDocumentAsync(docId, quiz.UserId ?? Guid.Empty);
                     allChunks.AddRange(chunks);
                 }
 
@@ -78,12 +81,18 @@ namespace AgenticAITutor.BackgroundJobs
                     Chunks = allChunks.Select(c => new McqChunkInput
                     {
                         ChunkId = c.Id,
-                        Text = c.ChunkText,
+                        DocumentId = c.DocumentId,
+                        ChunkText = c.ChunkText,
+                        ContextPrevSentence = c.ContextPrevSentence,
+                        ContextNextSentence = c.ContextNextSentence,
                         BloomLevel = c.BloomLevel,
                         ChunkType = c.ChunkType,
                         Concepts = c.Concepts,
                         Keywords = c.Keywords
-                    }).ToList()
+                    }).ToList(),
+                    NumberOfQuestions = numberOfQuestions,
+                    McqsPerChunk = 1
+
                 };
 
                 // 4. Call Python AI service (Polly retries configured on HttpClient)
@@ -119,17 +128,6 @@ namespace AgenticAITutor.BackgroundJobs
                         }).ToList()
                     };
 
-                    // Citation chunks (many-to-many via quiz_citations junction)
-                    if (aiQuestion.CitationChunkIds != null && aiQuestion.CitationChunkIds.Any())
-                    {
-                        foreach (var cId in aiQuestion.CitationChunkIds)
-                        {
-                            var chunk = allChunks.FirstOrDefault(c => c.Id == cId);
-                            if (chunk != null)
-                                question.Chunks.Add(chunk);
-                        }
-                    }
-
                     questions.Add(question);
                 }
 
@@ -152,6 +150,8 @@ namespace AgenticAITutor.BackgroundJobs
 
                 quiz.Status = QuizStatus.FAILED.ToString();
                 await _quizRepo.UpdateAsync(quiz);
+
+                throw;
             }
         }
     }

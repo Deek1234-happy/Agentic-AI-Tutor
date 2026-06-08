@@ -4,7 +4,7 @@
         <name>AgenticAITutor</name>
     </assembly>
     <members>
-        <member name="M:AgenticAITutor.BackgroundJobs.QuizGenerationJob.Execute(System.Guid)">
+        <member name="M:AgenticAITutor.BackgroundJobs.QuizGenerationJob.Execute(System.Guid,System.Int32)">
             <summary>
             Main generation job. Runs completely outside the HTTP request.
             [DisableConcurrentExecution] prevents two workers from generating
@@ -33,6 +33,15 @@
             <param name="request">The user's login credentials (Email and Password)</param>
             <response code="200">Login successful — returns AuthResponse containing the JWT token</response>
             <response code="400">Invalid email or password</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.ForgotPasswordAsync(AgenticAITutor.Models.DTOs.Auth.ForgotPasswordRequestDto)">
+            <summary>Request a password reset token</summary>
+            <remarks>
+            Always returns the same successful response to prevent account enumeration.
+            </remarks>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.ResetPasswordAsync(AgenticAITutor.Models.DTOs.Auth.ResetPasswordRequestDto)">
+            <summary>Reset a password using a valid reset token</summary>
         </member>
         <member name="M:AgenticAITutor.Controllers.ChatMessageController.SendAIMessage(AgenticAITutor.Models.DTOs.UserMessageRequest)">
             <summary>Send a message and receive an AI response</summary>
@@ -208,17 +217,40 @@
         <member name="T:AgenticAITutor.Controllers.MockAIController">
             <summary>
             Mock AI controller — simulates the Python AI service during development.
-            Remove or disable in production by switching AIService:BaseURL back to the real Python service.
+            Mirrors the exact request/response contract of the real quiz generation endpoint.
+            To switch to the real service: update AIService:BaseURL and AIService:McqGeneratePath
+            in appsettings.Development.json.
             </summary>
         </member>
         <member name="M:AgenticAITutor.Controllers.MockAIController.GenerateQuiz(AgenticAITutor.Models.DTOs.McqGenerateRequest)">
-            <summary>Mock MCQ generation endpoint — mirrors POST /quiz/generate on the Python service</summary>
-            <remarks>
-            Accepts the same <c>McqGenerateRequest</c> the real AI service expects and returns
-            a realistic <c>McqGenerateResponse</c> with one generated question per chunk.
-            Each question has 4 options (A–D), a randomised correct answer, an explanation,
-            bloom level, concept, and citation chunk IDs.
-            </remarks>
+            <summary>
+            Mock MCQ generation — generates one question per quiz chunk.
+            Accepts the same McqGenerateRequest the real Python service expects.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.GenerateQuizChunks(AgenticAITutor.Models.DTOs.AIChunkRequest)">
+            <summary>
+            Mock quiz chunking - creates quiz-ready chunks from the document metadata.
+            Accepts the same AIChunkRequest the real Python service expects.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.BuildCorrectOption(System.String,System.String)">
+            <summary>Builds the correct option text directly from the chunk body.</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.BuildDistractors(AgenticAITutor.Models.DTOs.McqChunkInput,System.String)">
+            <summary>
+            Builds 3 plausible but incorrect distractors.
+            Uses context sentences and keyword permutations when available.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.BuildExplanation(AgenticAITutor.Models.DTOs.McqChunkInput,System.String,System.String)">
+            <summary>Builds a pedagogically-framed explanation citing the source text.</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.TruncateWords(System.String,System.Int32)">
+            <summary>Returns the first N words of a string.</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.PickWords(System.String[],System.Int32,System.Int32)">
+            <summary>Picks N words from a word array starting at an offset (wraps safely).</summary>
         </member>
         <member name="M:AgenticAITutor.Controllers.QuizController.Initiate(AgenticAITutor.Models.DTOs.QuizInitiateRequest)">
             <summary>Initiate quiz generation or reuse a cached quiz</summary>
@@ -358,22 +390,19 @@
         <member name="P:AgenticAITutor.Models.DTOs.McqGeneratedQuestion.ChunkId">
             <summary>Primary source chunk that generated this question.</summary>
         </member>
-        <member name="P:AgenticAITutor.Models.DTOs.McqGeneratedQuestion.CitationChunkIds">
-            <summary>Additional citation chunks referenced by this question.</summary>
-        </member>
         <member name="P:AgenticAITutor.Models.DTOs.QuizReviewQuestionDto.CorrectOption">
             <summary>The original (unshuffled) correct label stored in DB.</summary>
         </member>
         <member name="P:AgenticAITutor.Models.DTOs.QuizReviewQuestionDto.SelectedOption">
             <summary>The original label the student selected (after reverse-mapping).</summary>
         </member>
-        <member name="M:AgenticAITutor.Services.GenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid})">
+        <member name="M:AgenticAITutor.Services.GenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32)">
             <summary>
             Hash = SHA256( userId + ":" + sorted_documentIds.Join(",") )
             Sorting ensures that [doc1, doc2] and [doc2, doc1] produce the same hash.
             </summary>
         </member>
-        <member name="M:AgenticAITutor.Services.IGenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid})">
+        <member name="M:AgenticAITutor.Services.IGenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32)">
             <summary>
             Computes a deterministic SHA-256 hash from the userId and a sorted
             list of document IDs. Used to detect duplicate quiz generation requests.

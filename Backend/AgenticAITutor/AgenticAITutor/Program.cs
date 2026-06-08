@@ -32,6 +32,14 @@ namespace AgenticAITutor
         {
             AppDomain.CurrentDomain.FirstChanceException += (sender, e) =>
             {
+
+                // 1. Ignore the harmless PostgreSQL IPv6 fallback noise
+                if (e.Exception is System.Net.Sockets.SocketException socketEx &&
+                    socketEx.Message.Contains("[::1]:5432"))
+                {
+                    return; // Exit early, do not log
+                }
+
                 // Only log "serious" exceptions, skip common noise
                 if (e.Exception is OutOfMemoryException
                     || e.Exception is AccessViolationException
@@ -104,6 +112,7 @@ namespace AgenticAITutor
 
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddTransient<IEmailService, SmtpEmailService>();
 
             builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT")); // Map Values In JWT Section In That JWT Class
 
@@ -149,7 +158,7 @@ namespace AgenticAITutor
 
             builder.Services.AddHangfireServer(options =>
             {
-                options.WorkerCount = 20; // Use only 2 workers instead of the default 20
+                options.WorkerCount = 2; // Use only 2 workers instead of the default 20
             });
 
             builder.Services.AddScoped<IDocumentChunkRepository, DocumentChunkRepository>();    
@@ -190,12 +199,13 @@ namespace AgenticAITutor
             builder.Services.AddHttpClient(nameof(ChatMessageService), client =>
             {
                 client.Timeout = TimeSpan.FromMinutes(10);
-                // client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true"); // Comment Me
             });
 
             builder.Services.AddHttpClient(nameof(DocumentChunkService), client =>
             {
-                // client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                client.Timeout = TimeSpan.FromMinutes(10);
+                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true"); // Comment Me
             });
 
             builder.Services.AddHttpClient(nameof(DocumentService));
@@ -204,17 +214,18 @@ namespace AgenticAITutor
             // Quiz AI client: 120s timeout + Polly retry (3 attempts, exponential back-off)
             builder.Services.AddHttpClient("QuizAIClient", client =>
             {
-                client.Timeout = TimeSpan.FromSeconds(120);
-            })
-            .AddTransientHttpErrorPolicy(policy =>
-                policy.WaitAndRetryAsync(
-                    retryCount: 3,
-                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
-                    onRetry: (outcome, timespan, attempt, _) =>
-                    {
-                        Console.WriteLine(
-                            $"[QuizAIClient] Retry {attempt} after {timespan.TotalSeconds:F1}s. Reason: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
-                    }));
+                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true"); // Comment Me
+                client.Timeout = TimeSpan.FromMinutes(10);
+            });
+            //.AddTransientHttpErrorPolicy(policy =>
+            //    policy.WaitAndRetryAsync(
+            //        retryCount: 3,
+            //        sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+            //        onRetry: (outcome, timespan, attempt, _) =>
+            //        {
+            //            Console.WriteLine(
+            //                $"[QuizAIClient] Retry {attempt} after {timespan.TotalSeconds:F1}s. Reason: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
+            //        }));
 
             builder.Services.Configure<FormOptions>(options =>
             {
@@ -225,6 +236,9 @@ namespace AgenticAITutor
             {
                 options.Limits.MaxRequestBodySize = 10 * 1024 * 1024;
             });
+
+            builder.Services.AddScoped<IQuizChunkRepository, QuizChunkRepository>();
+
 
             var app = builder.Build();
 

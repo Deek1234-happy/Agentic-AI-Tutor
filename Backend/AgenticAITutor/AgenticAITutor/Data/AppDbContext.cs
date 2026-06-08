@@ -34,6 +34,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<QuizAttempt> QuizAttempts { get; set; }
 
+    public virtual DbSet<QuizChunk> QuizChunks { get; set; }
+
     public virtual DbSet<QuizOption> QuizOptions { get; set; }
 
     public virtual DbSet<QuizQuestion> QuizQuestions { get; set; }
@@ -154,9 +156,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("document_chunks_pkey");
 
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
-            entity.Property(e => e.Concepts).HasDefaultValueSql("'{}'::text[]");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.Keywords).HasDefaultValueSql("'{}'::text[]");
 
             entity.HasOne(d => d.Document).WithMany(p => p.DocumentChunks)
                 .OnDelete(DeleteBehavior.Cascade)
@@ -250,7 +250,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
             entity.Property(e => e.AttemptNumber).HasDefaultValue(1);
             entity.Property(e => e.StartedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.TakenAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.HasOne(d => d.Quiz).WithMany(p => p.QuizAttempts)
                 .OnDelete(DeleteBehavior.Cascade)
@@ -259,6 +258,28 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.QuizAttempts)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("quiz_attempts_user_id_fkey");
+        });
+
+        modelBuilder.Entity<QuizChunk>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("quiz_chunks_pkey");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
+            entity.Property(e => e.Concepts).HasDefaultValueSql("'{}'::text[]");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(e => e.Keywords).HasDefaultValueSql("'{}'::text[]");
+
+            entity.HasOne(d => d.Document).WithMany(p => p.QuizChunks)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_quiz_chunks_document");
+
+            entity.HasOne(d => d.Subject).WithMany(p => p.QuizChunks)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_quiz_chunks_subject");
+
+            entity.HasOne(d => d.User).WithMany(p => p.QuizChunks)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_quiz_chunks_user");
         });
 
         modelBuilder.Entity<QuizOption>(entity =>
@@ -281,28 +302,11 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Chunk).WithMany(p => p.QuizQuestions)
                 .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("fk_question_chunk");
+                .HasConstraintName("fk_quiz_questions_quiz_chunks");
 
             entity.HasOne(d => d.Quiz).WithMany(p => p.QuizQuestions)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("quiz_questions_quiz_id_fkey");
-
-            entity.HasMany(d => d.Chunks).WithMany(p => p.Questions)
-                .UsingEntity<Dictionary<string, object>>(
-                    "QuizCitation",
-                    r => r.HasOne<DocumentChunk>().WithMany()
-                        .HasForeignKey("ChunkId")
-                        .HasConstraintName("quiz_citations_chunk_id_fkey"),
-                    l => l.HasOne<QuizQuestion>().WithMany()
-                        .HasForeignKey("QuestionId")
-                        .HasConstraintName("quiz_citations_question_id_fkey"),
-                    j =>
-                    {
-                        j.HasKey("QuestionId", "ChunkId").HasName("quiz_citations_pkey");
-                        j.ToTable("quiz_citations", "quiz");
-                        j.IndexerProperty<Guid>("QuestionId").HasColumnName("question_id");
-                        j.IndexerProperty<Guid>("ChunkId").HasColumnName("chunk_id");
-                    });
         });
 
         modelBuilder.Entity<StudyPlan>(entity =>

@@ -7,6 +7,8 @@ namespace AgenticAITutor.Models.DTOs
         [JsonPropertyName("question_text")]
         public string QuestionText { get; set; } = string.Empty;
 
+        [JsonPropertyName("options")]
+        public List<McqGeneratedOption> Options { get; set; } = new();
         [JsonPropertyName("correct_option")]
         public char CorrectOption { get; set; }
 
@@ -23,11 +25,5 @@ namespace AgenticAITutor.Models.DTOs
         [JsonPropertyName("chunk_id")]
         public Guid? ChunkId { get; set; }
 
-        /// <summary>Additional citation chunks referenced by this question.</summary>
-        [JsonPropertyName("citation_chunk_ids")]
-        public List<Guid>? CitationChunkIds { get; set; }
-
-        [JsonPropertyName("options")]
-        public List<McqGeneratedOption> Options { get; set; } = new();
     }
 }

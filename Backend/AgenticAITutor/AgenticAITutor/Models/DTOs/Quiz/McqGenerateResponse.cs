@@ -4,7 +4,7 @@ namespace AgenticAITutor.Models.DTOs
 {
     public class McqGenerateResponse
     {
-        [JsonPropertyName("questions")]
+        [JsonPropertyName("mcqs")]
         public List<McqGeneratedQuestion> Questions { get; set; } = new();
     }
 }

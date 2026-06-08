@@ -5,7 +5,7 @@ namespace AgenticAITutor.Models
 {
     public partial class DocumentChunk
     {
-        [Column("embedding",TypeName = "vector(384)")]
+        [Column("embedding",TypeName = "vector(768)")]
         public Vector? Embedding { get; set; }
     }
 }

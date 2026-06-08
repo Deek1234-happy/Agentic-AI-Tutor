@@ -23,7 +23,7 @@ namespace AgenticAITutor.Repositories
                 .Include(q => q.QuizQuestions.OrderBy(qq => qq.SlotIndex))
                     .ThenInclude(qq => qq.QuizOptions)
                 .Include(q => q.QuizQuestions)
-                    .ThenInclude(qq => qq.Chunks) // citation chunks
+                    .ThenInclude(qq => qq.Chunk) // citation chunks
                 .FirstOrDefaultAsync(q => q.Id == quizId);
 
         public async Task<Quiz?> GetByIdWithDocumentsAsync(Guid quizId)
@@ -99,7 +99,7 @@ namespace AgenticAITutor.Repositories
                         .ThenInclude(q => q.QuizOptions)
                 .Include(a => a.QuizAnswers)
                     .ThenInclude(ans => ans.Question)
-                        .ThenInclude(q => q.Chunks)
+                        .ThenInclude(q => q.Chunk)
                 .FirstOrDefaultAsync(a => a.Id == attemptId);
 
         public async Task<List<QuizAttempt>> GetAttemptsByQuizAndUserAsync(Guid quizId, Guid userId)

@@ -23,9 +23,6 @@ public partial class QuizAttempt
     [Column("score")]
     public double? Score { get; set; }
 
-    [Column("taken_at", TypeName = "timestamp without time zone")]
-    public DateTime? TakenAt { get; set; }
-
     [Column("started_at", TypeName = "timestamp without time zone")]
     public DateTime? StartedAt { get; set; }
 

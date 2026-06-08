@@ -27,9 +27,6 @@ public partial class QuizQuestion
     [Column("explanation")]
     public string? Explanation { get; set; }
 
-    [Column("chunk_id")]
-    public Guid? ChunkId { get; set; }
-
     [Column("concept")]
     [StringLength(255)]
     public string? Concept { get; set; }
@@ -41,9 +38,12 @@ public partial class QuizQuestion
     [Column("slot_index")]
     public int? SlotIndex { get; set; }
 
+    [Column("chunk_id")]
+    public Guid? ChunkId { get; set; }
+
     [ForeignKey("ChunkId")]
     [InverseProperty("QuizQuestions")]
-    public virtual DocumentChunk? Chunk { get; set; }
+    public virtual QuizChunk? Chunk { get; set; }
 
     [ForeignKey("QuizId")]
     [InverseProperty("QuizQuestions")]
@@ -54,8 +54,4 @@ public partial class QuizQuestion
 
     [InverseProperty("Question")]
     public virtual ICollection<QuizOption> QuizOptions { get; set; } = new List<QuizOption>();
-
-    [ForeignKey("QuestionId")]
-    [InverseProperty("Questions")]
-    public virtual ICollection<DocumentChunk> Chunks { get; set; } = new List<DocumentChunk>();
 }

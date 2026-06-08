@@ -10,16 +10,19 @@ namespace AgenticAITutor.Services
     {
         private readonly IDocumentChunkRepository chunkRepository;
         private readonly IDocumentRepository documentRepository;
+        private readonly IQuizChunkRepository quizChunkRepository;
         private readonly HttpClient httpClient;
         private readonly IConfiguration configuration;
 
         public DocumentChunkService(IDocumentChunkRepository chunkRepository, 
-            IDocumentRepository documentRepository, 
+            IDocumentRepository documentRepository,
+            IQuizChunkRepository quizChunkRepository,
             IHttpClientFactory httpClientFactory, 
             IConfiguration configuration)
         {
             this.chunkRepository = chunkRepository;
             this.documentRepository = documentRepository;
+            this.quizChunkRepository = quizChunkRepository;
             this.httpClient = httpClientFactory.CreateClient(nameof(DocumentChunkService));
             this.configuration = configuration;
         }
@@ -64,8 +67,8 @@ namespace AgenticAITutor.Services
                         UserId = document.UserId,
                         SubjectId = document.SubjectId,
                         ChunkText = aiChunk.Text,
-                        PageStart = aiChunk.PageStart,
-                        PageEnd = aiChunk.PageEnd,
+                        PageStart = aiChunk.PageStart ?? 0,
+                        PageEnd = aiChunk.PageEnd ?? 0,
                         Embedding = new Vector(aiChunk.Embedding),
                         CreatedAt = DateTime.Now
                     });
@@ -73,6 +76,63 @@ namespace AgenticAITutor.Services
 
                 // Save all chunks to the database in one big batch
                 await chunkRepository.AddRangeAsync(dbChunks);
+            }
+        }
+
+        public async Task QuizChunkDocumentAsync(DocumentChunkRequest chunkRequest)
+        {
+            var document = await documentRepository.GetByIdAsync(chunkRequest.DocumentId);
+            if (document == null)
+                throw new Exception("Document Not Found");
+            AIChunkRequest aiRequest = new AIChunkRequest
+            {
+                DocumentPath = $"{configuration["AppConfig:BaseURL"]}/{document.StoragePath}",
+                DocumentType = document.FileType
+            };
+
+
+            string? aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
+
+            string? quizChunkingPath = configuration["AIService:QuizChunkingPath"] ?? "quiz/process";
+            string? chunkingUrl = $"{aiBaseURL.TrimEnd('/')}/{quizChunkingPath.TrimStart('/')}";
+
+            //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+
+            var quizChunkingResponse = await httpClient.PostAsJsonAsync(chunkingUrl, aiRequest);
+            if (!quizChunkingResponse.IsSuccessStatusCode)
+            {
+                string errorBody = await quizChunkingResponse.Content.ReadAsStringAsync();
+                throw new Exception($"AI API Failed! Status: {quizChunkingResponse.StatusCode}. Sent URL: {aiRequest.DocumentPath}. AI Error Details: {errorBody}");
+            }
+
+            var quizAiChunks = await quizChunkingResponse.Content.ReadFromJsonAsync<List<QuizChunkResponse>>();
+
+            if (quizAiChunks != null && quizAiChunks.Any())
+            {
+                var dbChunks = new List<QuizChunk>();
+
+                foreach (var quizAiChunk in quizAiChunks)
+                {
+                    dbChunks.Add(new QuizChunk
+                    {
+                        DocumentId = document.Id,
+                        UserId = document.UserId,
+                        SubjectId = document.SubjectId,
+                        ChunkIndex = quizAiChunk.ChunkIndex,
+                        ChunkText = quizAiChunk.ChunkText,
+                        ContextPrevSentence = quizAiChunk.ContextPrevSentence,
+                        ContextNextSentence = quizAiChunk.ContextNextSentence,
+                        SemanticScore = quizAiChunk.SemanticScore,
+                        QualityScore = quizAiChunk.QualityScore,
+                        BloomLevel = quizAiChunk.BloomLevel,
+                        ChunkType = quizAiChunk.ChunkType,
+                        Concepts = quizAiChunk.Concepts,
+                        Keywords = quizAiChunk.Keywords
+                    });
+                }
+
+                // Save all chunks to the database in one big batch
+                await quizChunkRepository.AddRangeAsync(dbChunks);
             }
         }
 
@@ -107,18 +167,9 @@ namespace AgenticAITutor.Services
             {
                 Id = c.Id,
                 Text = c.ChunkText,
-                Topic = c.Topic,
-                Difficulty = c.Difficulty,
-                TokenCount = c.TokenCount ?? 0,
                 PageStart = c.PageStart ?? 0,
                 PageEnd = c.PageEnd ?? 0,
-                Embedding = c.Embedding,
-                BloomLevel = c.BloomLevel,
-                ChunkType = c.ChunkType,
-                Concepts = c.Concepts,
-                Keywords = c.Keywords,
-                ContextPrev = c.ContextPrev,
-                ContextNext = c.ContextNext
+                Embedding = c.Embedding
             }).ToList();
 
             return chunksResponse;

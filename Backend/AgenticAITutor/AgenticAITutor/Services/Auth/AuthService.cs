@@ -1,12 +1,15 @@
 ﻿using AgenticAITutor.Helpers;
 using AgenticAITutor.Models;
+using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.DTOs.Auth;
 using AgenticAITutor.Repositories;
+using Hangfire;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace AgenticAITutor.Services
@@ -15,12 +18,21 @@ namespace AgenticAITutor.Services
     {
         private readonly IUserRepository userRepository;
         private readonly IPasswordHasher passwordHasher;
+        private readonly IBackgroundJobClient backgroundJobClient;
+        private readonly ILogger<AuthService> logger;
         private readonly JWT jwt;
 
-        public AuthService(IUserRepository userRepository, IOptions<JWT> jwt, IPasswordHasher passwordHasher)
+        public AuthService(
+            IUserRepository userRepository,
+            IOptions<JWT> jwt,
+            IPasswordHasher passwordHasher,
+            IBackgroundJobClient backgroundJobClient,
+            ILogger<AuthService> logger)
         {
             this.userRepository = userRepository;
             this.passwordHasher = passwordHasher;
+            this.backgroundJobClient = backgroundJobClient;
+            this.logger = logger;
             this.jwt = jwt.Value;
         }
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -77,6 +89,78 @@ namespace AgenticAITutor.Services
 
 
             return authResponse;
+        }
+
+        public async Task<ServiceResponse<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+        {
+            const string genericMessage =
+                "If an account exists for this email, a password reset message has been sent.";
+
+            try
+            {
+                var normalizedEmail = request.Email!.Trim().ToLowerInvariant();
+                var user = await userRepository.GetByEmailAsync(normalizedEmail);
+
+                if (user == null)
+                    return new ServiceResponse<string> { Message = genericMessage };
+
+                var resetToken = GenerateSecureResetToken();
+                user.ResetPasswordToken = resetToken;
+                user.ResetPasswordTokenExpiry = DateTime.Now.AddMinutes(15);
+                await userRepository.UpdateAsync(user);
+
+                backgroundJobClient.Enqueue<IEmailService>(
+                    emailService => emailService.SendPasswordResetEmailAsync(user.Email, resetToken));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to process forgot-password request.");
+            }
+
+            return new ServiceResponse<string> { Message = genericMessage };
+        }
+
+        public async Task<ServiceResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request)
+        {
+            var normalizedEmail = request.Email!.Trim().ToLowerInvariant();
+            var user = await userRepository.GetByEmailAsync(normalizedEmail);
+
+            if (user == null ||
+                string.IsNullOrWhiteSpace(user.ResetPasswordToken) ||
+                user.ResetPasswordTokenExpiry == null ||
+                user.ResetPasswordTokenExpiry <= DateTime.Now ||
+                !TokenMatches(user.ResetPasswordToken, request.Token!))
+            {
+                return new ServiceResponse<string>
+                {
+                    Success = false,
+                    Message = "The password reset token is invalid or has expired."
+                };
+            }
+
+            user.PasswordHash = passwordHasher.Hash(request.NewPassword!);
+            user.ResetPasswordToken = null;
+            user.ResetPasswordTokenExpiry = null;
+            await userRepository.UpdateAsync(user);
+
+            return new ServiceResponse<string>
+            {
+                Message = "Password has been reset successfully."
+            };
+        }
+
+        private static string GenerateSecureResetToken()
+        {
+            return Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
+        }
+
+        private static bool TokenMatches(string storedToken, string suppliedToken)
+        {
+            var storedBytes = Encoding.UTF8.GetBytes(storedToken);
+            var suppliedBytes = Encoding.UTF8.GetBytes(suppliedToken);
+
+            return storedBytes.Length == suppliedBytes.Length &&
+                   CryptographicOperations.FixedTimeEquals(storedBytes, suppliedBytes);
         }
 
         private JwtSecurityToken CreateJwtToken(User user)

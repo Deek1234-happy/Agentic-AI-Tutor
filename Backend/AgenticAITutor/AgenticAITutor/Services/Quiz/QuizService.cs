@@ -52,7 +52,7 @@ namespace AgenticAITutor.Services
                 return response;
             }
 
-            var notReady = docs.Where(d => d.ProcessingStatus != DocumentProcessingStatus.COMPLETED.ToString()).ToList();
+            var notReady = docs.Where(d => d.ProcessingStatus != DocumentProcessingStatus.COMPLETED.ToString() || d.QuizChunkingStatus != DocumentProcessingStatus.COMPLETED.ToString()).ToList();
             if (notReady.Any())
             {
                 response.Success = false;
@@ -61,7 +61,7 @@ namespace AgenticAITutor.Services
             }
 
             // 3. Compute deterministic hash
-            var hash = _hashService.ComputeHash(userId, request.DocumentIds);
+            var hash = _hashService.ComputeHash(userId, request.DocumentIds, request.NumberOfQuestions);
 
             // 4. Check for existing quiz with this hash
             var existing = await _quizRepo.GetByUserAndHashAsync(userId, hash);
@@ -75,7 +75,7 @@ namespace AgenticAITutor.Services
                     {
                         QuizId = existing.Id,
                         Status = existing.Status,
-                        Message = "Quiz already exists. Ready to start."
+                        Message = "Quiz already exists." // Ready to start."
                     };
                     return response;
                 }
@@ -115,7 +115,7 @@ namespace AgenticAITutor.Services
             await _quizRepo.AddQuizDocumentsAsync(quiz.Id, request.DocumentIds);
 
             // 7. Enqueue Hangfire job
-            BackgroundJob.Enqueue<QuizGenerationJob>(job => job.Execute(quiz.Id));
+            BackgroundJob.Enqueue<QuizGenerationJob>(job => job.Execute(quiz.Id, request.NumberOfQuestions));
 
             response.Data = new QuizInitiateResponse
             {
@@ -417,14 +417,7 @@ namespace AgenticAITutor.Services
                         {
                             Label = o.OptionLabel ?? ' ',
                             Text = o.OptionText
-                        }).ToList(),
-                    Citations = q.Chunks.Select(c => new QuizCitationDto
-                    {
-                        ChunkId = c.Id,
-                        ChunkText = c.ChunkText,
-                        PageStart = c.PageStart,
-                        PageEnd = c.PageEnd
-                    }).ToList()
+                        }).ToList()
                 };
             }).ToList();
 

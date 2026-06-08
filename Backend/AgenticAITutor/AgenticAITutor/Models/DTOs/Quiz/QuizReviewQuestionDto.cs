@@ -13,6 +13,5 @@ namespace AgenticAITutor.Models.DTOs
         public char? SelectedOption { get; set; }
         public bool IsCorrect { get; set; }
         public List<QuizOptionDto> Options { get; set; } = new();
-        public List<QuizCitationDto> Citations { get; set; } = new();
     }
 }

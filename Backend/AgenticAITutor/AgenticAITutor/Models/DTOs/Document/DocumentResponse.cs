@@ -11,6 +11,7 @@
         public DateTime? UploadTime { get; set; }
         public string ProcessingStatus { get; set; }
         public string KGStatus { get; set; }
+        public string QuizChunkingStatus { get; set; }
 
         public string StoragePath { get; set; }
     }

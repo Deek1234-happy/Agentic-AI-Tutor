@@ -24,6 +24,7 @@ namespace AgenticAITutor.BackgroundJobs
             try
             {
                 document.ProcessingStatus = DocumentProcessingStatus.PROCESSING.ToString();
+                document.QuizChunkingStatus = DocumentProcessingStatus.PROCESSING.ToString();
                 await documentRepository.UpdateAsync(document);
 
                 var request = new DocumentChunkRequest
@@ -35,13 +36,16 @@ namespace AgenticAITutor.BackgroundJobs
                 };
 
                 await chunkService.ChunkDocumentAsync(request);
+                await chunkService.QuizChunkDocumentAsync(request);
 
                 document.ProcessingStatus = DocumentProcessingStatus.COMPLETED.ToString();
+                document.QuizChunkingStatus = DocumentProcessingStatus.COMPLETED.ToString();
                 await documentRepository.UpdateAsync(document);
             }
             catch (Exception ex)
             {
                 document.ProcessingStatus = DocumentProcessingStatus.FAILED.ToString();
+                document.QuizChunkingStatus = DocumentProcessingStatus.FAILED.ToString();
                 await documentRepository.UpdateAsync(document);
 
                 // Console.WriteLine($"Error Processing Document {documentId}: {ex.Message}");

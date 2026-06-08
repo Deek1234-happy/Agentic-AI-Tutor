@@ -58,5 +58,33 @@ namespace AgenticAITutor.Controllers
 
             return Ok(result);
         }
+
+        /// <summary>Request a password reset token</summary>
+        /// <remarks>
+        /// Always returns the same successful response to prevent account enumeration.
+        /// </remarks>
+        [HttpPost("forgot-password")]
+        [ProducesResponseType<string>(200)]
+        public async Task<IActionResult> ForgotPasswordAsync(
+            [FromBody] ForgotPasswordRequestDto request)
+        {
+            var result = await authService.ForgotPasswordAsync(request);
+            return Ok(result.Message);
+        }
+
+        /// <summary>Reset a password using a valid reset token</summary>
+        [HttpPost("reset-password")]
+        [ProducesResponseType<string>(200)]
+        [ProducesResponseType<string>(400)]
+        public async Task<IActionResult> ResetPasswordAsync(
+            [FromBody] ResetPasswordRequestDto request)
+        {
+            var result = await authService.ResetPasswordAsync(request);
+
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Message);
+        }
     }
 }
