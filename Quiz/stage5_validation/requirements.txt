@@ -1,0 +1,24 @@
+# S5 Validation Pipeline — Dependencies
+# Install with: pip install -r requirements.txt
+#
+# For GPU support (CUDA):
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+# For Apple Silicon (MPS):
+#   pip install torch  (default PyPI build includes MPS)
+
+# ── Core ML ─────────────────────────────────────────────────────────────────
+torch>=2.1.0
+sentence-transformers>=2.7.0      # embedding models + cross-encoders
+transformers>=4.40.0              # required by sentence-transformers
+numpy>=1.24.0
+
+# ── LLM providers (install the one(s) you use) ───────────────────────────────
+# anthropic>=0.28.0                 # Anthropic API (claude-sonnet)
+# openai>=1.30.0                    # OpenAI API (gpt-4o-mini etc.) — optional
+requests>=2.31.0                  # Ollama HTTP calls — optional
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+tqdm>=4.66.0                      # progress bars in batch mode
+
+# ── Dev / testing ────────────────────────────────────────────────────────────
+pytest>=8.0.0
