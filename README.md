@@ -674,11 +674,11 @@ This platform was developed as a graduation project by a multidisciplinary six-p
 | Aya Khaled | AI Engineer |
 | Aya Mohamed | AI Engineer |
 | Shahd Elsayed | AI Engineer |
-| Ahmed Maghawry | Full Stack Development |
-| Abdelrahman Mohamed | Mobile Frontend Development |
+| Ahmed Maghawry | Full Stack Developer |
+| Abdelrahman Mohamed | Mobile Frontend Developer |
 
 The project was developed through parallel workstreams covering Retrieval-Augmented Generation (RAG), educational question generation, machine learning, backend services, and mobile application development.
 
 ---
 
-*Built with ❤️ as a graduation project — Faculty of Computers and Artificial Intelligence*
+*Built with ❤️ as a graduation project at Helwan University — Faculty of Computers and Artificial Intelligence (2025–2026).*
