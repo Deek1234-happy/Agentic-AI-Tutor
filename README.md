@@ -673,7 +673,7 @@ This platform was developed as a graduation project by a multidisciplinary six-p
 | Rehab Hamdy | AI Engineer |
 | Aya Khaled | AI Engineer |
 | Aya Mohamed | AI Engineer |
-| Shahed Elsayed | AI Engineer |
+| Shahd Elsayed | AI Engineer |
 | Ahmed Maghawry | Full Stack Development |
 | Abdelrahman Mohamed | Mobile Frontend Development |
 
