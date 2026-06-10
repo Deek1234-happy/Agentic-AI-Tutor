@@ -18,8 +18,8 @@ Teacher's capability into a smaller, specialized student model.
 5. [Getting Started](#getting-started)
 6. [Configuration](#configuration)
 7. [Results & Evaluation](#results--evaluation)
-8. [Tech Stack](#tech-stack)
-
+8. [Related Repository](#related-repository)
+9. [Tech Stack](#tech-stack)
 ---
 
 ## Architecture Overview
@@ -264,6 +264,19 @@ Generated evaluation artifacts (in
 - `V4_quality_distribution.png`, `V6_cmqs_bar.png` — composite quality scores
 - `V5_gap_heatmap.png`, `V9_gap_ranking.png` — gap analysis
 - `V8_semantic_similarity.png` — semantic similarity to gold MCQs
+
+
+---
+
+## Related Repository
+
+The experiments, teacher–student knowledge distillation, fine-tuning iterations, hyperparameter tuning, and evaluation studies that led to the final deployed model are documented in the following repository:
+
+- https://github.com/Rehab-Hamdy/Quiz-Generation-KD-FT
+
+Multiple model versions were trained and evaluated throughout the research process. The current Agentic AI Tutor system integrates the best-performing model, **Version 8 (V8)**, which was selected based on its overall performance across the evaluation metrics and quality assessments.
+
+The repository above contains the full research and experimentation history, while this repository focuses on integrating the selected model into the production MCQ generation pipeline.
 
 ---
 
