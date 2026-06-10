@@ -280,7 +280,7 @@ Multiple model versions were trained and evaluated throughout the research proce
 
 The final production model is publicly available on Hugging Face:
 
-- https://huggingface.co/Rehab-Hamdy/Qwen-BloomAware-Educational-MCQ-Generator
+- https://huggingface.co/agentic-ai-tutor/Qwen-BloomAware-Educational-MCQ-Generator
 
 This model corresponds to **Version 8 (V8)** from the experimentation repository and serves as the MCQ generation model deployed within the Agentic AI Tutor system.
 
