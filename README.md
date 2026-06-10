@@ -272,11 +272,20 @@ Generated evaluation artifacts (in
 
 The experiments, teacher–student knowledge distillation, fine-tuning iterations, hyperparameter tuning, and evaluation studies that led to the final deployed model are documented in the following repository:
 
-- https://github.com/Rehab-Hamdy/Quiz-Generation-KD-FT
+- Training & Experiments Repository: https://github.com/Rehab-Hamdy/Quiz-Generation-KD-FT
 
 Multiple model versions were trained and evaluated throughout the research process. The current Agentic AI Tutor system integrates the best-performing model, **Version 8 (V8)**, which was selected based on its overall performance across the evaluation metrics and quality assessments.
 
+### Final Selected Model
+
+The final production model is publicly available on Hugging Face:
+
+- https://huggingface.co/Rehab-Hamdy/Qwen-BloomAware-Educational-MCQ-Generator
+
+This model corresponds to **Version 8 (V8)** from the experimentation repository and serves as the MCQ generation model deployed within the Agentic AI Tutor system.
+
 The repository above contains the full research and experimentation history, while this repository focuses on integrating the selected model into the production MCQ generation pipeline.
+
 
 ---
 
