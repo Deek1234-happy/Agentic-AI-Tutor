@@ -1,4 +1,4 @@
-# 🧠 Agentic AI Tutor — AI Service
+# Agentic AI Tutor — AI Service
 
 > **Branch:** `AI`  
 > **Role:** Python AI/ML microservice — the intelligence layer of the Agentic AI Tutor platform  
