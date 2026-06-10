@@ -7,6 +7,7 @@ using AgenticAITutor.BackgroundJobs;
 using AgenticAITutor.Data;
 using AgenticAITutor.Filters;
 using AgenticAITutor.Helpers;
+using AgenticAITutor.Middlewares;
 using AgenticAITutor.Repositories;
 using AgenticAITutor.Services;
 using FluentValidation;
@@ -14,6 +15,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -22,6 +24,7 @@ using Pgvector.Npgsql;
 using Polly;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Text;
+using System.Threading.RateLimiting;
 
 
 namespace AgenticAITutor
@@ -215,7 +218,7 @@ namespace AgenticAITutor
             builder.Services.AddHttpClient("QuizAIClient", client =>
             {
                 client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true"); // Comment Me
-                client.Timeout = TimeSpan.FromMinutes(10);
+                client.Timeout = TimeSpan.FromMinutes(40);
             });
             //.AddTransientHttpErrorPolicy(policy =>
             //    policy.WaitAndRetryAsync(
@@ -239,10 +242,44 @@ namespace AgenticAITutor
 
             builder.Services.AddScoped<IQuizChunkRepository, QuizChunkRepository>();
 
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
+
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? httpContext.Request.Headers.Host.ToString(),
+                        factory: partition => new FixedWindowRateLimiterOptions
+                        {
+                            AutoReplenishment = true,
+                            PermitLimit = 100,
+                            QueueLimit = 0,
+                            Window = TimeSpan.FromMinutes(1)
+                        }));
+                options.OnRejected = async (context, token) =>
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    await context.HttpContext.Response.WriteAsJsonAsync(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status429TooManyRequests,
+                        Title = "Too Many Requests",
+                        Detail = "You have exceeded the rate limit. Please try again later."
+                    }, token);
+                };
+            });
+
+            builder.Services.AddHttpLogging(logging =>
+            {
+                logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+            });
 
             var app = builder.Build();
 
             app.UseCors("AllowAll");
+            app.UseExceptionHandler();
+            app.UseHttpLogging();
+            app.UseRateLimiter();
 
             app.UseHangfireDashboard("/dashboard", new DashboardOptions
             {

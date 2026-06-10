@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models;
+using AgenticAITutor.Models;
 
 namespace AgenticAITutor.Repositories
 {
@@ -10,6 +10,7 @@ namespace AgenticAITutor.Repositories
         Task DeleteAsync(DocumentChunk chunk);
         Task DeleteByDocumentAsync(Guid documentId);
         Task<DocumentChunk?> GetByIdAsync(Guid id);
+        Task<List<DocumentChunk>> GetByIdsAsync(IEnumerable<Guid> ids);
         Task<List<DocumentChunk>> GetAllAsync(Guid userId);
         Task<List<DocumentChunk>> GetByDocumentAsync(Guid documentId, Guid userId);
         Task<List<DocumentChunk>> GetBySubjectAsync(Guid subjectId, Guid userId);

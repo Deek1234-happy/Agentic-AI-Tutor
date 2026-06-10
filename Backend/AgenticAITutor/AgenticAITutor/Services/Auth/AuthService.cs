@@ -1,11 +1,10 @@
-﻿using AgenticAITutor.Helpers;
+using AgenticAITutor.Helpers;
 using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.DTOs.Auth;
 using AgenticAITutor.Repositories;
 using Hangfire;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -104,13 +103,13 @@ namespace AgenticAITutor.Services
                 if (user == null)
                     return new ServiceResponse<string> { Message = genericMessage };
 
-                var resetToken = GenerateSecureResetToken();
-                user.ResetPasswordToken = resetToken;
-                user.ResetPasswordTokenExpiry = DateTime.Now.AddMinutes(15);
+                var otp = GenerateOtp();
+                user.PasswordResetOtp = otp;
+                user.OtpExpiryTime = DateTime.Now.AddMinutes(15);
                 await userRepository.UpdateAsync(user);
 
                 backgroundJobClient.Enqueue<IEmailService>(
-                    emailService => emailService.SendPasswordResetEmailAsync(user.Email, resetToken));
+                    emailService => emailService.SendPasswordResetEmailAsync(user.Email, otp));
             }
             catch (Exception ex)
             {
@@ -126,21 +125,21 @@ namespace AgenticAITutor.Services
             var user = await userRepository.GetByEmailAsync(normalizedEmail);
 
             if (user == null ||
-                string.IsNullOrWhiteSpace(user.ResetPasswordToken) ||
-                user.ResetPasswordTokenExpiry == null ||
-                user.ResetPasswordTokenExpiry <= DateTime.Now ||
-                !TokenMatches(user.ResetPasswordToken, request.Token!))
+                string.IsNullOrWhiteSpace(user.PasswordResetOtp) ||
+                user.OtpExpiryTime == null ||
+                user.OtpExpiryTime <= DateTime.Now ||
+                !OtpMatches(user.PasswordResetOtp, request.Otp!))
             {
                 return new ServiceResponse<string>
                 {
                     Success = false,
-                    Message = "The password reset token is invalid or has expired."
+                    Message = "The OTP is invalid or has expired."
                 };
             }
 
             user.PasswordHash = passwordHasher.Hash(request.NewPassword!);
-            user.ResetPasswordToken = null;
-            user.ResetPasswordTokenExpiry = null;
+            user.PasswordResetOtp = null;
+            user.OtpExpiryTime = null;
             await userRepository.UpdateAsync(user);
 
             return new ServiceResponse<string>
@@ -149,15 +148,53 @@ namespace AgenticAITutor.Services
             };
         }
 
-        private static string GenerateSecureResetToken()
+        public async Task<ServiceResponse<string>> ChangePasswordAsync(Guid userId, ChangePasswordRequestDto request)
         {
-            return Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
+            var user = await userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                return new ServiceResponse<string>
+                {
+                    Success = false,
+                    Message = "User not found."
+                };
+            }
+
+            if (!passwordHasher.Verify(request.OldPassword!, user.PasswordHash))
+            {
+                return new ServiceResponse<string>
+                {
+                    Success = false,
+                    Message = "Incorrect old password."
+                };
+            }
+
+            user.PasswordHash = passwordHasher.Hash(request.NewPassword!);
+            await userRepository.UpdateAsync(user);
+
+            return new ServiceResponse<string>
+            {
+                Message = "Password has been changed successfully."
+            };
         }
 
-        private static bool TokenMatches(string storedToken, string suppliedToken)
+        /// <summary>
+        /// Generates a cryptographically secure random 6-digit OTP string (e.g. "482015").
+        /// </summary>
+        private static string GenerateOtp()
         {
-            var storedBytes = Encoding.UTF8.GetBytes(storedToken);
-            var suppliedBytes = Encoding.UTF8.GetBytes(suppliedToken);
+            // Use RandomNumberGenerator to obtain an unbiased value in [0, 1_000_000)
+            var value = RandomNumberGenerator.GetInt32(0, 1_000_000);
+            return value.ToString("D6");
+        }
+
+        /// <summary>
+        /// Constant-time OTP comparison to prevent timing attacks.
+        /// </summary>
+        private static bool OtpMatches(string storedOtp, string suppliedOtp)
+        {
+            var storedBytes  = System.Text.Encoding.UTF8.GetBytes(storedOtp);
+            var suppliedBytes = System.Text.Encoding.UTF8.GetBytes(suppliedOtp);
 
             return storedBytes.Length == suppliedBytes.Length &&
                    CryptographicOperations.FixedTimeEquals(storedBytes, suppliedBytes);

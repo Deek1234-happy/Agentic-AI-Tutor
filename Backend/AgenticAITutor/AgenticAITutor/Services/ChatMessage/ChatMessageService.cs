@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models;
+using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.DTOs.ChatMessage;
 using AgenticAITutor.Repositories;
@@ -113,11 +113,14 @@ namespace AgenticAITutor.Services
                     KgContext = aiResponse.KgContext != null ? JsonSerializer.Serialize(aiResponse.KgContext) : null
                 };
                 // Add The Message Citation in The Database 
-                foreach (var citation in aiResponse?.UsedChunks)
+                if (aiResponse?.UsedChunks != null && aiResponse.UsedChunks.Any())
                 {
-                    DocumentChunk chunk = await chunkRepository.GetByIdAsync(citation.ChunkId);
-                    if (chunk != null)
+                    var chunkIds = aiResponse.UsedChunks.Select(c => c.ChunkId).Distinct().ToList();
+                    var chunks = await chunkRepository.GetByIdsAsync(chunkIds);
+                    foreach (var chunk in chunks)
+                    {
                         aiMessage.Chunks.Add(chunk);
+                    }
                 }
 
                 await messageRepository.AddAsync(aiMessage);

@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Data;
+using AgenticAITutor.Data;
 using AgenticAITutor.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,6 +55,11 @@ namespace AgenticAITutor.Repositories
         public async Task<DocumentChunk?> GetByIdAsync(Guid id)
         {
             return await dbContext.DocumentChunks.FirstOrDefaultAsync(c => c.Id == id);
+        }
+
+        public async Task<List<DocumentChunk>> GetByIdsAsync(IEnumerable<Guid> ids)
+        {
+            return await dbContext.DocumentChunks.Where(c => ids.Contains(c.Id)).ToListAsync();
         }
 
         public async Task<List<DocumentChunk>> GetByDocumentAsync(Guid documentId, Guid userId)

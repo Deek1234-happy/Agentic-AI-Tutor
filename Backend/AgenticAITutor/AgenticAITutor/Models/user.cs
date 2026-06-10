@@ -39,11 +39,11 @@ public partial class User
     [Column("last_login", TypeName = "timestamp without time zone")]
     public DateTime? LastLogin { get; set; }
 
-    [Column("reset_password_token")]
-    public string? ResetPasswordToken { get; set; }
+    [Column("password_reset_otp")]
+    public string? PasswordResetOtp { get; set; }
 
-    [Column("reset_password_token_expiry", TypeName = "timestamp without time zone")]
-    public DateTime? ResetPasswordTokenExpiry { get; set; }
+    [Column("otp_expiry_time", TypeName = "timestamp without time zone")]
+    public DateTime? OtpExpiryTime { get; set; }
 
     [InverseProperty("User")]
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();

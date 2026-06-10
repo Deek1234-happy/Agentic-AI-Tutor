@@ -3,17 +3,12 @@ using FluentValidation;
 
 namespace AgenticAITutor.Validators
 {
-    public class ResetPasswordRequestDtoValidator : AbstractValidator<ResetPasswordRequestDto>
+    public class ChangePasswordRequestDtoValidator : AbstractValidator<ChangePasswordRequestDto>
     {
-        public ResetPasswordRequestDtoValidator()
+        public ChangePasswordRequestDtoValidator()
         {
-            RuleFor(x => x.Email)
-                .NotEmpty().WithMessage("Email is required")
-                .EmailAddress().WithMessage("Invalid email format");
-
-            RuleFor(x => x.Otp)
-                .NotEmpty().WithMessage("OTP is required")
-                .Matches(@"^\d{6}$").WithMessage("OTP must be exactly 6 digits");
+            RuleFor(x => x.OldPassword)
+                .NotEmpty().WithMessage("Old password is required");
 
             RuleFor(x => x.NewPassword)
                 .NotEmpty().WithMessage("New password is required")

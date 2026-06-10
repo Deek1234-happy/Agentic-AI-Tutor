@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Data;
+using AgenticAITutor.Data;
 using AgenticAITutor.Models;
 using AgenticAITutor.Models.DTOs;
 using Microsoft.EntityFrameworkCore;

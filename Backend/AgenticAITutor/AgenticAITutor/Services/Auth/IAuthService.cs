@@ -1,4 +1,4 @@
-﻿using AgenticAITutor.Models.DTOs.Auth;
+using AgenticAITutor.Models.DTOs.Auth;
 
 namespace AgenticAITutor.Services
 {
@@ -8,5 +8,6 @@ namespace AgenticAITutor.Services
         Task<AuthResponse> LoginAsync(LoginRequest request);
         Task<AgenticAITutor.Models.DTOs.ServiceResponse<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request);
         Task<AgenticAITutor.Models.DTOs.ServiceResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request);
+        Task<AgenticAITutor.Models.DTOs.ServiceResponse<string>> ChangePasswordAsync(Guid userId, ChangePasswordRequestDto request);
     }
 }
