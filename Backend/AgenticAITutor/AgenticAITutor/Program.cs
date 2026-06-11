@@ -9,7 +9,9 @@ using AgenticAITutor.Filters;
 using AgenticAITutor.Helpers;
 using AgenticAITutor.Middlewares;
 using AgenticAITutor.Repositories;
+using AgenticAITutor.Repositories.Analytics;
 using AgenticAITutor.Services;
+using AgenticAITutor.Services.Analytics;
 using FluentValidation;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -196,6 +198,11 @@ namespace AgenticAITutor
             builder.Services.AddTransient<QuizGenerationJob>();
             // ─────────────────────────────────────────────────────────────────
 
+            // ── Analytics ────────────────────────────────────────────────────
+            builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+            builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+            // ─────────────────────────────────────────────────────────────────
+
 
             // builder.Services.AddHttpClient();
 
@@ -276,10 +283,8 @@ namespace AgenticAITutor
 
             var app = builder.Build();
 
-            app.UseCors("AllowAll");
             app.UseExceptionHandler();
             app.UseHttpLogging();
-            app.UseRateLimiter();
 
             app.UseHangfireDashboard("/dashboard", new DashboardOptions
             {
@@ -300,8 +305,14 @@ namespace AgenticAITutor
             
             app.UseHttpsRedirection();
             
+            app.UseCors("AllowAll");
 
             app.UseStaticFiles();
+
+            app.UseRouting();
+
+
+            app.UseRateLimiter();
 
             app.UseAuthentication(); 
             app.UseAuthorization();

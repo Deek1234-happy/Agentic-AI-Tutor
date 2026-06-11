@@ -13,6 +13,12 @@
             failure is handled explicitly by setting Status = FAILED.
             </summary>
         </member>
+        <member name="M:AgenticAITutor.Controllers.AnalyticsController.GetProgressDashboard">
+            <summary>
+            Gets the progress and analytics dashboard for the current user.
+            </summary>
+            <returns>A ProgressDashboardResponseDto with key KPIs, monthly performance, subject progress, and weak concepts.</returns>
+        </member>
         <member name="M:AgenticAITutor.Controllers.AuthController.RegisterAsync(AgenticAITutor.Models.DTOs.Auth.RegisterRequest)">
             <summary> Register a New User Account </summary>
             <remarks> 
