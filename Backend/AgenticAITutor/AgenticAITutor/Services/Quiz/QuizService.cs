@@ -398,7 +398,9 @@ namespace AgenticAITutor.Services
             int totalCount = attempt.QuizAnswers.Count;
             int correctCount = attempt.QuizAnswers.Count(a => a.IsCorrect == true);
 
-            var questionDtos = attempt.QuizAnswers.Select(ans =>
+            var questionDtos = attempt.QuizAnswers
+                .OrderBy(ans => ans.Question.SlotIndex)
+                .Select(ans =>
             {
                 var q = ans.Question;
                 return new QuizReviewQuestionDto
