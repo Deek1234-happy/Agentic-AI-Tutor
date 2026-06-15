@@ -1,0 +1,449 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AgenticAITutor</name>
+    </assembly>
+    <members>
+        <member name="M:AgenticAITutor.BackgroundJobs.QuizGenerationJob.Execute(System.Guid,System.Int32)">
+            <summary>
+            Main generation job. Runs completely outside the HTTP request.
+            [DisableConcurrentExecution] prevents two workers from generating
+            the same quiz simultaneously.
+            [AutomaticRetry(Attempts = 0)] disables Hangfire's auto-retry because
+            failure is handled explicitly by setting Status = FAILED.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AnalyticsController.GetProgressDashboard">
+            <summary>
+            Gets the progress and analytics dashboard for the current user.
+            </summary>
+            <returns>A ProgressDashboardResponseDto with key KPIs, monthly performance, subject progress, and weak concepts.</returns>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.RegisterAsync(AgenticAITutor.Models.DTOs.Auth.RegisterRequest)">
+            <summary> Register a New User Account </summary>
+            <remarks> 
+            Creates a new user in the database and returns a JWT Token.
+            **Required Fields:** `FirstName`, `LastName`, `Email`, `Password`.
+            Passwords must match and follow security standards (e.g., minimum length).
+            </remarks>
+            <param name="request">The user registration details</param>
+            <response code="200">Registration successful — returns AuthResponse containing the JWT token</response>
+            <response code="400">Email already exists or validation failed</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.LoginAsync(AgenticAITutor.Models.DTOs.Auth.LoginRequest)">
+            <summary> Login With Existing Credentials </summary>
+            <remarks> 
+            Authenticates the user and returns a JWT Token on Success.
+            The JWT Token must be included in the `Authorization: Bearer {token}` header for all secured endpoints.
+            </remarks>
+            <param name="request">The user's login credentials (Email and Password)</param>
+            <response code="200">Login successful — returns AuthResponse containing the JWT token</response>
+            <response code="400">Invalid email or password</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.ForgotPasswordAsync(AgenticAITutor.Models.DTOs.Auth.ForgotPasswordRequestDto)">
+            <summary>Request a 6-digit OTP for password reset</summary>
+            <remarks>
+            Generates a secure 6-digit one-time password and sends it to the user's email.
+            Always returns the same successful response to prevent account enumeration.
+            The OTP expires after <b>15 minutes</b>.
+            </remarks>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.ResetPasswordAsync(AgenticAITutor.Models.DTOs.Auth.ResetPasswordRequestDto)">
+            <summary>Reset a password using the 6-digit OTP</summary>
+            <remarks>
+            Validates the OTP sent to the user's email, then updates the password.
+            Returns <b>400</b> if the OTP is incorrect or has expired.
+            </remarks>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.AuthController.ChangePasswordAsync(AgenticAITutor.Models.DTOs.Auth.ChangePasswordRequestDto)">
+            <summary>Change the current user's password</summary>
+            <remarks>
+            Requires the user to be authenticated and to provide their current password.
+            </remarks>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SendAIMessage(AgenticAITutor.Models.DTOs.UserMessageRequest)">
+            <summary>Send a message and receive an AI response</summary>
+            <remarks>
+            Sends a user message to the AI.
+            Set **searchWeb: False** to query your uploaded documents contextually.
+            **Note:** Do not send `UserId` or `AllowedDocumentIds` in the request body; they are resolved automatically on the backend from the Token and Session.
+            </remarks>
+            <param name="request">Contains the `SessionId`, `UserMessage`, and `SearchWeb` (must be false).</param>
+            <response code="200">Returns AIMessageResponse containing the AI's answer, confidence score, and document citations</response>
+            <response code="400">Message processing failed, Validation Error, or SearchWeb is true</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SearchWeb(AgenticAITutor.Models.DTOs.UserMessageRequest)">
+            <summary>Send a message and receive a Web Search response</summary>
+            <remarks>
+            Sends a user message to the AI but forces it to search the live web for answers instead of local documents.
+            Set **searchWeb: True**.
+            **Note:** Do not send `UserId` or `AllowedDocumentIds` in the request body.
+            </remarks>
+            <param name="request">Contains the `SessionId`, `UserMessage`, and `SearchWeb` (must be true).</param>
+            <response code="200">Returns WebSearchResponse containing the AI's answer and the web sources</response>
+            <response code="400">Message processing failed, Validation Error, or SearchWeb is false</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.GetSessionMessages(System.Guid)">
+            <summary>Get all messages in a chat session</summary>
+            <param name="sessionId">Session GUID</param>
+            <response code="200">List of messages</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation Error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SpeechToText(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>Convert an audio file to text (Transcription)</summary>
+            <remarks>
+            Transcribes a spoken audio file into text using the AI Speech-To-Text model.
+            Useful for capturing user voice queries before sending them to the AI.
+            Accepts standard audio formats (wav, mp3, m4a, etc.). Max size: 10MB.
+            </remarks>
+            <param name="audio_file">The binary audio file (multipart/form-data)</param>
+            <response code="200">Returns the transcribed text</response>
+            <response code="400">Audio processing failed, invalid format, or missing file</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.TextToSpeech(System.Guid)">
+            <summary>Generate playable audio for an existing AI message</summary>
+            <remarks>
+            Generates a Text-To-Speech (TTS) audio file for a specific message that the AI previously generated.
+            If the audio was already generated before, it returns the cached URL instantly.
+            </remarks>
+            <param name="messageId">The GUID of the AI's chat message</param>
+            <response code="200">Returns TTSResponse with the URL of the generated/cached audio file</response>
+            <response code="400">TTS generation failed, message not found, or unauthorized access</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.CreateSession(AgenticAITutor.Models.DTOs.ChatSessionRequest)">
+            <summary>Create a new chat session</summary>
+            <remarks>
+            Initializes a new chat session. Pass a list of `DocumentIds` to scope the AI context.
+            The JWT Token must be passed in the `Authorization` header.
+            </remarks>
+            <param name="request">Contains an optional list of `DocumentIds`.</param>
+            <response code="200">Session created — returns ChatSessionResponse</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error or Document ID does not belong to user</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.GetUserSessions">
+            <summary>Get all chat sessions for the current user(Chat History)</summary>
+            <response code="200">List of chat sessions</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.UpdateSessionTitleAsync(AgenticAITutor.Models.DTOs.ChatSessionUpdate)">
+            <summary>Update the title of a chat session</summary>
+            <remarks>
+            Allows the user or frontend to dynamically rename a chat session.
+            </remarks>
+            <param name="request">Contains the `SessionId` and the new `Title`.</param>
+            <response code="200">Title updated successfully</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error or Session Not Found</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.ChatSessionController.DeleteSessionAsync(System.Guid)">
+            <summary>Delete a chat session by ID</summary>
+            <param name="sessionId">Session GUID</param>
+            <response code="200">Session deleted</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentChunkController.GetChunks(System.Guid)">
+            <summary>Get chunks for a specific document</summary>
+            <remarks>
+            Retrieves the processed chunks (text segments) of an uploaded document.
+            This is useful for frontend debugging or displaying how the document was split for RAG.
+            </remarks>
+            <param name="documentId">The GUID of the document</param>
+            <response code="200">Returns a list of document chunks</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="404">No chunks found or document is still processing</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.Upload(AgenticAITutor.Models.DTOs.DocumentRequest)">
+            <summary>Upload a new document</summary>
+            <remarks>
+            Accepts a file upload via `multipart/form-data`. 
+            **Required Fields:** `File` (the physical file), `SubjectId` (groups the document).
+            After upload, the file is queued for background processing (text extraction and chunking).
+            </remarks>
+            <param name="request">Multipart form data containing the file</param>
+            <response code="200">Document uploaded and queued for processing — returns DocumentResponse</response>
+            <response code="400">Validation error (e.g., file too large or invalid format)</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.Update(AgenticAITutor.Models.DTOs.DocumentUpdate)">
+            <summary>Update document metadata (title or subject)</summary>
+            <remarks>
+            Allows changing a document's Title, associating it with a new Subject.
+            </remarks>
+            <param name="request">Contains the new metadata</param>
+            <response code="200">Document updated successfully — returns updated DocumentResponse</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error or Document not found</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.Delete(System.Guid)">
+            <summary>Delete a document by ID</summary>
+            <remarks>
+            Permanently deletes a document.
+            **Warning:** This deletes the database record, the physical file in storage, and triggers a purge of all associated AI Knowledge Graph entities.
+            </remarks>
+            <param name="id">Document GUID</param>
+            <response code="200">Document deleted successfully</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Document not found or belongs to another user</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.GetAll">
+            <summary>Get all documents for the current user</summary>
+            <remarks>
+            Retrieves every document uploaded by the authenticated user, regardless of subject.
+            </remarks>
+            <response code="200">List of DocumentResponse objects</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.GetBySubject(System.Guid)">
+            <summary>Get all documents under a specific subject</summary>
+            <param name="subjectId">Subject GUID</param>
+            <response code="200">List of documents</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.RetryProcessing(System.Guid)">
+            <summary>Retry processing a document that previously failed</summary>
+            <param name="id">Document GUID</param>
+            <remarks>
+            Only documents with a **FAILED** processing status can be retried.
+            Attempting to retry a PENDING, PROCESSING, or COMPLETED document will return 400.
+            On success the document status is reset to PENDING and the chunking job is re-queued.
+            </remarks>
+            <response code="200">Document re-queued — returns updated document</response>
+            <response code="400">Document is not in FAILED status, or validation error</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.GetById(System.Guid)">
+            <summary>Get a document by ID</summary>
+            <param name="id">Document GUID</param>
+            <response code="200">Document details</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.DocumentController.Download(System.Guid)">
+            <summary>Securely view or download a document</summary>
+            <param name="id">Document GUID</param>
+            <response code="200">File stream returned</response>
+            <response code="404">Document or physical file not found</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="T:AgenticAITutor.Controllers.MockAIController">
+            <summary>
+            Mock AI controller — simulates the Python AI service during development.
+            Mirrors the exact request/response contract of the real quiz generation endpoint.
+            To switch to the real service: update AIService:BaseURL and AIService:McqGeneratePath
+            in appsettings.Development.json.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.GenerateQuiz(AgenticAITutor.Models.DTOs.McqGenerateRequest)">
+            <summary>
+            Mock MCQ generation — generates one question per quiz chunk.
+            Accepts the same McqGenerateRequest the real Python service expects.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.GenerateQuizChunks(AgenticAITutor.Models.DTOs.AIChunkRequest)">
+            <summary>
+            Mock quiz chunking - creates quiz-ready chunks from the document metadata.
+            Accepts the same AIChunkRequest the real Python service expects.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.BuildCorrectOption(System.String,System.String)">
+            <summary>Builds the correct option text directly from the chunk body.</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.BuildDistractors(AgenticAITutor.Models.DTOs.McqChunkInput,System.String)">
+            <summary>
+            Builds 3 plausible but incorrect distractors.
+            Uses context sentences and keyword permutations when available.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.BuildExplanation(AgenticAITutor.Models.DTOs.McqChunkInput,System.String,System.String)">
+            <summary>Builds a pedagogically-framed explanation citing the source text.</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.TruncateWords(System.String,System.Int32)">
+            <summary>Returns the first N words of a string.</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.MockAIController.PickWords(System.String[],System.Int32,System.Int32)">
+            <summary>Picks N words from a word array starting at an offset (wraps safely).</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.Initiate(AgenticAITutor.Models.DTOs.QuizInitiateRequest)">
+            <summary>Initiate quiz generation or reuse a cached quiz</summary>
+            <remarks>
+            Computes a hash from userId + sorted documentIds.
+            - Returns **200** if an identical READY quiz already exists (cache hit).
+            - Returns **202** if a new generation job was enqueued.
+            - Returns **409** if generation is already in progress for this combination.
+            - Returns **400** on validation errors (invalid documents, subject, etc.).
+            </remarks>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.GetStatus(System.Guid)">
+            <summary>Poll quiz generation status</summary>
+            <remarks>Returns GENERATING, READY, or FAILED.</remarks>
+            <param name="quizId">Quiz GUID</param>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.Start(System.Guid)">
+            <summary>Start a quiz exam attempt</summary>
+            <remarks>
+            Creates a new attempt row. Options are shuffled server-side using Fisher-Yates
+            seeded by the attemptId. The shuffle mapping is stored server-side only —
+            the response contains **no correct-answer information**.
+            </remarks>
+            <param name="quizId">Quiz GUID</param>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.Submit(System.Guid,AgenticAITutor.Models.DTOs.QuizSubmitRequest)">
+            <summary>Submit answers and receive a score</summary>
+            <remarks>
+            **Idempotent** — submitting the same attemptId twice returns the original score.
+            The server reverse-maps shuffled option labels to original labels before scoring.
+            </remarks>
+            <param name="quizId">Quiz GUID</param>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.GetAttempts(System.Guid)">
+            <summary>List all attempts for a quiz by the current user</summary>
+            <param name="quizId">Quiz GUID</param>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.GetReview(System.Guid)">
+            <summary>Full review of a completed attempt</summary>
+            <remarks>
+            Returns correct answers, the student's answers, AI explanations, and
+            source chunk citations for each question.
+            </remarks>
+            <param name="attemptId">Attempt GUID</param>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.GetHistory(AgenticAITutor.Models.DTOs.QuizHistoryFilter)">
+            <summary>Paginated, filterable history of all quizzes generated by the user</summary>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.QuizController.GetBySubject(System.Guid)">
+            <summary>All quizzes for a specific subject</summary>
+            <param name="subjectId">Subject GUID</param>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Add(AgenticAITutor.Models.DTOs.SubjectRequest)">
+            <summary>Create a new study subject</summary>
+            <remarks>
+            Subjects act as folders to group related documents together.
+            Subject names must be unique per user.
+            </remarks>
+            <param name="subjectRequest">Contains the `Name` of the new subject.</param>
+            <response code="200">Subject created successfully — returns SubjectResponse</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation Error or Subject Name already exists</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.GetAll">
+            <summary>Get all subjects for the current user</summary>
+            <remarks>
+            Retrieves a list of all subjects created by the authenticated user, along with a nested list of their associated Documents.
+            </remarks>
+            <response code="200">List of subjects and their documents</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Get(System.Guid)">
+            <summary>Get a subject by ID</summary>
+            <param name="id">Subject GUID</param>
+            <response code="200">Subject found</response>
+            <response code="404">Subject not found</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Update(System.Guid,AgenticAITutor.Models.DTOs.SubjectRequest)">
+            <summary>Update a subject by ID</summary>
+            <remarks>
+            Updates the name of an existing subject.
+            </remarks>
+            <param name="id">Subject GUID</param>
+            <param name="subjectModel">Contains the new `Name` for the subject.</param>
+            <response code="200">Subject updated successfully</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation Error or Name already exists</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.Delete(System.Guid)">
+            <summary>Delete a subject by ID</summary>
+            <remarks>
+            Deletes the subject. 
+            **Warning:** This will also permanently delete all Documents grouped under this subject, including their physical files and AI Knowledge Graph data.
+            </remarks>
+            <param name="id">Subject GUID</param>
+            <response code="200">Subject and its associated documents deleted</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Subject not found or validation error</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.SubjectController.GetSubjectDocumentsDropdown(System.Guid)">
+            <summary>Get documents for a subject (Dropdown Optimized)</summary>
+            <remarks>
+            Returns a lightweight list containing only the `Id` and `FileName` of the documents belonging to a subject.
+            Optimized for use in dropdown menus when creating a new Chat Session.
+            </remarks>
+            <param name="id">Subject GUID</param>
+            <response code="200">List of document dropdown items</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="404">Subject not found</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.UserController.GetProfile">
+            <summary>Get the current user's profile</summary>
+            <remarks>
+            Fetches the profile data (FirstName, LastName, Email) for the currently authenticated user.
+            </remarks>
+            <response code="200">Returns UserResponse profile data</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="404">User not found</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.UserController.UpdateProfile(AgenticAITutor.Models.DTOs.UserUpdateRequest)">
+            <summary>Update the current user's profile</summary>
+            <remarks>
+            Updates the authenticated user's Data
+            </remarks>
+            <param name="request">Contains the new `FirstName` `LastName` and/or `Email`.</param>
+            <response code="200">Profile updated successfully — returns UserResponse</response>
+            <response code="400">Validation error</response>
+            <response code="401">Invalid or missing token</response>
+        </member>
+        <member name="M:AgenticAITutor.Controllers.UserController.DeleteProfile">
+            <summary>Delete the current user's account permanently</summary>
+            <response code="200">Account deleted Successfully</response>
+            <response code="401">Invalid or missing token</response>
+            <response code="400">Validation error</response>
+        </member>
+        <member name="P:AgenticAITutor.Models.DTOs.Auth.ResetPasswordRequestDto.Otp">
+            <summary>The 6-digit one-time password sent to the user's email.</summary>
+        </member>
+        <member name="P:AgenticAITutor.Models.DTOs.McqGeneratedQuestion.ChunkId">
+            <summary>Primary source chunk that generated this question.</summary>
+        </member>
+        <member name="P:AgenticAITutor.Models.DTOs.QuizReviewQuestionDto.CorrectOption">
+            <summary>The original (unshuffled) correct label stored in DB.</summary>
+        </member>
+        <member name="P:AgenticAITutor.Models.DTOs.QuizReviewQuestionDto.SelectedOption">
+            <summary>The original label the student selected (after reverse-mapping).</summary>
+        </member>
+        <member name="M:AgenticAITutor.Services.AuthService.GenerateOtp">
+            <summary>
+            Generates a cryptographically secure random 6-digit OTP string (e.g. "482015").
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Services.AuthService.OtpMatches(System.String,System.String)">
+            <summary>
+            Constant-time OTP comparison to prevent timing attacks.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Services.GenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32)">
+            <summary>
+            Hash = SHA256( userId + ":" + sorted_documentIds.Join(",") )
+            Sorting ensures that [doc1, doc2] and [doc2, doc1] produce the same hash.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Services.IGenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32)">
+            <summary>
+            Computes a deterministic SHA-256 hash from the userId and a sorted
+            list of document IDs. Used to detect duplicate quiz generation requests.
+            </summary>
+        </member>
+        <member name="M:AgenticAITutor.Services.IQuizAIClient.GenerateQuestionsAsync(AgenticAITutor.Models.DTOs.McqGenerateRequest)">
+            <summary>
+            Sends chunks to the Python MCQ generation endpoint and returns
+            the generated questions. Uses Polly for 3 retries with 120s timeout.
+            </summary>
+        </member>
+    </members>
+</doc>

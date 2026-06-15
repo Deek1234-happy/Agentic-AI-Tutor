@@ -1,15 +1,21 @@
+# Python
 __pycache__/
 *.pyc
 .env
-venv/
 .env.*
-*.log
-.DS_Store
+venv/
 .venv/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# AI service generated files
 test_files/
 static/audio/*
 
-# Ignore ai_service directories
 ai_service/static/
 ai_service/temp/
 ai_service/temp_audio/
@@ -17,17 +23,36 @@ static/
 temp/
 temp_audio/
 
-# Jupyter notebooks and analysis files
+# Jupyter notebooks
 *.ipynb
 .ipynb_checkpoints/
 
-# IDE and OS files
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 
+# AI project folders
 ai_service/scripts/
 mcq-bloom-qwen-merged/
 ai_service/logs/
 ai_service/Quiz/
+
+# Visual Studio files
+.vs/
+bin/
+obj/
+*.user
+[Dd]ebug/
+[Rr]elease/
+
+# Uploaded documents
+wwwroot/uploads/
+**/uploads/
+
+# ASP.NET Core settings (secrets)
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+secrets.json
