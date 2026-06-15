@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    /* ─── Language & Environment ─────────────────────── */
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+
+    /* ─── JSX ────────────────────────────────────────── */
+    "jsx": "react-jsx",
+
+    /* ─── Vite client types (fixes import.meta.env) ──── */
+    "types": ["vite/client"],
+
+    /* ─── Path aliases (mirrors vite.config.ts) ─────── */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* ─── Strictness ─────────────────────────────────── */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* ─── Output ─────────────────────────────────────── */
+    "noEmit": true,                      /* Vite handles the build, not tsc      */
+    "allowImportingTsExtensions": true,  /* Allow explicit .ts/.tsx in imports   */
+    "skipLibCheck": true,                /* Ignore errors in node_modules        */
+
+    /* ─── Interop ────────────────────────────────────── */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true  /* Required for Vite's esbuild transpiler */
+  },
+  "include": ["src"]
+}
