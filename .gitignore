@@ -1,0 +1,33 @@
+__pycache__/
+*.pyc
+.env
+venv/
+.env.*
+*.log
+.DS_Store
+.venv/
+test_files/
+static/audio/*
+
+# Ignore ai_service directories
+ai_service/static/
+ai_service/temp/
+ai_service/temp_audio/
+static/
+temp/
+temp_audio/
+
+# Jupyter notebooks and analysis files
+*.ipynb
+.ipynb_checkpoints/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+ai_service/scripts/
+mcq-bloom-qwen-merged/
+ai_service/logs/
+ai_service/Quiz/
