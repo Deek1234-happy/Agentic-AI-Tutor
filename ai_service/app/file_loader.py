@@ -33,6 +33,7 @@
 
 # app/file_loader.py
 
+import logging
 import os
 import tempfile
 import requests
@@ -40,6 +41,7 @@ import socket
 import ipaddress
 from urllib.parse import urlparse
 
+logger = logging.getLogger(__name__)
 
 # Allowed document types
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".csv"}
@@ -60,10 +62,19 @@ def allow_internal_network() -> bool:
 
 def is_private_ip(hostname: str) -> bool:
     """
-    Prevent SSRF attacks by blocking internal IPs
+    Prevent SSRF attacks by blocking internal IPs.
+    Allow loopback addresses for local development so the backend can fetch
+    files from localhost without being blocked by the SSRF protection.
     """
+    if hostname is None:
+        return True
+
+    normalized = hostname.strip().lower().strip("[]")
+    if normalized in {"localhost", "127.0.0.1", "::1"}:
+        return False
+
     try:
-        ip = socket.gethostbyname(hostname)
+        ip = socket.gethostbyname(normalized)
         ip_obj = ipaddress.ip_address(ip)
 
         return (
@@ -92,17 +103,20 @@ def download_if_url(file_path: str) -> str:
     if file_path.startswith("http://") or file_path.startswith("https://"):
 
         parsed = urlparse(file_path)
+        logger.info("[file_loader] Downloading URL: %s | host=%s | scheme=%s", file_path, parsed.hostname, parsed.scheme)
 
         # ------------------------------------------------
         # Validate scheme
         # ------------------------------------------------
         if parsed.scheme not in ["http", "https"]:
+            logger.error("[file_loader] Invalid URL scheme: %s", file_path)
             raise ValueError("Invalid URL scheme")
 
         # ------------------------------------------------
         # Block internal network access (SSRF protection)
         # ------------------------------------------------
         if not allow_internal_network() and is_private_ip(parsed.hostname):
+            logger.error("[file_loader] SSRF blocked: host=%s url=%s", parsed.hostname, file_path)
             raise ValueError("Access to internal network is blocked")
 
         # ------------------------------------------------
@@ -111,35 +125,45 @@ def download_if_url(file_path: str) -> str:
         ext = os.path.splitext(parsed.path)[1].lower()
 
         if ext not in ALLOWED_EXTENSIONS:
+            logger.error("[file_loader] Disallowed file extension: %s from %s", ext, file_path)
             raise ValueError(f"File type not allowed: {ext}")
 
         # ------------------------------------------------
         # Download file with streaming
         # ------------------------------------------------
-        response = requests.get(file_path, stream=True, timeout=10)
+        try:
+            response = requests.get(file_path, stream=True, timeout=10)
+            logger.info("[file_loader] Received HTTP status %s for %s", response.status_code, file_path)
 
-        if response.status_code != 200:
-            raise FileNotFoundError("Could not download the file")
+            if response.status_code != 200:
+                raise FileNotFoundError("Could not download the file")
 
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
 
-        size = 0
+            size = 0
 
-        for chunk in response.iter_content(8192):
+            for chunk in response.iter_content(8192):
 
-            if chunk:
-                size += len(chunk)
+                if chunk:
+                    size += len(chunk)
 
-                if size > MAX_FILE_SIZE:
-                    temp_file.close()
-                    os.remove(temp_file.name)
-                    raise ValueError("File too large")
+                    if size > MAX_FILE_SIZE:
+                        temp_file.close()
+                        os.remove(temp_file.name)
+                        logger.error("[file_loader] Download exceeded max size: %s", file_path)
+                        raise ValueError("File too large")
 
-                temp_file.write(chunk)
+                    temp_file.write(chunk)
 
-        temp_file.close()
+            temp_file.close()
+            logger.info("[file_loader] Downloaded temp file: %s", temp_file.name)
+            return temp_file.name
 
-        return temp_file.name
+        except Exception:
+            logger.exception("[file_loader] Failed to download file from URL: %s", file_path)
+            raise
+
+    logger.info("[file_loader] Using local file path directly: %s", file_path)
 
     # ------------------------------------------------
     # If local file
