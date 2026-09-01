@@ -13,7 +13,7 @@ transformers==4.41.2
 torch==2.1.2  # Compatible with TTS 0.22.0 (requires torch>=2.1)
 torchaudio==2.1.2  # Must match torch major/minor
 faiss-cpu
-numpy==1.22.0
+numpy>=1.24.3
 requests
 psycopg2-binary 
 sqlalchemy
@@ -29,7 +29,7 @@ faster_whisper
 
 rank_bm25
 # For testing
-cohere==6.1.0
+cohere>=5.18.0,<6.0.0
 ragas
 datasets
 openai

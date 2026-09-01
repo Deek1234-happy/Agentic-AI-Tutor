@@ -283,6 +283,36 @@ namespace AgenticAITutor
 
             var app = builder.Build();
 
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                try
+                {
+                    db.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"");
+                    db.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS vector");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DB INIT] Warning: extension creation skipped or failed: {ex.Message}");
+                }
+
+                db.Database.ExecuteSqlRaw("CREATE SCHEMA IF NOT EXISTS auth");
+                db.Database.ExecuteSqlRaw("CREATE SCHEMA IF NOT EXISTS content");
+                db.Database.ExecuteSqlRaw("CREATE SCHEMA IF NOT EXISTS planner");
+                db.Database.ExecuteSqlRaw("CREATE SCHEMA IF NOT EXISTS quiz");
+                db.Database.ExecuteSqlRaw("CREATE SCHEMA IF NOT EXISTS rag");
+
+                try
+                {
+                    db.Database.EnsureCreated();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DB INIT] EnsureCreated warning: {ex.Message}");
+                }
+            }
+
             app.UseExceptionHandler();
             app.UseHttpLogging();
 
