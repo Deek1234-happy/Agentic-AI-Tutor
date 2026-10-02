@@ -47,6 +47,7 @@ _MODEL_PATH = os.path.normpath(_MODEL_PATH)
 # Lazy-loaded singletons — populated on first call to _real_model_call()
 _tokenizer = None
 _model     = None
+_model_load_failed = False
 
 
 # Track model load time for reporting
@@ -58,8 +59,17 @@ def _load_model():
     Load the fine-tuned Qwen2.5-1.5B tokenizer and model on first call.
     Subsequent calls are instant (singletons already set).
     """
-    global _tokenizer, _model, _model_load_time
-    if _tokenizer is not None:
+    global _tokenizer, _model, _model_load_time, _model_load_failed
+    if _tokenizer is not None and _model is not None:
+        return
+    if _model_load_failed:
+        return
+    if not os.path.isdir(_MODEL_PATH):
+        _model_load_failed = True
+        log.warning(
+            "[QuizGen] Local model not found at %s; using the configured LLM fallback.",
+            _MODEL_PATH,
+        )
         return
 
     import torch
@@ -67,21 +77,27 @@ def _load_model():
 
     t0 = time.time()
     log.info("[QuizGen] Loading model from %s ...", _MODEL_PATH)
-    _tokenizer = AutoTokenizer.from_pretrained(_MODEL_PATH)
+    try:
+        _tokenizer = AutoTokenizer.from_pretrained(_MODEL_PATH)
 
-    # device_map = "auto"  # uses CUDA if available, falls back to CPU
-    if torch.cuda.is_available():
-        device_map = {"": "cuda:0"}   # Force all layers on GPU — no offloading
-        torch.cuda.empty_cache()       # Free VRAM before loading
-    else:
-        device_map = "cpu"
-    _model = AutoModelForCausalLM.from_pretrained(
-        _MODEL_PATH,
-        torch_dtype=torch.float16,   # Force 16-bit precision to fit in 4GB VRAM
-        device_map=device_map,
-    )
-    _model.eval()
-    _model_load_time = time.time() - t0
+        if torch.cuda.is_available():
+            device_map = {"": "cuda:0"}
+            torch.cuda.empty_cache()
+        else:
+            device_map = "cpu"
+        _model = AutoModelForCausalLM.from_pretrained(
+            _MODEL_PATH,
+            torch_dtype=torch.float16,
+            device_map=device_map,
+        )
+        _model.eval()
+        _model_load_time = time.time() - t0
+    except Exception:
+        _tokenizer = None
+        _model = None
+        _model_load_failed = True
+        log.exception("[QuizGen] Local model failed to load; using the configured LLM fallback.")
+        return
 
     # Detect device
     if torch.cuda.is_available():
@@ -369,6 +385,21 @@ def _real_model_call(system_prompt: str, user_prompt: str, attempt: int = 1) -> 
     import functools
 
     _load_model()  # no-op after first call
+
+    if _tokenizer is None or _model is None:
+        from app.llm import generate_answer
+
+        configured_models = os.getenv("GROQ_QUIZ_MODELS", "")
+        model_chain = [name.strip() for name in configured_models.split(",") if name.strip()]
+        if not model_chain:
+            model_chain = [os.getenv("LLM_MODEL", "qwen/qwen3.8-27b").strip()]
+        return generate_answer(
+            f"{system_prompt}\n\n{user_prompt}",
+            temperature=0.1 if attempt == 1 else 0.3,
+            model=model_chain[0],
+            fallback_models=model_chain[1:],
+            max_retries_per_model=2,
+        )
 
     @functools.lru_cache(maxsize=2)
     def _get_tokenized_inputs(sys_p: str, usr_p: str):

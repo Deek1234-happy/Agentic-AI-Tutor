@@ -24,7 +24,7 @@ namespace AgenticAITutor.Services
                 ?? throw new InvalidOperationException("AIService:BaseURL is not configured.");
 
             var mcqPath = _configuration["AIService:McqGeneratePath"]
-                ?? throw new InvalidOperationException("AIService:McqGeneratePath is not configured.");
+                ?? "quiz/generate";
 
             var url = $"{aiBaseUrl.TrimEnd('/')}/{mcqPath.TrimStart('/')}";
 
