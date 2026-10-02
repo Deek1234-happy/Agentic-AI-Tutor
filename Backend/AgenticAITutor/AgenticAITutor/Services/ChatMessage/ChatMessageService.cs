@@ -493,8 +493,8 @@ namespace AgenticAITutor.Services
                 return response;
             }
 
-            var allowedExtensions = new[] { ".wav", ".mp3", ".m4a", ".ogg", ".flac" };
-            var allowedMimeTypes = new[] { "audio/wav", "audio/mpeg", "audio/mp4", "audio/ogg", "audio/x-m4a", "audio/flac", "audio/mp3" };
+            var allowedExtensions = new[] { ".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm" };
+            var allowedMimeTypes = new[] { "audio/wav", "audio/mpeg", "audio/mp4", "audio/ogg", "audio/x-m4a", "audio/flac", "audio/mp3", "audio/webm" };
 
             var fileExtension = Path.GetExtension(audioFile.FileName).ToLowerInvariant();
             // var mimeType = audioFile.ContentType.ToLowerInvariant();
