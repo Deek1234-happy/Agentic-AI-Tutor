@@ -5,6 +5,7 @@ using AgenticAITutor.Repositories;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Data;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AgenticAITutor.Services
 {
@@ -35,6 +36,33 @@ namespace AgenticAITutor.Services
             this.webSourceRepository = webSourceRepository;
             this.fileStorageService = fileStorageService;
             this.httpClient.Timeout = TimeSpan.FromMinutes(10);
+        }
+
+        private static string SanitizeTextForSpeech(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return string.Empty;
+
+            var cleaned = Regex.Replace(text, @"\[(.*?)\]\((.*?)\)", "$1");
+            cleaned = cleaned.Replace("#", " ");
+            cleaned = Regex.Replace(cleaned, @"[*_`>\-]", " ");
+            cleaned = Regex.Replace(cleaned, @"\s+", " ");
+            return cleaned.Trim();
+        }
+
+        private static string? GetStoredAudioPath(string? audioUrl)
+        {
+            if (string.IsNullOrWhiteSpace(audioUrl))
+                return null;
+
+            var path = Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri)
+                ? Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'))
+                : Uri.UnescapeDataString(audioUrl.TrimStart('/').Replace('\\', '/'));
+
+            return path.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase)
+                && !path.Split('/').Contains("..")
+                ? path
+                : null;
         }
 
         public async Task<ServiceResponse<AIMessageResponse>> SendAIMessageAsync(UserMessageRequest request)
@@ -539,25 +567,18 @@ namespace AgenticAITutor.Services
                 return response;
             }
 
-            // 3. Cache Check: If we already generated audio for this, just return the existing link!
-            if (!string.IsNullOrEmpty(message.AudioUrl))
-            {
-                response.Data = $"{configuration["AppConfig:BaseURL"]}{message.AudioUrl}";
-                response.Success = true;
-                return response;
-            }
-
-            // 4. Call Python TTS
+            // Regenerate once to replace audio created before markdown cleanup was added.
             string aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
             string ttsPath = configuration["AIService:TTSPath"] ?? "audio/tts";
             string ttsURL = $"{aiBaseURL.TrimEnd('/')}/{ttsPath.TrimStart('/')}";
 
-            var ttsRequest = new TTSRequest { Text = message.Content };
+            var ttsRequest = new TTSRequest { Text = SanitizeTextForSpeech(message.Content) };
 
             try
             {
                 //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
-                var ttsHttpResponse = await httpClient.PostAsJsonAsync(ttsURL, ttsRequest);
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+                var ttsHttpResponse = await httpClient.PostAsJsonAsync(ttsURL, ttsRequest, cts.Token);
 
                 if (!ttsHttpResponse.IsSuccessStatusCode)
                 {
@@ -571,11 +592,15 @@ namespace AgenticAITutor.Services
                 byte[] audioBytes = await ttsHttpResponse.Content.ReadAsByteArrayAsync();
 
                 // Save locally using your FileStorageService
+                var previousAudioPath = GetStoredAudioPath(message.AudioUrl);
                 string aiAudioRelativePath = await fileStorageService.SaveFileAsync(audioBytes, $"tts_{messageId}.wav", userId.ToString(), message.SessionId.ToString());
 
                 // Update DB so we don't have to generate it again if they click play twice
                 message.AudioUrl = $"{configuration["AppConfig:BaseURL"]}/{aiAudioRelativePath}";
                 await messageRepository.UpdateAsync(message);
+
+                if (previousAudioPath != null)
+                    await fileStorageService.DeleteFileAsync(previousAudioPath);
 
                 response.Data = $"{message.AudioUrl}";
                 response.Success = true;

@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Volume2, ChevronDown, ChevronUp, FileText, ExternalLink, Network, Loader2 } from "lucide-react";
+import { Volume2, ChevronDown, ChevronUp, FileText, ExternalLink, Network } from "lucide-react";
 import { Button } from "../ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { useAudioFeatures } from "../../../hooks/useChat";
 import type { ChatMessageResponse } from "../../../types/chat";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -30,48 +29,63 @@ function CitationDocumentName({ documentId, fallback, hasMetadataName }: { docum
 export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
   const isUser = message.role?.toLowerCase() === "user" || message.role?.toLowerCase() === "student";
   const kg = message.kgContext || message.kg_context;
-  const { ttsMutation } = useAudioFeatures();
   const [citationsOpen, setCitationsOpen] = useState(false);
   const [webSourcesOpen, setWebSourcesOpen] = useState(false);
-  const [playingAudio, setPlayingAudio] = useState<HTMLAudioElement | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speechTextRef = useRef<HTMLDivElement>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => () => {
+    if (utteranceRef.current) {
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+    }
+  }, []);
 
   const handleListen = () => {
-    if (playingAudio) {
-      playingAudio.pause();
-      setPlayingAudio(null);
+    if (!("speechSynthesis" in window)) {
+      toast.error("Speech playback is not supported by this browser.");
       return;
     }
 
-    ttsMutation.mutate(message.id, {
-      onSuccess: async (res) => {
-        try {
-          const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5099";
-          
-          // Fix backend bug where it returns 'http://localhost:5099http://localhost:5099/...'
-          const cleanUrl = res.audio_url.replace(/^(https?:\/\/[^\/]+)\1/, "$1");
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+      setIsSpeaking(false);
+      return;
+    }
 
-          const url = cleanUrl.startsWith("http") 
-            ? cleanUrl 
-            : `${baseUrl}${cleanUrl.startsWith("/") ? "" : "/"}${cleanUrl}`;
+    const text = speechTextRef.current?.innerText.trim();
+    if (!text) {
+      toast.error("There is no text to read.");
+      return;
+    }
 
-          const audio = new Audio(url);
-          
-          audio.onended = () => {
-            setPlayingAudio(null);
-          };
-          audio.onerror = () => {
-            setPlayingAudio(null);
-            toast.error("Failed to load audio file.");
-          };
-          await audio.play();
-          setPlayingAudio(audio);
-        } catch (error) {
-          console.error("Audio playback error:", error);
-          toast.error("Failed to load audio file.");
-          setPlayingAudio(null);
-        }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const language = /[\u0600-\u06FF]/.test(text) ? "ar" : "en";
+    utterance.lang = language === "ar" ? "ar" : "en-US";
+    utterance.voice = window.speechSynthesis.getVoices().find((voice) =>
+      voice.lang.toLowerCase().startsWith(language)
+    ) ?? null;
+    utterance.onend = () => {
+      if (utteranceRef.current === utterance) {
+        utteranceRef.current = null;
+        setIsSpeaking(false);
       }
-    });
+    };
+    utterance.onerror = (event) => {
+      if (utteranceRef.current !== utterance) return;
+      utteranceRef.current = null;
+      setIsSpeaking(false);
+      if (event.error !== "canceled" && event.error !== "interrupted") {
+        toast.error("The browser could not read this message aloud.");
+      }
+    };
+
+    utteranceRef.current = utterance;
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -85,7 +99,7 @@ export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
           {isUser ? (
             <p className="text-[15px] whitespace-pre-wrap leading-relaxed">{message.content}</p>
           ) : (
-            <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted prose-pre:text-muted-foreground">
+            <div ref={speechTextRef} className="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-muted prose-pre:text-muted-foreground">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {message.content}
               </ReactMarkdown>
@@ -99,14 +113,9 @@ export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
                 size="sm"
                 className="h-7 text-xs font-medium text-muted-foreground hover:text-primary"
                 onClick={handleListen}
-                disabled={ttsMutation.isPending}
               >
-                {ttsMutation.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                ) : (
-                  <Volume2 className={`w-3.5 h-3.5 mr-1.5 ${playingAudio ? "text-primary animate-pulse" : ""}`} />
-                )}
-                {playingAudio ? "Stop" : "Listen"}
+                <Volume2 className={`w-3.5 h-3.5 mr-1.5 ${isSpeaking ? "text-primary animate-pulse" : ""}`} />
+                {isSpeaking ? "Stop" : "Listen"}
               </Button>
 
               {kg?.entities && kg.entities.length > 0 && (

@@ -54,7 +54,11 @@ interface RequestOptions {
   auth?: boolean;
   /** Extra headers merged on top of the defaults */
   headers?: Record<string, string>;
+  /** Request timeout in milliseconds. Defaults to 30 seconds. */
+  timeoutMs?: number;
 }
+
+const DEFAULT_TIMEOUT_MS = 30000;
 
 async function request<T>(
   method: string,
@@ -79,6 +83,7 @@ async function request<T>(
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
   });
 
   if (!response.ok) {

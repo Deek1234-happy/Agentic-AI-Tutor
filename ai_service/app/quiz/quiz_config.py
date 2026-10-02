@@ -10,7 +10,27 @@ that quiz and RAG pipelines can be tuned independently without risk of
 accidentally affecting each other.
 """
 
+import os
 from dataclasses import dataclass
+
+
+DEFAULT_QUIZ_GROQ_MODELS = (
+    "qwen/qwen3.8-27b",
+    "groq/compound",
+    "groq/compound-mini",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+)
+
+
+def _resolve_quiz_groq_models() -> tuple:
+    """Prefer an explicit env override, otherwise use the safe default order."""
+    env_value = os.getenv("GROQ_QUIZ_MODELS") or os.getenv("LLM_MODEL")
+    if env_value:
+        parsed = [item.strip() for item in env_value.split(",") if item.strip()]
+        if parsed:
+            return tuple(parsed)
+    return DEFAULT_QUIZ_GROQ_MODELS
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -115,18 +135,19 @@ class QuizMetadataConfig:
     automatically tries the next model in the list.
     """
     # Ordered list of Groq model IDs to try (first = preferred).
-    models: tuple = (
-        "llama-3.1-8b-instant",      # 14,400 RPD · 500K TPD · 6K TPM  (default)
-        "llama-3.3-70b-versatile",   # 1,000  RPD · 100K TPD · 6K TPM
-        "gemma2-9b-it",              # 14,400 RPD · 500K TPD · 15K TPM
-        "mixtral-8x7b-32768",        # 14,400 RPD · 500K TPD · 5K TPM
-    )
+    # Prefer the model with the widest account compatibility; rotate away from
+    # unavailable/404 model names instead of treating those as fatal.
+    # A project-level env override can also be supplied via GROQ_QUIZ_MODELS or LLM_MODEL.
+    models: tuple = ()
+
+    def __post_init__(self):
+        if not self.models:
+            self.models = _resolve_quiz_groq_models()
 
     # Chunks sent per API call.
-    # batch=4: ~2,810 tokens/call (47% of llama-3.1-8b-instant 6K TPM limit).
-    # Halves API calls vs batch=2 → 50% fewer rate-limit events.
-    # Concept conflation risk is low — chunks are clearly labeled with chunk_id.
-    batch_size: int = 4
+    # Groq request ceilings are lower than the older defaults, especially for
+    # reasoning-oriented models. Keep this small to avoid 413 payload failures.
+    batch_size: int = 2
 
     # Retry + backoff
     max_retries: int = 5

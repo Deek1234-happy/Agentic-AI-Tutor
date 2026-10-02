@@ -89,5 +89,8 @@ export async function transcribeAudio(audioFile: File): Promise<STTResponse> {
  * Generate playable TTS audio URL for an existing message.
  */
 export async function generateTTS(messageId: string): Promise<TTSResponse> {
-  return apiClient.post<TTSResponse>(`/api/ChatMessage/${messageId}/TTS`, {}, { auth: true });
+  return apiClient.post<TTSResponse>(`/api/ChatMessage/${messageId}/TTS`, {}, {
+    auth: true,
+    timeoutMs: 180000,
+  });
 }

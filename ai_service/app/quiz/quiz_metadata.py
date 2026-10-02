@@ -322,9 +322,9 @@ def _call_groq_with_rotation(
                 ],
                 temperature=0.1,
                 max_tokens=800,   # 800 handles up to 4 JSON objects (~200 tokens each)
-                # json_object mode only works reliably for single objects;
-                # use free-form for batches and let _parse_groq_response handle it.
-                **({"response_format": {"type": "json_object"}} if len(batch) == 1 else {}),
+                # Some active Groq models return empty content when JSON mode is forced,
+                # even though the prompt explicitly asks for valid JSON. Keep the response
+                # free-form and rely on the parser below instead.
             )
             raw = response.choices[0].message.content.strip()
             result = _parse_groq_response(raw, batch)
@@ -335,9 +335,21 @@ def _call_groq_with_rotation(
 
         except Exception as exc:
             err = str(exc)
-            is_rate_limit = "429" in err or "rate_limit" in err.lower() or "rate limit" in err.lower()
+            err_lower = err.lower()
+            is_rate_limit = "429" in err or "rate_limit" in err_lower or "rate limit" in err_lower
+            is_model_unavailable = (
+                "model_not_found" in err_lower
+                or "model_decommissioned" in err_lower
+                or "decommissioned" in err_lower
+                or "does not exist or you do not have access" in err_lower
+                or "does not exist" in err_lower
+                or "you do not have access" in err_lower
+                or "not available" in err_lower
+                or "model unavailable" in err_lower
+                or "not supported" in err_lower
+            )
 
-            if is_rate_limit:
+            if is_rate_limit or is_model_unavailable:
                 # Try to parse Retry-After from the error message
                 retry_after_match = re.search(
                     r"retry.after[^\d]*(\d+(?:\.\d+)?)", err, re.IGNORECASE
@@ -345,11 +357,18 @@ def _call_groq_with_rotation(
                 retry_after = float(retry_after_match.group(1)) + 0.5 if retry_after_match else 0
 
                 next_model = models[(model_idx + 1) % n_models]
-                log.warning(
-                    "[QuizMeta] Rate limit on model=%s (attempt %d). "
-                    "Rotating to model=%s.",
-                    model, global_attempt, next_model,
-                )
+                if is_model_unavailable:
+                    log.warning(
+                        "[QuizMeta] Model unavailable on model=%s (attempt %d). "
+                        "Rotating to model=%s.",
+                        model, global_attempt, next_model,
+                    )
+                else:
+                    log.warning(
+                        "[QuizMeta] Rate limit on model=%s (attempt %d). "
+                        "Rotating to model=%s.",
+                        model, global_attempt, next_model,
+                    )
                 model_idx += 1  # rotate immediately — no sleep before trying next model
 
                 # If we've cycled through all models, apply backoff before restarting

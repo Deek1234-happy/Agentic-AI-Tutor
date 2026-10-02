@@ -18,9 +18,9 @@ load_dotenv(dotenv_path=ENV_PATH)
 # LLM Provider Configuration
 # ===============================
 
-LLM_API_KEY = os.getenv("LLM_API_KEY")
+LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
 LLM_URL = os.getenv("LLM_URL", "https://api.groq.com/openai/v1/chat/completions")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.8-27b")
 
 
 # ===============================
@@ -109,11 +109,12 @@ def _default_fallback_models(primary: str) -> Tuple[str, ...]:
     Ordering matters: earlier = preferred fallback.
     """
     candidates = [
-        # Frequently available "small-ish" chat models on OpenAI-compatible gateways.
-        "llama-3.1-8b-instant",
-        "llama-3.2-3b-preview",
-        "gemma2-9b-it",
-        "mixtral-8x7b-32768",
+        # These were validated to return actual JSON content on this Groq account.
+        "qwen/qwen3.8-27b",
+        "groq/compound",
+        "groq/compound-mini",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
     ]
     primary = (primary or "").strip()
     return tuple([m for m in candidates if m and m != primary])
@@ -134,7 +135,7 @@ def generate_answer(
     """
 
     # Re-read in case env vars were loaded after module import.
-    api_key = os.getenv("LLM_API_KEY") or LLM_API_KEY
+    api_key = os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY") or LLM_API_KEY
     if not api_key:
         raise RuntimeError("LLM_API_KEY is not set in environment variables")
 

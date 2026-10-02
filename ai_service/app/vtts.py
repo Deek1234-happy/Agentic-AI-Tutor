@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import io
+import re
 
 from app.audio.hybrid_tts import HybridTTS
 
@@ -13,6 +14,18 @@ class TTSRequest(BaseModel):
     text: str
 
 
+def sanitize_for_tts(text: str) -> str:
+    if text is None:
+        return ""
+
+    cleaned = text
+    cleaned = re.sub(r"\[(.*?)\]\((.*?)\)", r"\1", cleaned)
+    cleaned = re.sub(r"[*_`>#-]", " ", cleaned)
+    cleaned = cleaned.replace("#", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
+
+
 @router.post("/tts")
 async def text_to_speech(request: TTSRequest):
     global tts_engine
@@ -22,11 +35,12 @@ async def text_to_speech(request: TTSRequest):
             print("🔥 Initializing HybridTTS...")
             tts_engine = HybridTTS()
 
-        if not request.text.strip():
+        clean_text = sanitize_for_tts(request.text)
+        if not clean_text:
             raise HTTPException(status_code=400, detail="Text cannot be empty")
 
         # generate audio
-        audio_bytes = tts_engine.synthesize(request.text)
+        audio_bytes = tts_engine.synthesize(clean_text)
 
         if not audio_bytes:
             raise HTTPException(status_code=500, detail="Failed to generate audio")
