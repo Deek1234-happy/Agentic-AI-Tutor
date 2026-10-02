@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from uuid import UUID
+import os
 
 from .chat_service import (
     get_chat_history,
@@ -21,6 +22,11 @@ class WebSearchRequest(BaseModel):
 
 @router.post("", summary="Web search chat")
 def web_search_chat(payload: WebSearchRequest):
+    if not os.getenv("TAVILY_API_KEY"):
+        raise HTTPException(
+            status_code=503,
+            detail="Web search is not configured. Add TAVILY_API_KEY to ai_service/.env and restart the AI service.",
+        )
 
     try:
 
@@ -52,4 +58,4 @@ def web_search_chat(payload: WebSearchRequest):
         return result
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=502, detail=f"Web search provider failed: {e}") from e

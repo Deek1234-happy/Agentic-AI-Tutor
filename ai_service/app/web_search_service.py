@@ -1,47 +1,35 @@
 import requests
 import os
 import re
+from urllib.parse import urlparse
 
-N8N_WEBHOOK_URL = os.getenv(
-    "N8N_WEBHOOK_URL",
-    "http://localhost:5678/webhook/web-search"
-)
+TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 
 
 def run_web_search(query: str, original_question: str | None = None):
-    payload = {"query": query}
-    if original_question:
-        payload["original_question"] = original_question
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        raise ValueError("Web search is not configured. Add TAVILY_API_KEY to ai_service/.env and restart the AI service.")
+
+    payload = {
+        "query": query,
+        "search_depth": "ultra-fast",
+        "max_results": 5,
+        "include_answer": True,
+    }
 
     try:
         response = requests.post(
-            N8N_WEBHOOK_URL,
+            TAVILY_SEARCH_URL,
             json=payload,
-            timeout=60
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=20,
         )
         response.raise_for_status()
         data = response.json()
-    except requests.exceptions.ConnectionError as e:
-        print("\n=== N8N CONNECTION ERROR ===")
-        print(f"Cannot reach n8n at {N8N_WEBHOOK_URL}. Is n8n running?")
-        print(e)
-        print("============================\n")
-        return {
-            "answer": "Web search is unavailable. The n8n workflow could not be reached. Is n8n running at " + N8N_WEBHOOK_URL + "?",
-            "sources": []
-        }
     except requests.exceptions.RequestException as e:
-        print("\n=== N8N REQUEST ERROR ===")
-        print(e)
-        if hasattr(e, "response") and e.response is not None:
-            print("Response status:", e.response.status_code)
-            print("Response body:", e.response.text[:500])
-        print("=========================\n")
-        return {"answer": f"Web search request failed: {str(e)}", "sources": []}
-
-    print("\n=== RAW N8N RESPONSE ===")
-    print(data)
-    print("========================")
+        status = e.response.status_code if e.response is not None else "network error"
+        raise RuntimeError(f"Tavily search failed ({status}): {e}") from e
 
     # --------- Generic extractors so we can handle many n8n shapes ----------
 
@@ -89,10 +77,7 @@ def run_web_search(query: str, original_question: str | None = None):
     for r in raw_sources:
         url = r.get("url", "")
         title = r.get("title", "")
-
-        domain = ""
-        if isinstance(url, str) and "://" in url:
-            domain = url.split("/")[2]
+        domain = urlparse(url).netloc if isinstance(url, str) else ""
 
         sources.append({
             "title": title,
@@ -124,8 +109,7 @@ def run_web_search(query: str, original_question: str | None = None):
             sources = []
             for u in urls:
                 domain = ""
-                if "://" in u:
-                    domain = u.split("/")[2]
+                domain = urlparse(u).netloc
                 sources.append({"title": "", "url": u, "domain": domain})
 
         # Strip any trailing "sources" section in ANY language:

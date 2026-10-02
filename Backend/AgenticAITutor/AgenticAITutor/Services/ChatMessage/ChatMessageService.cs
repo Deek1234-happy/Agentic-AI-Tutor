@@ -196,7 +196,7 @@ namespace AgenticAITutor.Services
 
 
             string? aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
-            string? webSearchPath = configuration["AIService:WebSearchPath"] ?? "searchweb";
+            string? webSearchPath = configuration["AIService:WebSearchPath"] ?? "web-search";
 
             string? webSearchURL = $"{aiBaseURL.TrimEnd('/')}/{webSearchPath.TrimStart('/')}";
 
