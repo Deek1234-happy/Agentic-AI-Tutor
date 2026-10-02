@@ -127,6 +127,9 @@ def generate_answer(
     model: Optional[str] = None,
     fallback_models: Optional[Sequence[str]] = None,
     max_retries_per_model: int = 5,
+    api_key_override: Optional[str] = None,
+    api_url_override: Optional[str] = None,
+    timeout: float = 90,
 ) -> str:
     """
     Generic LLM completion function.
@@ -135,10 +138,11 @@ def generate_answer(
     """
 
     # Re-read in case env vars were loaded after module import.
-    api_key = os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY") or LLM_API_KEY
+    api_key = api_key_override or os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY") or LLM_API_KEY
     if not api_key:
         raise RuntimeError("LLM_API_KEY is not set in environment variables")
 
+    api_url = api_url_override or LLM_URL
     primary_model = (model or os.getenv("LLM_MODEL") or LLM_MODEL).strip()
     fallbacks = list(fallback_models) if fallback_models is not None else list(_default_fallback_models(primary_model))
     model_chain = [primary_model] + [m for m in fallbacks if m and str(m).strip()]
@@ -164,10 +168,10 @@ def generate_answer(
         for attempt in range(1, max(1, int(max_retries_per_model)) + 1):
             try:
                 response = requests.post(
-                    LLM_URL,
+                    api_url,
                     headers=headers,
                     json=payload,
-                    timeout=90,
+                    timeout=timeout,
                 )
             except requests.Timeout as exc:
                 last_failure = LLMFailure(kind="timeout", message=str(exc), model=m)
@@ -208,3 +212,38 @@ def generate_answer(
         # next model in chain
 
     raise last_failure or LLMFailure(kind="unknown", message="LLM request failed with no response")
+
+
+def generate_chat_answer(prompt: str, temperature: float = 0.1) -> str:
+    provider = os.getenv("CHAT_LLM_PROVIDER", "gemini").strip().lower()
+    if provider == "gemini":
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise RuntimeError("GOOGLE_API_KEY is required for tutor chat")
+        api_url = os.getenv(
+            "CHAT_LLM_API_URL",
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        )
+        default_model = "gemini-3.5-flash-lite"
+    elif provider == "groq":
+        api_key = None
+        api_url = None
+        default_model = None
+    else:
+        raise RuntimeError(f"Unsupported CHAT_LLM_PROVIDER: {provider}")
+
+    fallback_models = [
+        model.strip()
+        for model in os.getenv("CHAT_LLM_FALLBACK_MODELS", "").split(",")
+        if model.strip()
+    ]
+    return generate_answer(
+        prompt,
+        temperature=temperature,
+        model=os.getenv("CHAT_LLM_MODEL") or default_model,
+        fallback_models=fallback_models,
+        max_retries_per_model=max(1, int(os.getenv("CHAT_LLM_MAX_RETRIES_PER_MODEL", "1"))),
+        api_key_override=api_key,
+        api_url_override=api_url,
+        timeout=max(5.0, float(os.getenv("CHAT_LLM_TIMEOUT_SECONDS", "20"))),
+    )

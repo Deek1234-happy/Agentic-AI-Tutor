@@ -32,6 +32,10 @@ namespace AgenticAITutor.Services
             var document = await documentRepository.GetByIdAsync(chunkRequest.DocumentId);
             if (document == null)
                 throw new Exception("Document Not Found");
+
+            await chunkRepository.DeleteByDocumentAsync(document.Id);
+            await quizChunkRepository.DeleteByDocumentAsync(document.Id);
+
             AIChunkRequest aiRequest = new AIChunkRequest
             {
                 DocumentPath = $"{configuration["AppConfig:BaseURL"]}/{document.StoragePath}",
@@ -84,56 +88,29 @@ namespace AgenticAITutor.Services
             var document = await documentRepository.GetByIdAsync(chunkRequest.DocumentId);
             if (document == null)
                 throw new Exception("Document Not Found");
-            AIChunkRequest aiRequest = new AIChunkRequest
+
+            var documentChunks = await chunkRepository.GetByDocumentAsync(document.Id, document.UserId);
+            var orderedChunks = documentChunks
+                .OrderBy(chunk => chunk.PageStart ?? 0)
+                .ThenBy(chunk => chunk.PageEnd ?? 0)
+                .ThenBy(chunk => chunk.CreatedAt)
+                .ToList();
+
+            var quizChunks = orderedChunks.Select((chunk, index) => new QuizChunk
             {
-                DocumentPath = $"{configuration["AppConfig:BaseURL"]}/{document.StoragePath}",
-                DocumentType = document.FileType
-            };
+                DocumentId = document.Id,
+                UserId = document.UserId,
+                SubjectId = document.SubjectId,
+                ChunkIndex = index,
+                ChunkText = chunk.ChunkText,
+                BloomLevel = "understand",
+                ChunkType = "definition",
+                Concepts = new List<string>(),
+                Keywords = new List<string>()
+            }).ToList();
 
-
-            string? aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
-
-            string? quizChunkingPath = configuration["AIService:QuizChunkingPath"] ?? "quiz/process";
-            string? chunkingUrl = $"{aiBaseURL.TrimEnd('/')}/{quizChunkingPath.TrimStart('/')}";
-
-            //httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
-
-            var quizChunkingResponse = await httpClient.PostAsJsonAsync(chunkingUrl, aiRequest);
-            if (!quizChunkingResponse.IsSuccessStatusCode)
-            {
-                string errorBody = await quizChunkingResponse.Content.ReadAsStringAsync();
-                throw new Exception($"AI API Failed! Status: {quizChunkingResponse.StatusCode}. Sent URL: {aiRequest.DocumentPath}. AI Error Details: {errorBody}");
-            }
-
-            var quizAiChunks = await quizChunkingResponse.Content.ReadFromJsonAsync<List<QuizChunkResponse>>();
-
-            if (quizAiChunks != null && quizAiChunks.Any())
-            {
-                var dbChunks = new List<QuizChunk>();
-
-                foreach (var quizAiChunk in quizAiChunks)
-                {
-                    dbChunks.Add(new QuizChunk
-                    {
-                        DocumentId = document.Id,
-                        UserId = document.UserId,
-                        SubjectId = document.SubjectId,
-                        ChunkIndex = quizAiChunk.ChunkIndex,
-                        ChunkText = quizAiChunk.ChunkText,
-                        ContextPrevSentence = quizAiChunk.ContextPrevSentence,
-                        ContextNextSentence = quizAiChunk.ContextNextSentence,
-                        SemanticScore = quizAiChunk.SemanticScore,
-                        QualityScore = quizAiChunk.QualityScore,
-                        BloomLevel = quizAiChunk.BloomLevel,
-                        ChunkType = quizAiChunk.ChunkType,
-                        Concepts = quizAiChunk.Concepts,
-                        Keywords = quizAiChunk.Keywords
-                    });
-                }
-
-                // Save all chunks to the database in one big batch
-                await quizChunkRepository.AddRangeAsync(dbChunks);
-            }
+            if (quizChunks.Count > 0)
+                await quizChunkRepository.AddRangeAsync(quizChunks);
         }
 
         public async Task KGChunkDocumentAsync (KGChunkRequest kGChunkRequest)

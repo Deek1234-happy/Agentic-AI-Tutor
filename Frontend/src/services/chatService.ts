@@ -46,7 +46,10 @@ export async function sendChatMessage(payload: UserMessageRequest): Promise<AIMe
     SearchWeb: false,
     searchWeb: false,
   };
-  return apiClient.post<AIMessageResponse>("/api/ChatMessage/SendMessage", body, { auth: true });
+  return apiClient.post<AIMessageResponse>("/api/ChatMessage/SendMessage", body, {
+    auth: true,
+    timeoutMs: 180000,
+  });
 }
 
 export async function searchWebMessage(payload: UserMessageRequest): Promise<WebSearchResponse> {

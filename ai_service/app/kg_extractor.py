@@ -1,6 +1,7 @@
 # app/kg_extractor.py
 
 import json
+import os
 import re
 from typing import List, Dict
 
@@ -269,7 +270,40 @@ def _is_valid_relation(rel_type: str) -> bool:
 
 def _call_llm_for_json(prompt: str, label: str) -> dict:
     try:
-        raw = generate_answer(prompt, temperature=0)
+        provider = os.getenv("KG_LLM_PROVIDER", "groq").strip().lower()
+        if provider == "gemini":
+          api_key_override = os.getenv("GOOGLE_API_KEY")
+          if not api_key_override:
+            raise RuntimeError("GOOGLE_API_KEY is required when KG_LLM_PROVIDER=gemini")
+          api_url_override = os.getenv(
+            "KG_LLM_API_URL",
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+          )
+          default_model = "gemini-3.5-flash-lite"
+          default_fallback_models = ""
+        elif provider == "groq":
+          api_key_override = None
+          api_url_override = None
+          default_model = "openai/gpt-oss-20b"
+          default_fallback_models = "openai/gpt-oss-120b"
+        else:
+          raise RuntimeError(f"Unsupported KG_LLM_PROVIDER: {provider}")
+
+        fallback_models = [
+          model.strip()
+          for model in os.getenv("KG_LLM_FALLBACK_MODELS", default_fallback_models).split(",")
+          if model.strip()
+        ]
+        raw = generate_answer(
+          prompt,
+          temperature=0,
+          model=os.getenv("KG_LLM_MODEL", default_model),
+          fallback_models=fallback_models,
+          max_retries_per_model=max(1, int(os.getenv("KG_LLM_MAX_RETRIES_PER_MODEL", "1"))),
+          api_key_override=api_key_override,
+          api_url_override=api_url_override,
+          timeout=max(5.0, float(os.getenv("KG_LLM_TIMEOUT_SECONDS", "45"))),
+        )
     except Exception as exc:
         # Let callers decide whether to resume; do not silently "succeed" with {}.
         raise RuntimeError(f"[KG Extractor] LLM failed ({label}): {exc}") from exc

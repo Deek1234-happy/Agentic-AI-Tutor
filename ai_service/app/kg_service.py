@@ -5,7 +5,7 @@ import json
 import re
 from typing import List, Dict, Optional, Set
 
-from .llm import generate_answer
+from .llm import generate_answer, generate_chat_answer
 from .kg_extractor import extract_from_chunks, extract_cross_document_relations
 from .kg_store import (
     # PostgreSQL validation (Issue 1)
@@ -235,7 +235,7 @@ JSON:
 def identify_query_entities(question: str) -> List[str]:
     prompt = ENTITY_RECOGNITION_PROMPT.format(question=question.strip())
     try:
-        raw = generate_answer(prompt, temperature=0)
+        raw = generate_chat_answer(prompt, temperature=0)
     except Exception as exc:
         print(f"[KG Service] Entity recognition failed: {exc}")
         return []
@@ -626,7 +626,7 @@ def generate_kg_answer(question: str, subgraph: Dict) -> str:
     kg_context_json = json.dumps(payload, ensure_ascii=False, indent=2)
     prompt = KG_ANSWER_PROMPT.format(kg_context_json=kg_context_json, question=question)
     try:
-        answer = generate_answer(prompt, temperature=0.1)
+        answer = generate_chat_answer(prompt, temperature=0.1)
         return answer.strip() if answer else IDK_MESSAGE
     except Exception as exc:
         print(f"[KG Service] Answer generation failed: {exc}")
@@ -672,7 +672,7 @@ def fuse_answers(question: str, rag_answer: str, kg_answer: str) -> str:
         return rag_answer
 
     try:
-        fused = generate_answer(
+        fused = generate_chat_answer(
             HYBRID_FUSION_PROMPT.format(
                 rag_answer=rag_answer,
                 kg_answer=kg_answer,

@@ -7,7 +7,7 @@ from .db import SessionLocal
 from .embedding import embed_texts
 from .vector_store import search_similar_chunks
 from .rag_service import build_context, IDK_MESSAGE
-from .llm import generate_answer
+from .llm import generate_chat_answer
 from collections import defaultdict
 import re
 import os
@@ -96,7 +96,7 @@ Standalone rewritten query:
 """
 
     try:
-        rewritten = generate_answer(prompt, temperature=0)
+        rewritten = generate_chat_answer(prompt, temperature=0)
         return rewritten.strip() if rewritten else latest_question
     except Exception:
         return latest_question
@@ -140,7 +140,7 @@ def classify_history_dependency(question: str, history):
     )
 
     try:
-        result = generate_answer(prompt, temperature=0).strip().upper()
+        result = generate_chat_answer(prompt, temperature=0).strip().upper()
         if "DEPENDENT" in result:
             return "DEPENDENT"
         return "INDEPENDENT"
@@ -199,7 +199,7 @@ QUESTION:
 
 def classify_complexity(question: str) -> str:
     try:
-        response = generate_answer(
+        response = generate_chat_answer(
             COMPLEXITY_PROMPT.format(question=question),
             temperature=0
         ).strip().upper()
@@ -229,7 +229,7 @@ QUESTION:
 
 def decompose_question(question: str):
     try:
-        response = generate_answer(
+        response = generate_chat_answer(
             DECOMPOSE_PROMPT.format(question=question),
             temperature=0
         )
@@ -291,7 +291,7 @@ JSON:
 """
 
     try:
-        raw = generate_answer(prompt, temperature=0)
+        raw = generate_chat_answer(prompt, temperature=0)
         match = re.search(r'\{.*\}', raw, re.DOTALL)
         if match:
             return json.loads(match.group(0))
@@ -510,7 +510,7 @@ QUESTION:
 EXPLANATION:
 """
         try:
-            rag_answer = generate_answer(rag_prompt, temperature=0.1)
+            rag_answer = generate_chat_answer(rag_prompt, temperature=0.1)
             rag_answer = rag_answer.strip() if rag_answer else IDK_MESSAGE
         except Exception:
             rag_answer = IDK_MESSAGE

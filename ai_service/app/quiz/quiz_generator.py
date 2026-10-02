@@ -389,6 +389,33 @@ def _real_model_call(system_prompt: str, user_prompt: str, attempt: int = 1) -> 
     if _tokenizer is None or _model is None:
         from app.llm import generate_answer
 
+        provider = os.getenv("QUIZ_LLM_PROVIDER", "gemini").strip().lower()
+        if provider == "gemini":
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                raise RuntimeError("GOOGLE_API_KEY is required for quiz generation")
+            fallback_models = [
+                name.strip()
+                for name in os.getenv("QUIZ_LLM_FALLBACK_MODELS", "").split(",")
+                if name.strip()
+            ]
+            return generate_answer(
+                f"{system_prompt}\n\n{user_prompt}",
+                temperature=0.1 if attempt == 1 else 0.3,
+                model=os.getenv("QUIZ_LLM_MODEL", "gemini-3.5-flash-lite"),
+                fallback_models=fallback_models,
+                max_retries_per_model=max(1, int(os.getenv("QUIZ_LLM_MAX_RETRIES_PER_MODEL", "1"))),
+                api_key_override=api_key,
+                api_url_override=os.getenv(
+                    "QUIZ_LLM_API_URL",
+                    "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+                ),
+                timeout=max(5.0, float(os.getenv("QUIZ_LLM_TIMEOUT_SECONDS", "20"))),
+            )
+
+        if provider != "groq":
+            raise RuntimeError(f"Unsupported QUIZ_LLM_PROVIDER: {provider}")
+
         configured_models = os.getenv("GROQ_QUIZ_MODELS", "")
         model_chain = [name.strip() for name in configured_models.split(",") if name.strip()]
         if not model_chain:
