@@ -6,6 +6,7 @@ import re
 from typing import List, Dict, Optional, Set
 
 from .llm import generate_answer, generate_chat_answer
+from .language_config import idk_message, response_language_instruction
 from .kg_extractor import extract_from_chunks, extract_cross_document_relations
 from .kg_store import (
     # PostgreSQL validation (Issue 1)
@@ -618,19 +619,28 @@ ANSWER:
 """
 
 
-def generate_kg_answer(question: str, subgraph: Dict) -> str:
+def generate_kg_answer(question: str, subgraph: Dict, language: str = "en") -> str:
     payload = subgraph_to_kg_context(subgraph)
     if not payload["entities"] and not payload["relationships"]:
-        return IDK_MESSAGE
+        return idk_message(language)
 
     kg_context_json = json.dumps(payload, ensure_ascii=False, indent=2)
-    prompt = KG_ANSWER_PROMPT.format(kg_context_json=kg_context_json, question=question)
+    kg_prompt = KG_ANSWER_PROMPT
+    if language != "en":
+        kg_prompt = kg_prompt.replace(
+            "5. Answer in the same language as the question.",
+            f"5. {response_language_instruction(language)}",
+        ).replace(
+            '   "I don\'t know."',
+            f'   "{idk_message(language)}"',
+        )
+    prompt = kg_prompt.format(kg_context_json=kg_context_json, question=question)
     try:
         answer = generate_chat_answer(prompt, temperature=0.1)
-        return answer.strip() if answer else IDK_MESSAGE
+        return answer.strip() if answer else idk_message(language)
     except Exception as exc:
         print(f"[KG Service] Answer generation failed: {exc}")
-        return IDK_MESSAGE
+        return idk_message(language)
 
 
 # ════════════════════════════════════════════════════════════════
@@ -660,20 +670,27 @@ COMBINED ANSWER:
 """
 
 
-def fuse_answers(question: str, rag_answer: str, kg_answer: str) -> str:
-    rag_idk = not rag_answer or IDK_MESSAGE.lower() in rag_answer.lower()
-    kg_idk  = not kg_answer  or IDK_MESSAGE.lower() in kg_answer.lower()
+def fuse_answers(question: str, rag_answer: str, kg_answer: str, language: str = "en") -> str:
+    localized_idk = idk_message(language)
+    rag_idk = not rag_answer or localized_idk.lower() in rag_answer.lower() or IDK_MESSAGE.lower() in rag_answer.lower()
+    kg_idk  = not kg_answer  or localized_idk.lower() in kg_answer.lower() or IDK_MESSAGE.lower() in kg_answer.lower()
 
     if rag_idk and kg_idk:
-        return IDK_MESSAGE
+        return localized_idk
     if rag_idk:
         return kg_answer
     if kg_idk:
         return rag_answer
 
     try:
+        fusion_prompt = HYBRID_FUSION_PROMPT
+        if language != "en":
+            fusion_prompt = fusion_prompt.replace(
+                "- Answer in the same language as the question.",
+                f"- {response_language_instruction(language)}",
+            )
         fused = generate_chat_answer(
-            HYBRID_FUSION_PROMPT.format(
+            fusion_prompt.format(
                 rag_answer=rag_answer,
                 kg_answer=kg_answer,
                 question=question,

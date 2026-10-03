@@ -18,5 +18,9 @@ namespace AgenticAITutor.Models.DTOs
         public List<Guid>? AllowedDocumentIds { get; set; } = new List<Guid>();
         [Required]
         public bool SearchWeb { get; set; } = false;
+        [JsonPropertyName("language")]
+        [Required]
+        [RegularExpression("^(en|kn|hi|ml|ta|te)$", ErrorMessage = "Unsupported language.")]
+        public string Language { get; set; } = "en";
     }
 }

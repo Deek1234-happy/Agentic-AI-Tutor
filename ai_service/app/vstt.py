@@ -1,7 +1,8 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 import uuid
 import os
 from app.audio.stt import transcribe_audio
+from app.language_config import normalize_language
 
 router = APIRouter()
 
@@ -12,7 +13,7 @@ MAX_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 @router.post("/stt")
-async def speech_to_text(audio_file: UploadFile = File(...)):
+async def speech_to_text(audio_file: UploadFile = File(...), language: str | None = Form(None)):
     temp_path = None
 
     try:
@@ -34,7 +35,11 @@ async def speech_to_text(audio_file: UploadFile = File(...)):
             f.write(content)
 
         # ✅ STT
-        text, confidence = transcribe_audio(temp_path)
+        try:
+            selected_language = normalize_language(language) if language else None
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        text, confidence = transcribe_audio(temp_path, selected_language)
 
         print(f"[STT] text={text}, confidence={confidence}")
 

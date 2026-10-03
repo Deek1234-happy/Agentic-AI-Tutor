@@ -39,3 +39,4 @@ langchain-community
 langchain-huggingface
 langchain-google-genai
 langchain_cohere
+google-genai>=2.25.0,<3.0.0

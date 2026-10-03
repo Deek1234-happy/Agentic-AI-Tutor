@@ -6,6 +6,7 @@ namespace AgenticAITutor.Services
     {
         Task<string> SaveFileAsync(IFormFile file,string userFolder, string subFolder);
         Task<string> SaveFileAsync(byte[] fileBytes, string fileName, string userFolder, string subFolder);
+        Task<bool> FileExistsAsync(string relativePath);
         Task DeleteFileAsync(string relativePath);
         Task<string> MoveFileAsync(string oldRelativePath, string userFolder, string newSubFolder);
     }

@@ -6,5 +6,7 @@ namespace AgenticAITutor.Models.DTOs
     {
         [JsonPropertyName("text")]
         public string? Text { get; set; }
+        [JsonPropertyName("language")]
+        public string Language { get; set; } = "en";
     }
 }

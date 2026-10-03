@@ -1,3 +1,5 @@
+import type { LanguageCode } from "./language";
+
 export interface ChatSessionRequest {
   documentIds?: string[];
 }
@@ -19,6 +21,7 @@ export interface UserMessageRequest {
   sessionId: string;
   userMessage: string;
   searchWeb: boolean;
+  language?: LanguageCode;
 }
 
 export interface Citation {

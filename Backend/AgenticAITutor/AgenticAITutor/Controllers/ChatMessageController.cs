@@ -158,14 +158,14 @@ namespace AgenticAITutor.Controllers
         [Consumes("multipart/form-data")]
         [ProducesResponseType<STTResponse>(200)] // Tells Swagger EXACTLY what the JSON looks like!
         [ProducesResponseType<string>(400)]
-        public async Task<IActionResult> SpeechToText(IFormFile audio_file)
+        public async Task<IActionResult> SpeechToText(IFormFile audio_file, [FromForm] string? language = null)
         {
             // Security: Ensure the user is authenticated before allowing AI usage
             var userId = User.GetUserId();
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token.");
 
-            var result = await messageService.SpeechToTextAsync(audio_file);
+            var result = await messageService.SpeechToTextAsync(audio_file, language);
 
             if (!result.Success)
                 return BadRequest(result.Message);
@@ -188,13 +188,16 @@ namespace AgenticAITutor.Controllers
         [HttpPost("{messageId}/TTS")]
         [ProducesResponseType<TTSResponse>(200)] // Perfect Swagger Docs!
         [ProducesResponseType<string>(400)]
-        public async Task<IActionResult> TextToSpeech(Guid messageId)
+        public async Task<IActionResult> TextToSpeech(Guid messageId, [FromQuery] string language = "en")
         {
             var userId = User.GetUserId();
             if (userId == Guid.Empty)
                 return Unauthorized("Invalid Token.");
 
-            var result = await messageService.TextToSpeechAsync(messageId, userId);
+            if (language is not ("en" or "kn" or "hi" or "ml" or "ta" or "te"))
+                return BadRequest("Unsupported language.");
+
+            var result = await messageService.TextToSpeechAsync(messageId, userId, language);
 
             if (!result.Success)
                 return BadRequest(result.Message);

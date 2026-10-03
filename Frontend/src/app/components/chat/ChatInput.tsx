@@ -3,7 +3,9 @@ import { Send, Mic, Globe, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useAudioFeatures } from "../../../hooks/useChat";
+import { getLanguageLocale, SUPPORTED_LANGUAGES, type LanguageCode } from "../../../types/language";
 import { toast } from "sonner";
 
 interface SpeechRecognitionResultItem {
@@ -38,12 +40,14 @@ interface SpeechRecognitionWindow extends Window {
 }
 
 interface ChatInputProps {
-  onSendMessage: (message: string, useWebSearch: boolean) => void;
+  onSendMessage: (message: string, useWebSearch: boolean, language: LanguageCode) => void;
   isSending: boolean;
   disabled: boolean;
+  language: LanguageCode;
+  onLanguageChange: (language: LanguageCode) => void;
 }
 
-export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps) {
+export function ChatInput({ onSendMessage, isSending, disabled, language, onLanguageChange }: ChatInputProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -54,6 +58,7 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
   const audioChunksRef = useRef<Blob[]>([]);
   const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const finalTranscriptRef = useRef("");
+  const serverFallbackRequestedRef = useRef(false);
   const [interimTranscript, setInterimTranscript] = useState("");
 
   // Auto-resize textarea
@@ -66,7 +71,7 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
 
   const handleSend = () => {
     if (!inputMessage.trim() || isSending || disabled) return;
-    onSendMessage(inputMessage.trim(), webSearchEnabled);
+    onSendMessage(inputMessage.trim(), webSearchEnabled, language);
     setInputMessage("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
   };
@@ -78,71 +83,7 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
     }
   };
 
-  const toggleRecording = async () => {
-    if (isRecording) {
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      } else {
-        mediaRecorderRef.current?.stop();
-      }
-      return;
-    }
-
-    const speechWindow = window as SpeechRecognitionWindow;
-    const SpeechRecognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      speechRecognitionRef.current = recognition;
-      finalTranscriptRef.current = "";
-      setInterimTranscript("");
-      recognition.lang = navigator.language || "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.onresult = (event) => {
-        let interim = "";
-        for (let index = event.resultIndex; index < event.results.length; index += 1) {
-          const result = event.results[index];
-          const transcript = result[0]?.transcript ?? "";
-          if (result.isFinal) {
-            finalTranscriptRef.current += `${transcript} `;
-          } else {
-            interim += transcript;
-          }
-        }
-        setInterimTranscript(interim.trim());
-      };
-      recognition.onerror = (event) => {
-        speechRecognitionRef.current = null;
-        setIsRecording(false);
-        setInterimTranscript("");
-        if (event.error !== "aborted" && event.error !== "no-speech") {
-          toast.error(event.error === "not-allowed"
-            ? "Microphone access was blocked. Allow microphone access and try again."
-            : `Live speech recognition failed: ${event.error}.`);
-        }
-      };
-      recognition.onend = () => {
-        const transcript = finalTranscriptRef.current.trim();
-        speechRecognitionRef.current = null;
-        setIsRecording(false);
-        setInterimTranscript("");
-        if (transcript) {
-          setInputMessage((previous) => previous ? `${previous} ${transcript}` : transcript);
-        } else if (finalTranscriptRef.current.length === 0) {
-          toast.error("No speech was detected. Please try again.");
-        }
-      };
-
-      try {
-        recognition.start();
-        setIsRecording(true);
-      } catch (error) {
-        speechRecognitionRef.current = null;
-        toast.error(error instanceof Error ? error.message : "Could not start live speech recognition.");
-      }
-      return;
-    }
-
+  const startServerRecording = async () => {
     let stream: MediaStream | null = null;
     try {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
@@ -163,14 +104,12 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
         setIsRecording(false);
-        stream.getTracks().forEach((track) => track.stop());
+        stream?.getTracks().forEach((track) => track.stop());
 
         const chunks = audioChunksRef.current;
         if (chunks.length === 0) {
@@ -196,14 +135,14 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
         const audioBlob = new Blob(chunks, { type: recordedType });
         const file = new File([audioBlob], `recording.${extension}`, { type: recordedType });
 
-        sttMutation.mutate(file, {
+        sttMutation.mutate({ audioFile: file, language }, {
           onSuccess: (res) => {
             const transcript = res.text?.trim();
             if (!transcript) {
               toast.error("No speech was detected. Please try again.");
               return;
             }
-            setInputMessage((prev) => prev ? `${prev} ${transcript}` : transcript);
+            setInputMessage((previous) => previous ? `${previous} ${transcript}` : transcript);
           },
         });
       };
@@ -219,8 +158,92 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
     } catch (error) {
       console.error("Microphone access denied:", error);
       stream?.getTracks().forEach((track) => track.stop());
+      setIsRecording(false);
       toast.error(error instanceof Error ? error.message : "Could not start microphone recording.");
     }
+  };
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.stop();
+      } else {
+        mediaRecorderRef.current?.stop();
+      }
+      return;
+    }
+
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SpeechRecognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      speechRecognitionRef.current = recognition;
+      finalTranscriptRef.current = "";
+      setInterimTranscript("");
+      recognition.lang = getLanguageLocale(language);
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = (event) => {
+        let interim = "";
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const result = event.results[index];
+          const transcript = result[0]?.transcript ?? "";
+          if (result.isFinal) {
+            finalTranscriptRef.current += `${transcript} `;
+          } else {
+            interim += transcript;
+          }
+        }
+        setInterimTranscript(interim.trim());
+      };
+      recognition.onerror = (event) => {
+        speechRecognitionRef.current = null;
+        setIsRecording(false);
+        setInterimTranscript("");
+        if (event.error === "language-not-supported") {
+          serverFallbackRequestedRef.current = true;
+          toast.info("Live recognition does not support this language here. Using server transcription.");
+          void startServerRecording();
+          return;
+        }
+        if (event.error !== "aborted" && event.error !== "no-speech") {
+          toast.error(event.error === "not-allowed"
+            ? "Microphone access was blocked. Allow microphone access and try again."
+            : `Live speech recognition failed: ${event.error}.`);
+        }
+      };
+      recognition.onend = () => {
+        if (serverFallbackRequestedRef.current) {
+          serverFallbackRequestedRef.current = false;
+          return;
+        }
+        const transcript = finalTranscriptRef.current.trim();
+        speechRecognitionRef.current = null;
+        setIsRecording(false);
+        setInterimTranscript("");
+        if (transcript) {
+          setInputMessage((previous) => previous ? `${previous} ${transcript}` : transcript);
+        } else if (finalTranscriptRef.current.length === 0) {
+          toast.error("No speech was detected. Please try again.");
+        }
+      };
+
+      try {
+        recognition.start();
+        setIsRecording(true);
+      } catch (error) {
+        speechRecognitionRef.current = null;
+        if (language !== "en" && error instanceof DOMException && error.name === "NotSupportedError") {
+          toast.info("Live recognition does not support this language here. Using server transcription.");
+          await startServerRecording();
+          return;
+        }
+        toast.error(error instanceof Error ? error.message : "Could not start live speech recognition.");
+      }
+      return;
+    }
+
+    await startServerRecording();
   };
 
   return (
@@ -260,7 +283,7 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
           </Button>
         </div>
 
-        <div className="flex items-center justify-between px-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2">
             {isRecording && !speechRecognitionRef.current && (
               <p className="text-sm text-destructive font-medium flex items-center gap-2">
@@ -278,7 +301,26 @@ export function ChatInput({ onSendMessage, isSending, disabled }: ChatInputProps
             )}
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="chat-language" className="text-xs text-muted-foreground font-medium">
+                Language
+              </Label>
+              <Select
+                value={language}
+                onValueChange={(value) => onLanguageChange(value as LanguageCode)}
+                disabled={disabled || isRecording || sttMutation.isPending}
+              >
+                <SelectTrigger id="chat-language" className="h-8 w-[132px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_LANGUAGES.map((item) => (
+                    <SelectItem key={item.code} value={item.code}>{item.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Label htmlFor="web-search" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5 font-medium">
               <Globe className={`w-3.5 h-3.5 ${webSearchEnabled ? "text-primary" : ""}`} />
               Web Search

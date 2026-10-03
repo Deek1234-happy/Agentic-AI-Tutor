@@ -2,14 +2,16 @@ import { useEffect, useRef } from "react";
 import { MessageSquare } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import type { ChatMessageResponse } from "../../../types/chat";
+import type { LanguageCode } from "../../../types/language";
 
 interface MessageListProps {
   messages: ChatMessageResponse[];
   isSending: boolean;
   onOpenGraph: (kgContext: any) => void;
+  language: LanguageCode;
 }
 
-export function MessageList({ messages, isSending, onOpenGraph }: MessageListProps) {
+export function MessageList({ messages, isSending, onOpenGraph, language }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export function MessageList({ messages, isSending, onOpenGraph }: MessageListPro
     <div className="flex-1 overflow-y-auto p-4 sm:p-6">
       <div className="max-w-4xl mx-auto w-full space-y-6">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} onOpenGraph={onOpenGraph} />
+          <MessageBubble key={message.id} message={message} onOpenGraph={onOpenGraph} language={language} />
         ))}
         
         {isSending && (

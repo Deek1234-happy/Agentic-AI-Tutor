@@ -66,6 +66,16 @@ namespace AgenticAITutor.Services
             });
         }
 
+        public Task<bool> FileExistsAsync(string relativePath)
+        {
+            string webRootPath = webHostEnvironment.WebRootPath;
+            if (string.IsNullOrEmpty(webRootPath))
+                webRootPath = Path.Combine(webHostEnvironment.ContentRootPath, "wwwroot");
+
+            var filePath = Path.Combine(webRootPath, relativePath);
+            return Task.FromResult(File.Exists(filePath));
+        }
+
         public async Task<string> MoveFileAsync(string oldRelativePath, string userFolder, string newSubFolder)
         {
             string webRootPath = webHostEnvironment.WebRootPath;

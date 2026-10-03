@@ -9,7 +9,7 @@ namespace AgenticAITutor.Services
         Task<ServiceResponse<AIMessageResponse>> SendAIMessageAsync(UserMessageRequest request);
         Task<ServiceResponse<WebSearchResponse>> SendWebMessageAsync(UserMessageRequest request);
         Task<ServiceResponse<List<ChatMessageResponse>>> GetSessionMessagesAsync(Guid userId, Guid sessionId);
-        Task<ServiceResponse<string>> SpeechToTextAsync(IFormFile audioFile);
-        Task<ServiceResponse<string>> TextToSpeechAsync(Guid messageId, Guid userId);
+        Task<ServiceResponse<string>> SpeechToTextAsync(IFormFile audioFile, string? language = null);
+        Task<ServiceResponse<string>> TextToSpeechAsync(Guid messageId, Guid userId, string language = "en");
     }
 }

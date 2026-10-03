@@ -3,6 +3,7 @@ using AgenticAITutor.Models.DTOs;
 using AgenticAITutor.Models.DTOs.ChatMessage;
 using AgenticAITutor.Repositories;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.WebUtilities;
 using System.Data;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -63,6 +64,15 @@ namespace AgenticAITutor.Services
                 && !path.Split('/').Contains("..")
                 ? path
                 : null;
+        }
+
+        private static string? GetStoredAudioLanguage(string? audioUrl)
+        {
+            if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri))
+                return null;
+
+            var query = QueryHelpers.ParseQuery(uri.Query);
+            return query.TryGetValue("language", out var language) ? language.ToString() : null;
         }
 
         public async Task<ServiceResponse<AIMessageResponse>> SendAIMessageAsync(UserMessageRequest request)
@@ -166,7 +176,8 @@ namespace AgenticAITutor.Services
             WebSearchRequest webSearchRequest = new WebSearchRequest
             {
                 Question = request.UserMessage,
-                SessionId = request.SessionId
+                SessionId = request.SessionId,
+                Language = request.Language
             };
 
             var response = new ServiceResponse<WebSearchResponse>();
@@ -473,7 +484,7 @@ namespace AgenticAITutor.Services
         }
 
 
-        public async Task<ServiceResponse<string>> SpeechToTextAsync(IFormFile audioFile)
+        public async Task<ServiceResponse<string>> SpeechToTextAsync(IFormFile audioFile, string? language = null)
         {
             var response = new ServiceResponse<string>();
 
@@ -516,6 +527,8 @@ namespace AgenticAITutor.Services
                 var fileStreamContent = new StreamContent(audioFile.OpenReadStream());
                 fileStreamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(audioFile.ContentType);
                 multipartFormContent.Add(fileStreamContent, name: "audio_file", fileName: audioFile.FileName);
+                if (!string.IsNullOrWhiteSpace(language))
+                    multipartFormContent.Add(new StringContent(language), "language");
 
                 try
                 {
@@ -545,7 +558,7 @@ namespace AgenticAITutor.Services
             return response;
         }
 
-        public async Task<ServiceResponse<string>> TextToSpeechAsync(Guid messageId, Guid userId)
+        public async Task<ServiceResponse<string>> TextToSpeechAsync(Guid messageId, Guid userId, string language = "en")
         {
             var response = new ServiceResponse<string>();
 
@@ -567,12 +580,25 @@ namespace AgenticAITutor.Services
                 return response;
             }
 
-            // Regenerate once to replace audio created before markdown cleanup was added.
+            var cachedAudioPath = GetStoredAudioPath(message.AudioUrl);
+            if (cachedAudioPath != null
+                && string.Equals(GetStoredAudioLanguage(message.AudioUrl), language, StringComparison.OrdinalIgnoreCase)
+                && await fileStorageService.FileExistsAsync(cachedAudioPath))
+            {
+                response.Data = message.AudioUrl;
+                response.Success = true;
+                return response;
+            }
+
             string aiBaseURL = configuration["AIService:BaseURL"] ?? "https://localhost:8000";
             string ttsPath = configuration["AIService:TTSPath"] ?? "audio/tts";
             string ttsURL = $"{aiBaseURL.TrimEnd('/')}/{ttsPath.TrimStart('/')}";
 
-            var ttsRequest = new TTSRequest { Text = SanitizeTextForSpeech(message.Content) };
+            var ttsRequest = new TTSRequest
+            {
+                Text = SanitizeTextForSpeech(message.Content),
+                Language = language
+            };
 
             try
             {
@@ -596,7 +622,7 @@ namespace AgenticAITutor.Services
                 string aiAudioRelativePath = await fileStorageService.SaveFileAsync(audioBytes, $"tts_{messageId}.wav", userId.ToString(), message.SessionId.ToString());
 
                 // Update DB so we don't have to generate it again if they click play twice
-                message.AudioUrl = $"{configuration["AppConfig:BaseURL"]}/{aiAudioRelativePath}";
+                message.AudioUrl = $"{configuration["AppConfig:BaseURL"]}/{aiAudioRelativePath}?language={Uri.EscapeDataString(language)}";
                 await messageRepository.UpdateAsync(message);
 
                 if (previousAudioPath != null)

@@ -8,6 +8,7 @@ from .embedding import embed_texts
 from .vector_store import search_similar_chunks
 from .rag_service import build_context, IDK_MESSAGE
 from .llm import generate_chat_answer
+from .language_config import LANGUAGES, idk_message, response_language_instruction
 from collections import defaultdict
 import re
 import os
@@ -257,7 +258,12 @@ def decompose_question(question: str):
         return [question]
 
 
-def classify_intent_llm(message: str) -> dict:
+def classify_intent_llm(message: str, language: str = "en") -> dict:
+    language_rule = (
+        f"- Return the greeting reply in {LANGUAGES[language]['name']}.\n"
+        if language != "en"
+        else ""
+    )
     prompt = f"""
 You are an intent classifier.
 
@@ -282,7 +288,7 @@ Rules:
 - greeting + question = greeting_with_question
 - Detect the language of the user message.
 - Return the greeting reply in the **same language** as the detected message.
-- Output JSON only.
+{language_rule}- Output JSON only.
 
 User message:
 {message}
@@ -310,6 +316,7 @@ def _try_kg_retrieval(
     session_id:           str,
     user_id:              str,
     allowed_document_ids: list,
+    language:             str = "en",
 ) -> dict:
     """
     Attempt a session-aware, subject-scoped KG retrieval.
@@ -338,7 +345,7 @@ def _try_kg_retrieval(
 
         focused = focus_subgraph_for_query(subgraph, question)
         kg_context = subgraph_to_kg_context(focused)
-        kg_answer = generate_kg_answer(question=question, subgraph=focused)
+        kg_answer = generate_kg_answer(question=question, subgraph=focused, language=language)
 
         print(f"\n[Chat] KG answer preview: {kg_answer[:200]}")
         return {
@@ -363,11 +370,13 @@ def _try_kg_retrieval(
 # ============================================================
 
 def handle_chat(payload):
+    language = getattr(payload, "language", "en") or "en"
+    localized_idk = idk_message(language)
     empty_kg = {"entities": [], "relationships": []}
 
     if not session_exists(payload.session_id):
         return {
-            "answer": IDK_MESSAGE,
+            "answer": localized_idk,
             "confidence_score": 0.0,
             "citations": [],
             "kg_context": empty_kg,
@@ -376,7 +385,7 @@ def handle_chat(payload):
         }
 
     # 1️⃣ Classify intent first
-    intent_result = classify_intent_llm(payload.question)
+    intent_result = classify_intent_llm(payload.question, language)
 
     # 2️⃣ If only greeting → return immediately
     if intent_result["intent"] == "greeting_only":
@@ -478,11 +487,16 @@ def handle_chat(payload):
     # RAG Answer  (original, unchanged)
     # ============================
 
-    rag_answer = IDK_MESSAGE
+    rag_answer = localized_idk
 
     if retrieved:
         context = build_context(retrieved)
 
+        language_rule = (
+            "- Answer the QUESTION in the **same language as it is asked**."
+            if language == "en"
+            else f"- {response_language_instruction(language)}"
+        )
         rag_prompt = f"""
 You are an academic tutor.
 
@@ -493,10 +507,10 @@ IMPORTANT RULES:
 - You may reorganize, combine, summarize, and clarify ideas from the context.
 - You may explain relationships between ideas that are explicitly supported by the context.
 - Do NOT introduce new concepts, examples, or facts not present in the context.
-- Answer the QUESTION in the **same language as it is asked**.
+{language_rule}
 - If the message starts with a greeting and you are also prepending a greeting, do NOT repeat the greeting at the beginning of your answer.
 - If the context does not provide enough information, say exactly:
-"{IDK_MESSAGE}"
+"{localized_idk}"
 
 Write the explanation in a structured and educational style.
 Use paragraphs and clear transitions.
@@ -511,9 +525,9 @@ EXPLANATION:
 """
         try:
             rag_answer = generate_chat_answer(rag_prompt, temperature=0.1)
-            rag_answer = rag_answer.strip() if rag_answer else IDK_MESSAGE
+            rag_answer = rag_answer.strip() if rag_answer else localized_idk
         except Exception:
-            rag_answer = IDK_MESSAGE
+            rag_answer = localized_idk
 
         print("\n=== RAG ANSWER ===")
         print(rag_answer[:300])
@@ -539,6 +553,7 @@ EXPLANATION:
         session_id=payload.session_id,
         user_id=payload.user_id,
         allowed_document_ids=payload.allowed_document_ids,
+        language=language,
     )
     kg_answer = kg_result["answer"]
 
@@ -552,6 +567,7 @@ EXPLANATION:
             question=payload.question,
             rag_answer=rag_answer,
             kg_answer=kg_answer,
+            language=language,
         )
     except Exception as exc:
         print(f"[Chat] Fusion failed, falling back to RAG answer: {exc}")
@@ -566,9 +582,9 @@ EXPLANATION:
         final_answer = prepend_greeting + final_answer
 
     # Guard: both sources returned IDK
-    if not final_answer or IDK_MESSAGE.lower() in final_answer.lower():
+    if not final_answer or localized_idk.lower() in final_answer.lower() or IDK_MESSAGE.lower() in final_answer.lower():
         return {
-            "answer": IDK_MESSAGE,
+            "answer": localized_idk,
             "confidence_score": 0.0,
             "citations": [],
             "kg_context": kg_result["kg_context"],

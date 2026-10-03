@@ -1,6 +1,7 @@
 from faster_whisper import WhisperModel
 from typing import Tuple
 import os
+from app.language_config import LANGUAGES, normalize_language
 
 # Load model once for better performance
 MODEL_SIZE = "medium"  # change to "small" if RAM is limited
@@ -18,7 +19,7 @@ else:
     model = WhisperModel(MODEL_SIZE, device="cpu", compute_type=_compute)
 
 
-def transcribe_audio(audio_path: str) -> Tuple[str, float]:
+def transcribe_audio(audio_path: str, language: str | None = None) -> Tuple[str, float]:
     """
     Transcribes an audio file using Faster-Whisper.
 
@@ -36,10 +37,16 @@ def transcribe_audio(audio_path: str) -> Tuple[str, float]:
         raise FileNotFoundError("Audio file not found")
 
     # Perform transcription
+    language_code = normalize_language(language) if language else None
+    whisper_language = (
+        LANGUAGES[language_code]["whisper"]
+        if language_code and language_code != "en"
+        else None
+    )
     segments, info = model.transcribe(
         audio_path,
         beam_size=5,
-        language= None,
+        language=whisper_language,
         condition_on_previous_text=False,
         task="transcribe",
         initial_prompt = "The following audio may contain multiple languages. Transcribe exactly as spoken. Do not translate.",

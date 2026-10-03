@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from uuid import UUID
+from typing import Literal
 import os
 
 from .chat_service import (
@@ -18,6 +19,7 @@ router = APIRouter()
 class WebSearchRequest(BaseModel):
     session_id: UUID
     question: str
+    language: Literal["en", "kn", "hi", "ml", "ta", "te"] = "en"
 
 
 @router.post("", summary="Web search chat")
@@ -50,7 +52,7 @@ def web_search_chat(payload: WebSearchRequest):
         print("========================\n")
 
         # send query + original user question (for language control) to n8n workflow
-        result = run_web_search(final_query, payload.question)
+        result = run_web_search(final_query, payload.question, payload.language)
 
         print("\n=== FINAL RESULT ===")
         print(result)

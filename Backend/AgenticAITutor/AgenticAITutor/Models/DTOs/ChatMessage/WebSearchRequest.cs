@@ -11,5 +11,9 @@ namespace AgenticAITutor.Models.DTOs
         [JsonPropertyName("question")]
         [Required]
         public string Question { get; set; } = string.Empty;
+        [JsonPropertyName("language")]
+        [Required]
+        [RegularExpression("^(en|kn|hi|ml|ta|te)$", ErrorMessage = "Unsupported language.")]
+        public string Language { get; set; } = "en";
     }
 }

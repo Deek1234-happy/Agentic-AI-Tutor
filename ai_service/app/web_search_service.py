@@ -2,11 +2,13 @@ import requests
 import os
 import re
 from urllib.parse import urlparse
+from .language_config import response_language_instruction
+from .llm import generate_chat_answer
 
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 
 
-def run_web_search(query: str, original_question: str | None = None):
+def run_web_search(query: str, original_question: str | None = None, language: str = "en"):
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
         raise ValueError("Web search is not configured. Add TAVILY_API_KEY to ai_service/.env and restart the AI service.")
@@ -147,6 +149,33 @@ def run_web_search(query: str, original_question: str | None = None):
             answer_text = f"I found {len(sources)} web sources."
         else:
             answer_text = "No web results found."
+
+    if language != "en" and answer_text:
+        source_context = "\n".join(
+            f"{source.get('title', '')}: {source.get('content', '')} {source.get('url', '')}"
+            for source in raw_sources
+        )
+        prompt = f"""
+Use the web-search answer and source extracts below to answer the user's question.
+Do not add unsupported claims. Keep URLs, filenames, technical terms, and source identifiers unchanged.
+{response_language_instruction(language)}
+
+Question:
+{original_question or query}
+
+Web-search answer:
+{answer_text}
+
+Source extracts:
+{source_context}
+
+Answer:
+"""
+        try:
+            localized_answer = generate_chat_answer(prompt, temperature=0.1)
+            answer_text = localized_answer.strip() if localized_answer else answer_text
+        except Exception:
+            pass
 
     return {
         "answer": answer_text,

@@ -134,6 +134,8 @@ NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_neo4j_password
 ```
 
+For multilingual **Listen** playback, the AI service uses `GOOGLE_API_KEY` for Gemini TTS when the browser has no voice for the selected language. To use a separate key, set `GEMINI_TTS_API_KEY`. Optional overrides are `GEMINI_TTS_MODEL` (defaults to `gemini-3.8-flash-lite-tts`) and `GEMINI_TTS_VOICE` (defaults to `Kore`). Keep these values in the AI service environment, never in the frontend.
+
 Start the FastAPI app:
 
 ```bash

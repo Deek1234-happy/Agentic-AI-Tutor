@@ -9,23 +9,26 @@ import { ChatInput } from "../components/chat/ChatInput";
 import { KnowledgeGraphViewer } from "../components/chat/KnowledgeGraphViewer";
 import { useChatMessages, useChatSessions } from "../../hooks/useChat";
 import type { KnowledgeGraphContext } from "../../types/chat";
+import type { LanguageCode } from "../../types/language";
 
 export default function Chat() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [kgViewerData, setKgViewerData] = useState<KnowledgeGraphContext | null>(null);
+  const [language, setLanguage] = useState<LanguageCode>("en");
 
   const { data: sessions } = useChatSessions();
   const activeSession = sessions?.find(s => s.id === activeSessionId);
 
   const { data: messages, sendMessage } = useChatMessages(activeSessionId);
 
-  const handleSendMessage = (content: string, useWebSearch: boolean) => {
+  const handleSendMessage = (content: string, useWebSearch: boolean, selectedLanguage: LanguageCode) => {
     if (!activeSessionId) return;
     sendMessage.mutate({
       sessionId: activeSessionId,
       userMessage: content,
       searchWeb: useWebSearch,
+      language: selectedLanguage,
     });
   };
 
@@ -98,12 +101,15 @@ export default function Chat() {
                   messages={messages || []}
                   isSending={sendMessage.isPending}
                   onOpenGraph={setKgViewerData}
+                  language={language}
                 />
                 <div className="border-t bg-background">
                   <ChatInput
                     onSendMessage={handleSendMessage}
                     isSending={sendMessage.isPending}
                     disabled={!activeSessionId}
+                    language={language}
+                    onLanguageChange={setLanguage}
                   />
                 </div>
               </div>

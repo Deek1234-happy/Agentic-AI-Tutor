@@ -92,7 +92,7 @@
             <response code="401">Invalid or missing token</response>
             <response code="400">Validation Error</response>
         </member>
-        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SpeechToText(Microsoft.AspNetCore.Http.IFormFile)">
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.SpeechToText(Microsoft.AspNetCore.Http.IFormFile,System.String)">
             <summary>Convert an audio file to text (Transcription)</summary>
             <remarks>
             Transcribes a spoken audio file into text using the AI Speech-To-Text model.
@@ -104,7 +104,7 @@
             <response code="400">Audio processing failed, invalid format, or missing file</response>
             <response code="401">Invalid or missing token</response>
         </member>
-        <member name="M:AgenticAITutor.Controllers.ChatMessageController.TextToSpeech(System.Guid)">
+        <member name="M:AgenticAITutor.Controllers.ChatMessageController.TextToSpeech(System.Guid,System.String)">
             <summary>Generate playable audio for an existing AI message</summary>
             <remarks>
             Generates a Text-To-Speech (TTS) audio file for a specific message that the AI previously generated.

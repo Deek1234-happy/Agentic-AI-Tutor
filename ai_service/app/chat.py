@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Literal
 from uuid import UUID
 
 from .chat_service import handle_chat
@@ -16,6 +16,7 @@ class ChatRequest(BaseModel):
     question: str
     allowed_document_ids: List[UUID]
     top_k: int = 5
+    language: Literal["en", "kn", "hi", "ml", "ta", "te"] = "en"
 
 
 class Citation(BaseModel):

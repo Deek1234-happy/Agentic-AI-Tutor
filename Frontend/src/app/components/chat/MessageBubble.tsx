@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Volume2, ChevronDown, ChevronUp, FileText, ExternalLink, Network } from "lucide-react";
+import { Volume2, ChevronDown, ChevronUp, FileText, ExternalLink, Network, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import type { ChatMessageResponse } from "../../../types/chat";
+import { getLanguageLocale, type LanguageCode } from "../../../types/language";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getDocumentById } from "../../../services/documentService";
+import { useAudioFeatures } from "../../../hooks/useChat";
 
 interface MessageBubbleProps {
   message: ChatMessageResponse;
   onOpenGraph: (kgContext: any) => void;
+  language: LanguageCode;
 }
 
 
@@ -26,24 +29,56 @@ function CitationDocumentName({ documentId, fallback, hasMetadataName }: { docum
   return <>{data?.fileName || fallback}</>;
 }
 
-export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
+export function MessageBubble({ message, onOpenGraph, language }: MessageBubbleProps) {
   const isUser = message.role?.toLowerCase() === "user" || message.role?.toLowerCase() === "student";
   const kg = message.kgContext || message.kg_context;
   const [citationsOpen, setCitationsOpen] = useState(false);
   const [webSourcesOpen, setWebSourcesOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const { ttsMutation } = useAudioFeatures();
   const speechTextRef = useRef<HTMLDivElement>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => () => {
     if (utteranceRef.current) {
       window.speechSynthesis.cancel();
       utteranceRef.current = null;
     }
+    audioRef.current?.pause();
+    audioRef.current = null;
   }, []);
+
+  const playServerVoice = () => {
+    ttsMutation.mutate({ messageId: message.id, language }, {
+      onSuccess: (result) => {
+        const audio = new Audio(result.audio_url);
+        audioRef.current = audio;
+        audio.onended = () => {
+          audioRef.current = null;
+          setIsSpeaking(false);
+        };
+        audio.onerror = () => {
+          audioRef.current = null;
+          setIsSpeaking(false);
+          toast.error("The generated voice could not be played. The text response is unchanged.");
+        };
+        setIsSpeaking(true);
+        void audio.play().catch(() => {
+          audioRef.current = null;
+          setIsSpeaking(false);
+          toast.error("The generated voice could not be played. The text response is unchanged.");
+        });
+      },
+    });
+  };
 
   const handleListen = () => {
     if (!("speechSynthesis" in window)) {
+      if (language !== "en") {
+        playServerVoice();
+        return;
+      }
       toast.error("Speech playback is not supported by this browser.");
       return;
     }
@@ -51,6 +86,8 @@ export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       utteranceRef.current = null;
+      audioRef.current?.pause();
+      audioRef.current = null;
       setIsSpeaking(false);
       return;
     }
@@ -63,11 +100,17 @@ export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    const language = /[\u0600-\u06FF]/.test(text) ? "ar" : "en";
-    utterance.lang = language === "ar" ? "ar" : "en-US";
-    utterance.voice = window.speechSynthesis.getVoices().find((voice) =>
-      voice.lang.toLowerCase().startsWith(language)
-    ) ?? null;
+    const voiceLanguage = language === "en" && /[\u0600-\u06FF]/.test(text) ? "ar" : language;
+    const locale = voiceLanguage === "ar" ? "ar" : getLanguageLocale(language);
+    const voice = window.speechSynthesis.getVoices().find((candidate) =>
+      candidate.lang.toLowerCase().startsWith(voiceLanguage)
+    );
+    if (language !== "en" && !voice) {
+      playServerVoice();
+      return;
+    }
+    utterance.lang = locale;
+    utterance.voice = voice ?? null;
     utterance.onend = () => {
       if (utteranceRef.current === utterance) {
         utteranceRef.current = null;
@@ -79,7 +122,11 @@ export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
       utteranceRef.current = null;
       setIsSpeaking(false);
       if (event.error !== "canceled" && event.error !== "interrupted") {
-        toast.error("The browser could not read this message aloud.");
+        if (language !== "en") {
+          playServerVoice();
+        } else {
+          toast.error("The browser could not read this message aloud.");
+        }
       }
     };
 
@@ -113,9 +160,12 @@ export function MessageBubble({ message, onOpenGraph }: MessageBubbleProps) {
                 size="sm"
                 className="h-7 text-xs font-medium text-muted-foreground hover:text-primary"
                 onClick={handleListen}
+                disabled={ttsMutation.isPending}
               >
-                <Volume2 className={`w-3.5 h-3.5 mr-1.5 ${isSpeaking ? "text-primary animate-pulse" : ""}`} />
-                {isSpeaking ? "Stop" : "Listen"}
+                {ttsMutation.isPending
+                  ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  : <Volume2 className={`w-3.5 h-3.5 mr-1.5 ${isSpeaking ? "text-primary animate-pulse" : ""}`} />}
+                {ttsMutation.isPending ? "Preparing" : isSpeaking ? "Stop" : "Listen"}
               </Button>
 
               {kg?.entities && kg.entities.length > 0 && (

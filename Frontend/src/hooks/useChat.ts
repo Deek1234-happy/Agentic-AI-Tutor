@@ -11,6 +11,7 @@ import {
   generateTTS,
 } from "../services/chatService";
 import type { ChatSessionResponse, ChatMessageResponse, UserMessageRequest, WebSearchResponse, AIMessageResponse } from "../types/chat";
+import type { LanguageCode } from "../types/language";
 import { toast } from "sonner";
 
 export const CHAT_SESSIONS_KEY = ["chatSessions"];
@@ -128,16 +129,17 @@ export function useChatMessages(sessionId: string | null) {
 
 export function useAudioFeatures() {
   const sttMutation = useMutation({
-    mutationFn: transcribeAudio,
+    mutationFn: ({ audioFile, language }: { audioFile: File; language: string }) => transcribeAudio(audioFile, language),
     onError: (err: any) => {
       toast.error(err.message || "Speech-to-Text failed");
     },
   });
 
   const ttsMutation = useMutation({
-    mutationFn: generateTTS,
-    onError: (err: any) => {
-      toast.error(err.message || "Text-to-Speech failed");
+    mutationFn: ({ messageId, language }: { messageId: string; language: LanguageCode }) =>
+      generateTTS(messageId, language),
+    onError: () => {
+      toast.error("Voice output could not be generated. The text response is unchanged.");
     },
   });
 

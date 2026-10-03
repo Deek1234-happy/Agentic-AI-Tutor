@@ -45,6 +45,7 @@ export async function sendChatMessage(payload: UserMessageRequest): Promise<AIMe
     question: payload.userMessage,
     SearchWeb: false,
     searchWeb: false,
+    language: payload.language ?? "en",
   };
   return apiClient.post<AIMessageResponse>("/api/ChatMessage/SendMessage", body, {
     auth: true,
@@ -61,6 +62,7 @@ export async function searchWebMessage(payload: UserMessageRequest): Promise<Web
     question: payload.userMessage,
     SearchWeb: true,
     searchWeb: true,
+    language: payload.language ?? "en",
   };
   return apiClient.post<WebSearchResponse>("/api/ChatMessage/SearchWeb", body, { auth: true });
 }
@@ -71,9 +73,10 @@ export async function searchWebMessage(payload: UserMessageRequest): Promise<Web
  * Upload an audio file to transcribe to text.
  * Requires multipart/form-data.
  */
-export async function transcribeAudio(audioFile: File): Promise<STTResponse> {
+export async function transcribeAudio(audioFile: File, language: string = "en"): Promise<STTResponse> {
   const formData = new FormData();
   formData.append("audio_file", audioFile);
+  formData.append("language", language);
 
   const response = await authFetch("/api/ChatMessage/STT", {
     method: "POST",
@@ -91,8 +94,9 @@ export async function transcribeAudio(audioFile: File): Promise<STTResponse> {
 /**
  * Generate playable TTS audio URL for an existing message.
  */
-export async function generateTTS(messageId: string): Promise<TTSResponse> {
-  return apiClient.post<TTSResponse>(`/api/ChatMessage/${messageId}/TTS`, {}, {
+export async function generateTTS(messageId: string, language: string = "en"): Promise<TTSResponse> {
+  const query = new URLSearchParams({ language });
+  return apiClient.post<TTSResponse>(`/api/ChatMessage/${messageId}/TTS?${query.toString()}`, {}, {
     auth: true,
     timeoutMs: 180000,
   });
