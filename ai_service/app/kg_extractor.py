@@ -5,7 +5,7 @@ import os
 import re
 from typing import List, Dict
 
-from .llm import generate_answer
+from .llm import generate_answer, get_gemini_api_key
 from .kg_checkpoint import (
     load_checkpoint,
     mark_checkpoint_completed,
@@ -272,9 +272,9 @@ def _call_llm_for_json(prompt: str, label: str) -> dict:
     try:
         provider = os.getenv("KG_LLM_PROVIDER", "groq").strip().lower()
         if provider == "gemini":
-          api_key_override = os.getenv("GOOGLE_API_KEY")
+          api_key_override = get_gemini_api_key("GEMINI_KG_API_KEY")
           if not api_key_override:
-            raise RuntimeError("GOOGLE_API_KEY is required when KG_LLM_PROVIDER=gemini")
+            raise RuntimeError("GEMINI_KG_API_KEY is required when KG_LLM_PROVIDER=gemini")
           api_url_override = os.getenv(
             "KG_LLM_API_URL",
             "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",

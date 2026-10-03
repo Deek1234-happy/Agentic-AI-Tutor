@@ -8,6 +8,7 @@ import os
 from typing import Literal
 
 from app.audio.hybrid_tts import HybridTTS
+from app.llm import get_gemini_api_key
 
 router = APIRouter()
 tts_engine = None
@@ -34,11 +35,11 @@ def sanitize_for_tts(text: str) -> str:
 def synthesize_with_gemini(text: str) -> bytes:
     global gemini_client
 
-    api_key = os.getenv("GEMINI_TTS_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key = get_gemini_api_key("GEMINI_TTS_API_KEY")
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="Gemini TTS is not configured. Set GEMINI_TTS_API_KEY or GOOGLE_API_KEY in the AI service environment.",
+            detail="Gemini TTS is not configured. Set GEMINI_TTS_API_KEY in the AI service environment.",
         )
 
     if gemini_client is None:

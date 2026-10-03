@@ -23,6 +23,11 @@ LLM_URL = os.getenv("LLM_URL", "https://api.groq.com/openai/v1/chat/completions"
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen/qwen3.8-27b")
 
 
+def get_gemini_api_key(feature_env_var: str) -> Optional[str]:
+    """Use a feature-specific Gemini key, falling back to the legacy shared key."""
+    return os.getenv(feature_env_var) or os.getenv("GOOGLE_API_KEY")
+
+
 # ===============================
 # Generic LLM Completion
 # ===============================
@@ -217,9 +222,9 @@ def generate_answer(
 def generate_chat_answer(prompt: str, temperature: float = 0.1) -> str:
     provider = os.getenv("CHAT_LLM_PROVIDER", "gemini").strip().lower()
     if provider == "gemini":
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = get_gemini_api_key("GEMINI_CHAT_API_KEY")
         if not api_key:
-            raise RuntimeError("GOOGLE_API_KEY is required for tutor chat")
+            raise RuntimeError("GEMINI_CHAT_API_KEY is required for tutor chat")
         api_url = os.getenv(
             "CHAT_LLM_API_URL",
             "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",

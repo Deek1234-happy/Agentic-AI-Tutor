@@ -31,7 +31,7 @@ You will also need API keys for external AI services:
 
 - Groq API key
 - OpenAI API key (for Whisper/STT)
-- Google Gemini API key (used for quiz generation dataset creation and related offline AI workflows)
+- Separate Google Gemini API keys for tutor chat, KG extraction, quiz generation, and TTS
 
 > The project currently does not include committed production app settings or secrets. You must create local configuration files for the Python service, .NET backend, and frontend.
 
@@ -126,7 +126,12 @@ Create a local environment file named `.env` in [ai_service](ai_service):
 
 ```env
 GROQ_API_KEY=your_groq_key
-GOOGLE_API_KEY=your_gemini_key
+GEMINI_CHAT_API_KEY=your_chat_gemini_key
+GEMINI_KG_API_KEY=your_kg_gemini_key
+GEMINI_QUIZ_API_KEY=your_quiz_gemini_key
+GEMINI_TTS_API_KEY=your_tts_gemini_key
+# Optional legacy fallback for any Gemini feature without its own key:
+# GOOGLE_API_KEY=your_shared_gemini_key
 OPENAI_API_KEY=your_openai_key
 POSTGRES_URL=postgresql://postgres:your_password@localhost:5432/AgenticAITutor
 NEO4J_URI=bolt://localhost:7687
@@ -134,7 +139,7 @@ NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_neo4j_password
 ```
 
-For multilingual **Listen** playback, the AI service uses `GOOGLE_API_KEY` for Gemini TTS when the browser has no voice for the selected language. To use a separate key, set `GEMINI_TTS_API_KEY`. Optional overrides are `GEMINI_TTS_MODEL` (defaults to `gemini-3.8-flash-lite-tts`) and `GEMINI_TTS_VOICE` (defaults to `Kore`). Keep these values in the AI service environment, never in the frontend.
+For multilingual **Listen** playback, the AI service uses `GEMINI_TTS_API_KEY` when the browser has no voice for the selected language. Optional overrides are `GEMINI_TTS_MODEL` (defaults to `gemini-3.8-flash-lite-tts`) and `GEMINI_TTS_VOICE` (defaults to `Kore`). Keep these values in the AI service environment, never in the frontend. `GOOGLE_API_KEY` is supported as a legacy fallback when a feature-specific key is not set.
 
 Start the FastAPI app:
 

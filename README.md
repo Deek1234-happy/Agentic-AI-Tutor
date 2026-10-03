@@ -581,7 +581,11 @@ pip install -r requirements.txt
 cp .env.example .env
 # Set the following in .env:
 # GROQ_API_KEY=<your_groq_api_key>
-# GOOGLE_API_KEY=<your_gemini_api_key>          # offline dataset construction only
+# GEMINI_CHAT_API_KEY=<your_chat_gemini_key>
+# GEMINI_KG_API_KEY=<your_kg_gemini_key>
+# GEMINI_QUIZ_API_KEY=<your_quiz_gemini_key>
+# GEMINI_TTS_API_KEY=<your_tts_gemini_key>
+# GOOGLE_API_KEY=<your_legacy_shared_gemini_key> # optional fallback for unset feature keys
 # OPENAI_API_KEY=<your_openai_key>              # Whisper STT
 # POSTGRES_URL=postgresql://user:pass@localhost:5432/gent_db
 # NEO4J_URI=bolt://localhost:7687

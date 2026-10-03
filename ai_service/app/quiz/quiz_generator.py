@@ -387,13 +387,13 @@ def _real_model_call(system_prompt: str, user_prompt: str, attempt: int = 1) -> 
     _load_model()  # no-op after first call
 
     if _tokenizer is None or _model is None:
-        from app.llm import generate_answer
+        from app.llm import generate_answer, get_gemini_api_key
 
         provider = os.getenv("QUIZ_LLM_PROVIDER", "gemini").strip().lower()
         if provider == "gemini":
-            api_key = os.getenv("GOOGLE_API_KEY")
+            api_key = get_gemini_api_key("GEMINI_QUIZ_API_KEY")
             if not api_key:
-                raise RuntimeError("GOOGLE_API_KEY is required for quiz generation")
+                raise RuntimeError("GEMINI_QUIZ_API_KEY is required for quiz generation")
             fallback_models = [
                 name.strip()
                 for name in os.getenv("QUIZ_LLM_FALLBACK_MODELS", "").split(",")
