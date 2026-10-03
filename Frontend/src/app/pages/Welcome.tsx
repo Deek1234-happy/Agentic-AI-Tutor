@@ -317,7 +317,15 @@ export default function Welcome() {
 
       {/* ── Auth Modal ─────────────────────────────────────────────────────────── */}
       <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
-        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogContent
+          className="sm:max-w-md overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 shadow-[0_25px_80px_rgba(15,23,42,0.14)]"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          style={{
+            backgroundImage: "linear-gradient(135deg, rgba(255,255,255,0.86), rgba(255,255,255,0.75)), url('https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80')",
+            backgroundSize: "cover",
+            backgroundPosition: "center top",
+          }}
+        >
           <button
             onClick={() => setShowAuthModal(false)}
             className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
@@ -332,22 +340,22 @@ export default function Welcome() {
                 <Brain className="w-8 h-8 text-primary-foreground" />
               </div>
             </div>
-            <DialogTitle className="text-center text-2xl">
+            <DialogTitle className="text-center text-2xl font-bold text-slate-900">
               {authTab === "login" ? "Welcome Back" : "Create Account"}
             </DialogTitle>
           </DialogHeader>
 
           <Tabs value={authTab} onValueChange={(v) => { setAuthTab(v as "login" | "register"); setLoginError(null); setRegisterError(null); }} className="w-full mt-4">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100/80 p-1 border border-slate-200/80 backdrop-blur-sm">
+              <TabsTrigger value="login" className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:font-semibold text-slate-600">Login</TabsTrigger>
+              <TabsTrigger value="register" className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:font-semibold text-slate-600">Register</TabsTrigger>
             </TabsList>
 
             {/* ── Login Tab ── */}
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="modal-login-email">Email</Label>
+                  <Label htmlFor="modal-login-email" className="text-slate-700 font-semibold">Email</Label>
                   <Input
                     id="modal-login-email"
                     type="email"
@@ -361,7 +369,7 @@ export default function Welcome() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="modal-login-password">Password</Label>
+                  <Label htmlFor="modal-login-password" className="text-slate-700 font-semibold">Password</Label>
                   <div className="relative">
                     <Input
                       id="modal-login-password"
@@ -392,7 +400,7 @@ export default function Welcome() {
                   </p>
                 )}
 
-                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting} id="btn-login-submit">
+                <Button type="submit" className="w-full shadow-lg shadow-primary/25 ring-1 ring-primary/10 hover:shadow-primary/40" size="lg" disabled={isSubmitting} id="btn-login-submit">
                   {isSubmitting ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</>
                   ) : (
@@ -413,7 +421,7 @@ export default function Welcome() {
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="modal-register-firstname">First Name</Label>
+                    <Label htmlFor="modal-register-firstname" className="text-slate-700 font-semibold">First Name</Label>
                     <Input
                       id="modal-register-firstname"
                       type="text"
@@ -426,7 +434,7 @@ export default function Welcome() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="modal-register-lastname">Last Name</Label>
+                    <Label htmlFor="modal-register-lastname" className="text-slate-700 font-semibold">Last Name</Label>
                     <Input
                       id="modal-register-lastname"
                       type="text"
@@ -441,7 +449,7 @@ export default function Welcome() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="modal-register-email">Email</Label>
+                  <Label htmlFor="modal-register-email" className="text-slate-700 font-semibold">Email</Label>
                   <Input
                     id="modal-register-email"
                     type="email"
@@ -455,7 +463,7 @@ export default function Welcome() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="modal-register-password">Password</Label>
+                  <Label htmlFor="modal-register-password" className="text-slate-700 font-semibold">Password</Label>
                   <div className="relative">
                     <Input
                       id="modal-register-password"
@@ -481,7 +489,7 @@ export default function Welcome() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="modal-register-confirm-password">Confirm Password</Label>
+                  <Label htmlFor="modal-register-confirm-password" className="text-slate-700 font-semibold">Confirm Password</Label>
                   <div className="relative">
                     <Input
                       id="modal-register-confirm-password"
@@ -512,7 +520,7 @@ export default function Welcome() {
                   </p>
                 )}
 
-                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting} id="btn-register-submit">
+                <Button type="submit" className="w-full shadow-lg shadow-primary/25 ring-1 ring-primary/10 hover:shadow-primary/40" size="lg" disabled={isSubmitting} id="btn-register-submit">
                   {isSubmitting ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account…</>
                   ) : (
