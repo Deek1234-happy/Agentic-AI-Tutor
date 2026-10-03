@@ -40,9 +40,9 @@ export function MessageList({ messages, isSending, onOpenGraph }: MessageListPro
             <div
               className="bg-white border shadow-sm rounded-2xl px-5 py-4 flex h-12 min-w-20 items-center justify-center gap-1.5"
               role="status"
-              aria-label="AI tutor is typing"
+              aria-label="Learning companion is thinking"
             >
-              <span className="sr-only">AI tutor is typing</span>
+              <span className="sr-only">Learning companion is thinking</span>
               <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
               <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
               <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />

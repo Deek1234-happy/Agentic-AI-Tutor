@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import {
-  Brain, BookOpen, LineChart, MessageSquare, Trophy, Zap,
-  Shield, Clock, Target, Upload, ArrowRight, CheckCircle2,
-  Sparkles, X, Loader2, Eye, EyeOff,
+  Brain, BookOpen, BookOpenText, FolderUp, Bot, ClipboardCheck,
+  LineChart, MessageSquare, Trophy, Zap, Shield, Clock, Target,
+  Upload, ArrowRight, CheckCircle2, Sparkles, X, Loader2, Eye,
+  EyeOff, TrendingUp,
 } from "lucide-react";
 import { login, register } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
@@ -128,33 +129,40 @@ export default function Welcome() {
   // ── Static data ─────────────────────────────────────────────────────────────
 
   const features = [
-    { icon: Brain, title: "AI-Powered Tutoring", description: "Get personalized learning assistance with our advanced AI tutor that adapts to your learning style and provides instant answers." },
-    { icon: BookOpen, title: "Smart Document Analysis", description: "Upload your study materials and let AI analyze, summarize, and create custom learning content from your documents." },
-    { icon: MessageSquare, title: "Interactive Chat", description: "Ask questions anytime with speech-to-text and text-to-speech capabilities for a truly hands-free learning experience." },
-    { icon: Trophy, title: "Intelligent Quizzes", description: "AI-generated quizzes tailored to your documents with instant feedback, detailed explanations, and performance tracking." },
-    { icon: LineChart, title: "Progress Analytics", description: "Track your learning progress with detailed insights, performance metrics, and visual analytics across all subjects." },
-    { icon: Sparkles, title: "Context-Aware Learning", description: "Every interaction is contextualized to your selected subjects and documents for maximum relevance and efficiency." },
+    { icon: Brain, title: "Personalized Guidance", description: "Receive adaptive support shaped around your pace, strengths, and study goals for a more focused learning journey." },
+    { icon: BookOpen, title: "Study Material Intelligence", description: "Turn your notes, PDFs, and course materials into clear summaries, structured insights, and revision-ready content." },
+    { icon: MessageSquare, title: "Conversational AI Support", description: "Ask questions naturally, get explanations in context, and keep learning moving with hands-free assistance." },
+    { icon: Trophy, title: "Assessment Engine", description: "Generate targeted quizzes from your materials and use instant feedback to reinforce understanding and retention." },
+    { icon: LineChart, title: "Progress Visibility", description: "See patterns in performance, topic mastery, and study consistency across subjects and learning sessions." },
+    { icon: Sparkles, title: "Context-Aware Learning", description: "Every answer and recommendation is grounded in the subjects and resources you are actively studying." },
   ];
 
   const benefits = [
-    { icon: Zap, text: "Learn 3x faster with personalized AI assistance" },
-    { icon: Target, text: "Achieve your academic goals efficiently" },
-    { icon: Clock, text: "Study smarter, not harder with AI insights" },
-    { icon: Shield, text: "Secure and private learning environment" },
+    { icon: Zap, text: "Study faster with focused, AI-guided learning support" },
+    { icon: Target, text: "Build confidence through adaptive practice and feedback" },
+    { icon: Clock, text: "Turn study time into more productive, high-impact sessions" },
+    { icon: Shield, text: "Learn in a secure, distraction-free environment" },
   ];
 
   const howItWorks = [
-    { step: 1, icon: BookOpen, title: "Create Subjects", description: "Organize your learning by creating subjects for each course or topic you're studying." },
-    { step: 2, icon: Upload, title: "Upload Documents", description: "Add your study materials - PDFs, notes, presentations - to each subject for AI analysis." },
-    { step: 3, icon: MessageSquare, title: "Chat with AI Tutor", description: "Select a subject and documents, then chat with AI to get answers, explanations, and insights." },
-    { step: 4, icon: Trophy, title: "Take AI Quizzes", description: "Generate quizzes from your documents to test your knowledge and reinforce learning." },
-    { step: 5, icon: LineChart, title: "Track Progress", description: "Monitor your performance, quiz scores, and learning trends with detailed analytics." },
+    { step: 1, icon: BookOpenText, title: "Create Subjects", description: "Organize your coursework into clear learning areas so each topic has its own study context." },
+    { step: 2, icon: FolderUp, title: "Upload Materials", description: "Add your PDFs, notes, and presentations to give EduMind AI the context it needs to support your learning." },
+    { step: 3, icon: Bot, title: "Ask and Explore", description: "Chat with your learning companion to clarify concepts, review content, and get guidance from your own materials." },
+    { step: 4, icon: ClipboardCheck, title: "Assess Understanding", description: "Create quick checks and practice questions that test knowledge and highlight areas to revisit." },
+    { step: 5, icon: TrendingUp, title: "Track Growth", description: "Monitor progress, identify trends, and stay motivated with clear performance insights." },
   ];
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 relative overflow-hidden"
+      style={{
+        backgroundImage: "linear-gradient(rgba(239, 246, 255, 0.72), rgba(248, 250, 252, 0.88)), url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-12 lg:py-20">
         <div className="text-center mb-16 lg:mb-20">
@@ -169,14 +177,13 @@ export default function Welcome() {
 
           <h1 className="text-5xl lg:text-7xl font-extrabold text-foreground mb-6 leading-tight">
             <span className="bg-gradient-to-r from-primary via-blue-600 to-indigo-600 bg-clip-text text-transparent block">
-              GenT
+              EduMind AI
             </span>
-            <span className="block text-3xl lg:text-5xl mt-3">AI Tutor</span>
+            <span className="block text-3xl lg:text-5xl mt-3">Adaptive Learning Companion</span>
           </h1>
 
           <p className="text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
-            Your intelligent learning companion. Master any subject with AI-powered tutoring,
-            adaptive quizzes, and comprehensive progress tracking—all from your own study materials.
+            Learn with your own study materials, get tailored AI guidance, and track growth with assessments designed around how you learn.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -211,7 +218,7 @@ export default function Welcome() {
           <div className="text-center mb-12">
             <h2 className="text-4xl lg:text-5xl font-bold mb-4">How It Works</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Five simple steps to transform your learning experience
+              A simple five-step path from study materials to measurable progress
             </p>
           </div>
 
@@ -248,9 +255,9 @@ export default function Welcome() {
         {/* Features Grid */}
         <div className="mb-20">
           <div className="text-center mb-12">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-4">Powerful Features</h2>
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4">Intelligent Learning</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need for effective, AI-enhanced learning
+              Everything you need to learn with clarity, confidence, and context
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -271,17 +278,17 @@ export default function Welcome() {
         {/* Why Choose */}
         <div className="bg-gradient-to-br from-primary to-blue-600 rounded-3xl p-8 lg:p-16 mb-20 text-white shadow-2xl">
           <div className="text-center mb-12">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-4">Why Choose GenT?</h2>
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4">Why Choose EduMind AI?</h2>
             <p className="text-xl text-blue-50 max-w-2xl mx-auto">
-              Built for modern learners who demand more from their study tools
+              Built for learners who want smarter studying, better understanding, and clearer momentum
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {[
-              { title: "Context-Aware AI", body: "Every conversation and quiz is tailored to your specific documents and subjects for maximum relevance." },
-              { title: "Your Materials, Your Way", body: "Learn from your own notes and resources. No generic content—just personalized insights." },
-              { title: "Instant Feedback", body: "Get immediate answers, explanations, and quiz results. No waiting, just learning." },
-              { title: "Track Your Growth", body: "Comprehensive analytics show your progress across subjects, quizzes, and study sessions." },
+              { title: "Context-Aware Guidance", body: "Every answer, explanation, and quiz is grounded in your course materials, subjects, and learning goals." },
+              { title: "Your Study Materials, Reimagined", body: "Upload your own resources and turn them into organized, actionable learning support instead of static notes." },
+              { title: "Instant Feedback", body: "Move from confusion to clarity with immediate explanations, practice checks, and personalized recommendations." },
+              { title: "Track Your Growth", body: "Follow your performance across topics, assessments, and sessions with meaningful progress insights." },
             ].map((item, i) => (
               <div key={i} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                 <CheckCircle2 className="w-8 h-8 mb-4" />
@@ -294,8 +301,8 @@ export default function Welcome() {
 
         {/* CTA */}
         <div className="max-w-2xl mx-auto text-center bg-gradient-to-br from-primary to-blue-600 rounded-3xl p-12 text-white shadow-2xl">
-          <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Learning?</h2>
-          <p className="text-lg text-blue-50 mb-8">Join thousands of students already learning smarter with AI</p>
+          <h2 className="text-3xl font-bold mb-4">Ready to learn with more clarity?</h2>
+          <p className="text-lg text-blue-50 mb-8">Join learners using AI support to review materials, practice smarter, and track progress.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-6 h-auto" onClick={() => openAuthModal("register")}>
               Create Free Account

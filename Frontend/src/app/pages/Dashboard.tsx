@@ -13,22 +13,22 @@ import type { SubjectProgressDto } from "../../types/analytics";
 
 const quickActions = [
   {
-    title: "Chat with AI Tutor",
-    description: "Ask questions about your study materials",
+    title: "Chat with Learning Companion",
+    description: "Ask for guidance from your course materials and notes",
     icon: MessageSquare,
     link: "/dashboard/chat",
     color: "bg-blue-50 text-blue-600 hover:bg-blue-100",
   },
   {
     title: "Take a Quiz",
-    description: "Test your knowledge with AI-generated quizzes",
+    description: "Check understanding with adaptive assessments tailored to your studies",
     icon: Trophy,
     link: "/quizzes",
     color: "bg-purple-50 text-purple-600 hover:bg-purple-100",
   },
   {
     title: "View Progress",
-    description: "Track your learning analytics and trends",
+    description: "Monitor your momentum, mastery, and subject trends over time",
     icon: TrendingUp,
     link: "/dashboard/progress",
     color: "bg-green-50 text-green-600 hover:bg-green-100",
@@ -126,7 +126,7 @@ export default function Dashboard() {
           <Button size="sm" asChild className="rounded-full shadow-sm hover:shadow transition-all duration-200">
             <Link to="/dashboard/chat">
               <MessageSquare className="w-4 h-4 mr-2" />
-              Open AI Tutor
+              Open Learning Companion
             </Link>
           </Button>
         </div>

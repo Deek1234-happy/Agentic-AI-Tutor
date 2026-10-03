@@ -33,7 +33,7 @@ const notifications = [
     id: 3,
     type: "success",
     title: "New Materials Processed",
-    message: "3 documents in Computer Science are ready for review and AI tutoring",
+    message: "3 Computer Science documents are ready for review and personalized learning support",
     time: "1 day ago",
     read: false,
   },

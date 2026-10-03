@@ -27,7 +27,7 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Subjects", href: "/dashboard/subjects", icon: BookOpen },
-  { name: "AI Tutor", href: "/dashboard/chat", icon: MessageSquare },
+  { name: "Learning Companion", href: "/dashboard/chat", icon: MessageSquare },
   { name: "Quizzes", href: "/quizzes", icon: Trophy },
   { name: "Progress", href: "/dashboard/progress", icon: TrendingUp },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -65,7 +65,15 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background relative overflow-hidden"
+      style={{
+        backgroundImage: "linear-gradient(rgba(248, 250, 252, 0.82), rgba(239, 246, 255, 0.92)), url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=80')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
       {/* Sidebar for desktop */}
       <aside className={`hidden md:fixed md:inset-y-0 md:flex md:flex-col transition-all duration-300 ${
         sidebarCollapsed ? "md:w-20" : "md:w-64"
@@ -84,8 +92,8 @@ export default function MainLayout() {
             </button>
             {!sidebarCollapsed && (
               <span className="font-semibold leading-tight whitespace-nowrap">
-                <span className="block text-lg">GenT</span>
-                <span className="block text-xs text-sidebar-foreground/70">AI Tutor</span>
+                <span className="block text-lg">EduMind AI</span>
+                <span className="block text-xs text-sidebar-foreground/70">Adaptive Learning Companion</span>
               </span>
             )}
           </div>
@@ -146,8 +154,8 @@ export default function MainLayout() {
                   <GraduationCap className="w-6 h-6 text-primary-foreground" />
                 </button>
                 <span className="font-semibold leading-tight">
-                  <span className="block text-lg">GenT</span>
-                  <span className="block text-xs text-sidebar-foreground/70">AI Tutor</span>
+                  <span className="block text-lg">EduMind AI</span>
+                  <span className="block text-xs text-sidebar-foreground/70">Adaptive Learning Companion</span>
                 </span>
               </div>
             </div>
@@ -241,7 +249,7 @@ export default function MainLayout() {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 relative z-10">
           <Outlet />
         </main>
       </div>
