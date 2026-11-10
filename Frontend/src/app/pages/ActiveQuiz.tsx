@@ -69,6 +69,9 @@ export default function ActiveQuiz() {
       });
 
       toast.success(`Exam submitted. Score: ${Math.round(response.score)}%`);
+      if (response.scheduleUpdated === false) {
+        toast.warning("Your quiz was saved, but your revision schedule could not be updated.");
+      }
       navigate(`/quizzes/attempts/${response.attemptId}/review`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to submit quiz.";

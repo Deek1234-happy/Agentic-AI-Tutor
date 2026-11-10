@@ -194,6 +194,8 @@ namespace AgenticAITutor
             builder.Services.AddScoped<IQuizRepository, QuizRepository>();
             builder.Services.AddScoped<IGenerationHashService, GenerationHashService>();
             builder.Services.AddScoped<IQuizService, QuizService>();
+            builder.Services.AddScoped<IStudyPlanRepository, StudyPlanRepository>();
+            builder.Services.AddScoped<IStudyPlanService, StudyPlanService>();
             builder.Services.AddScoped<IQuizAIClient, QuizAIClient>();
             builder.Services.AddTransient<QuizGenerationJob>();
             // ─────────────────────────────────────────────────────────────────

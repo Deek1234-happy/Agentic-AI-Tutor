@@ -58,6 +58,7 @@ export interface QuizSubmitResponse {
   correctCount: number;
   totalCount: number;
   finishedAt: string;
+  scheduleUpdated?: boolean | null;
 }
 
 export interface QuizAttemptSummary {

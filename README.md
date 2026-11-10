@@ -120,6 +120,7 @@ Modern educational technology faces two fundamental, unsolved problems: students
 | **Metadata Extraction** | Per-chunk topic, key concepts, Bloom level, difficulty, and chunk type classification |
 | **Slot-Based MCQ Prompting** | Structured prompting strategy producing stem, four options, correct answer, distractors, and full metadata |
 | **Weak-Topic Review & Practice** | Identify missed concepts, review their explanations and source material, then generate a focused practice quiz and track accuracy across attempts |
+| **Personalized Revision Schedule** | Schedule weak topics immediately, then adjust each topic's next review to 1, 3, or 14 days based on the latest quiz accuracy; mark reviews complete from Progress |
 | **Hugging Face Deployment** | Fine-tuned LoRA adapter published to Hugging Face Hub for reproducible inference |
 
 ---
@@ -537,6 +538,9 @@ Generation is evaluated on Exact Match (EM), Contain Match, Precision, Recall, F
 | `POST` | `/api/quiz/generate` | Request MCQ generation from document(s) |
 | `GET` | `/api/quiz/{quizId}` | Retrieve a stored quiz |
 | `POST` | `/api/quiz/{quizId}/submit` | Submit quiz answers for scoring |
+| `GET` | `/api/StudyPlan/reviews` | Retrieve the user's due, upcoming, and completed revision items |
+| `POST` | `/api/StudyPlan/generate` | Add currently weak topics to the revision schedule |
+| `POST` | `/api/StudyPlan/reviews/{itemId}/complete` | Mark an owned revision item as reviewed |
 | `GET` | `/api/subjects` | List user subjects |
 | `POST` | `/api/subjects` | Create a new subject |
 | `GET` | `/api/kg/status/{documentId}` | Knowledge graph build lifecycle status (PROCESSING / COMPLETED / FAILED) |

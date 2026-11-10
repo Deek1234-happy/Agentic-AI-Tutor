@@ -7,5 +7,6 @@ namespace AgenticAITutor.Models.DTOs
         public int CorrectCount { get; set; }
         public int TotalCount { get; set; }
         public DateTime FinishedAt { get; set; }
+        public bool? ScheduleUpdated { get; set; }
     }
 }

@@ -6,9 +6,15 @@ import { Progress as ProgressBar } from "../components/ui/progress";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
 import { Button } from "../components/ui/button";
-import { Award, BookOpenCheck, RotateCcw } from "lucide-react";
+import { Award, BookOpenCheck, CalendarClock, Check, RotateCcw } from "lucide-react";
 import { getUserProgress } from "../../services/analyticsService";
+import {
+  completeReviewItem,
+  generateReviewSchedule,
+  getReviewSchedule,
+} from "../../services/studyPlanService";
 import type { ProgressDashboardResponse } from "../../types/analytics";
+import type { ReviewScheduleItem } from "../../types/studyPlan";
 import {
   LineChart,
   Line,
@@ -32,6 +38,10 @@ export default function Progress() {
   const navigate = useNavigate();
   const [progress, setProgress] = useState<ProgressDashboardResponse>(emptyProgress);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewSchedule, setReviewSchedule] = useState<ReviewScheduleItem[]>([]);
+  const [isScheduleLoading, setIsScheduleLoading] = useState(true);
+  const [isGeneratingSchedule, setIsGeneratingSchedule] = useState(false);
+  const [completingReviewId, setCompletingReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,6 +61,18 @@ export default function Progress() {
     }
 
     loadProgress();
+    getReviewSchedule()
+      .then((items) => {
+        if (isMounted) setReviewSchedule(items);
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Unable to load your revision schedule.";
+        if (isMounted) toast.error(message);
+      })
+      .finally(() => {
+        if (isMounted) setIsScheduleLoading(false);
+      });
+
     return () => {
       isMounted = false;
     };
@@ -60,6 +82,48 @@ export default function Progress() {
   const subjectProgress = progress.subjectProgress ?? [];
   const weakConcepts = progress.weakConcepts ?? [];
   const avgMastery = progress.overallMastery ?? 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueReviews = reviewSchedule.filter((item) =>
+    !item.completed &&
+    (!item.scheduledDate || new Date(`${item.scheduledDate.slice(0, 10)}T00:00:00`) <= today)
+  );
+  const upcomingReviews = reviewSchedule.filter((item) =>
+    !item.completed &&
+    item.scheduledDate &&
+    new Date(`${item.scheduledDate.slice(0, 10)}T00:00:00`) > today
+  );
+  const completedReviews = reviewSchedule.filter((item) => item.completed);
+
+  const handleGenerateSchedule = async () => {
+    setIsGeneratingSchedule(true);
+    try {
+      const items = await generateReviewSchedule();
+      setReviewSchedule(items);
+      toast.success(items.length > 0 ? "Revision schedule is ready." : "No weak topics are ready to schedule yet.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to create your revision schedule.";
+      toast.error(message);
+    } finally {
+      setIsGeneratingSchedule(false);
+    }
+  };
+
+  const handleCompleteReview = async (itemId: string) => {
+    setCompletingReviewId(itemId);
+    try {
+      await completeReviewItem(itemId);
+      setReviewSchedule((items) =>
+        items.map((item) => item.id === itemId ? { ...item, completed: true, status: "Reviewed" } : item)
+      );
+      toast.success("Review marked complete.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to update this review.";
+      toast.error(message);
+    } finally {
+      setCompletingReviewId(null);
+    }
+  };
 
   const openTopicPractice = (topic: (typeof weakConcepts)[number]) => {
     const params = new URLSearchParams({
@@ -121,6 +185,90 @@ export default function Progress() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarClock className="h-5 w-5 text-primary" />
+                Revision Schedule
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Quiz results set the next review: low scores in 1 day, developing scores in 3 days, and strong scores in 14 days.
+              </p>
+            </div>
+            {weakConcepts.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleGenerateSchedule}
+                disabled={isGeneratingSchedule}
+              >
+                {isGeneratingSchedule ? "Creating schedule..." : "Add weak topics"}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isScheduleLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : reviewSchedule.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Complete a quiz or add your weak topics to start a personalized revision schedule.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {[
+                { title: "Due for review", items: dueReviews },
+                { title: "Coming up", items: upcomingReviews },
+                { title: "Completed", items: completedReviews },
+              ].map(({ title, items }) => (
+                items.length > 0 && (
+                  <section key={title}>
+                    <h3 className="mb-3 text-sm font-semibold">{title}</h3>
+                    <div className="space-y-2">
+                      {items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="font-medium">{item.conceptName}</h4>
+                              <Badge variant={item.completed ? "secondary" : item.accuracy !== null && item.accuracy < 70 ? "destructive" : "outline"}>
+                                {item.status}{item.accuracy !== null ? ` · ${item.accuracy}%` : ""}
+                              </Badge>
+                            </div>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {item.subjectName} · {item.scheduledDate
+                                ? `Scheduled ${new Date(`${item.scheduledDate.slice(0, 10)}T00:00:00`).toLocaleDateString()}`
+                                : "Due now"} · {item.estimatedMinutes} min
+                            </p>
+                          </div>
+                          {!item.completed && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCompleteReview(item.id)}
+                              disabled={completingReviewId === item.id}
+                            >
+                              <Check className="mr-2 h-4 w-4" />
+                              {completingReviewId === item.id ? "Saving..." : "Mark reviewed"}
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

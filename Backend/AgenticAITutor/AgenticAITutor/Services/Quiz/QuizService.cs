@@ -14,17 +14,23 @@ namespace AgenticAITutor.Services
         private readonly IDocumentRepository _docRepo;
         private readonly ISubjectRepository _subjectRepo;
         private readonly IGenerationHashService _hashService;
+        private readonly IStudyPlanService _studyPlanService;
+        private readonly ILogger<QuizService> _logger;
 
         public QuizService(
             IQuizRepository quizRepo,
             IDocumentRepository docRepo,
             ISubjectRepository subjectRepo,
-            IGenerationHashService hashService)
+            IGenerationHashService hashService,
+            IStudyPlanService studyPlanService,
+            ILogger<QuizService> logger)
         {
             _quizRepo = quizRepo;
             _docRepo = docRepo;
             _subjectRepo = subjectRepo;
             _hashService = hashService;
+            _studyPlanService = studyPlanService;
+            _logger = logger;
         }
 
         // ── POST /api/Quiz/initiate ───────────────────────────────────────────
@@ -305,7 +311,8 @@ namespace AgenticAITutor.Services
                     AttemptId = attempt.Id,
                     Score = attempt.Score ?? 0,
                     FinishedAt = attempt.FinishedAt.Value,
-                    TotalCount = request.Answers.Count
+                    TotalCount = request.Answers.Count,
+                    ScheduleUpdated = null
                 };
                 response.Message = "Already submitted.";
                 return response;
@@ -364,13 +371,67 @@ namespace AgenticAITutor.Services
             attempt.FinishedAt = DateTime.Now;
             await _quizRepo.UpdateAttemptAsync(attempt);
 
+            bool? scheduleUpdated = null;
+            var conceptByQuestionId = questions?.QuizQuestions
+                .Where(question =>
+                    questionIds.Contains(question.Id) &&
+                    !string.IsNullOrWhiteSpace(question.Concept))
+                .ToDictionary(
+                    question => question.Id,
+                    question => question.Concept!.Trim());
+
+            if (conceptByQuestionId?.Count > 0)
+            {
+                var topicResults = answers
+                    .Where(answer => conceptByQuestionId.ContainsKey(answer.QuestionId))
+                    .GroupBy(
+                        answer => conceptByQuestionId[answer.QuestionId],
+                        StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => (
+                            Correct: group.Count(answer => answer.IsCorrect == true),
+                            Total: group.Count()),
+                        StringComparer.OrdinalIgnoreCase);
+
+                try
+                {
+                    var quiz = await _quizRepo.GetByIdWithDocumentsAsync(quizId);
+                    if (quiz?.UserId == userId && quiz.SubjectId.HasValue)
+                    {
+                        await _studyPlanService.RecordTopicResultsAsync(
+                            userId,
+                            quiz.SubjectId.Value,
+                            quiz.Documents.Select(document => document.Id).ToList(),
+                            topicResults);
+                        scheduleUpdated = true;
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Quiz attempt {AttemptId} was saved, but its revision schedule could not be updated because the quiz subject was unavailable.",
+                            attempt.Id);
+                        scheduleUpdated = false;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(
+                        exception,
+                        "Quiz attempt {AttemptId} was saved, but its revision schedule could not be updated.",
+                        attempt.Id);
+                    scheduleUpdated = false;
+                }
+            }
+
             response.Data = new QuizSubmitResponse
             {
                 AttemptId = attempt.Id,
                 Score = score,
                 CorrectCount = correctCount,
                 TotalCount = request.Answers.Count,
-                FinishedAt = attempt.FinishedAt.Value
+                FinishedAt = attempt.FinishedAt.Value,
+                ScheduleUpdated = scheduleUpdated
             };
             return response;
         }
