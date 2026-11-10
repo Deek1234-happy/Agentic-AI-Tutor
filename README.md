@@ -120,7 +120,7 @@ Modern educational technology faces two fundamental, unsolved problems: students
 | **Metadata Extraction** | Per-chunk topic, key concepts, Bloom level, difficulty, and chunk type classification |
 | **Slot-Based MCQ Prompting** | Structured prompting strategy producing stem, four options, correct answer, distractors, and full metadata |
 | **Weak-Topic Review & Practice** | Identify missed concepts, review their explanations and source material, then generate a focused practice quiz and track accuracy across attempts |
-| **Personalized Revision Schedule** | Schedule weak topics immediately, then adjust each topic's next review to 1, 3, or 14 days based on the latest quiz accuracy; mark reviews complete from Progress |
+| **Personalized Revision Schedule** | Schedule weak topics immediately, practice due topics with a focused quiz, then adjust each topic's next review to 1, 3, or 14 days based on quiz accuracy; reviews can also be marked complete from Progress |
 | **Hugging Face Deployment** | Fine-tuned LoRA adapter published to Hugging Face Hub for reproducible inference |
 
 ---

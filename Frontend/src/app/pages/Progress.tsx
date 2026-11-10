@@ -135,6 +135,12 @@ export default function Progress() {
     navigate(`/quizzes?${params.toString()}`);
   };
 
+  const findPracticeTopic = (item: ReviewScheduleItem) =>
+    weakConcepts.find((topic) =>
+      topic.subjectId === item.subjectId &&
+      topic.conceptName?.trim().toLowerCase() === item.conceptName.trim().toLowerCase()
+    );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -222,45 +228,68 @@ export default function Progress() {
           ) : (
             <div className="space-y-6">
               {[
-                { title: "Due for review", items: dueReviews },
-                { title: "Coming up", items: upcomingReviews },
-                { title: "Completed", items: completedReviews },
-              ].map(({ title, items }) => (
+                { title: "Due for review", items: dueReviews, canPractice: true },
+                { title: "Coming up", items: upcomingReviews, canPractice: false },
+                { title: "Completed", items: completedReviews, canPractice: false },
+              ].map(({ title, items, canPractice }) => (
                 items.length > 0 && (
                   <section key={title}>
                     <h3 className="mb-3 text-sm font-semibold">{title}</h3>
                     <div className="space-y-2">
-                      {items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="font-medium">{item.conceptName}</h4>
-                              <Badge variant={item.completed ? "secondary" : item.accuracy !== null && item.accuracy < 70 ? "destructive" : "outline"}>
-                                {item.status}{item.accuracy !== null ? ` · ${item.accuracy}%` : ""}
-                              </Badge>
+                      {items.map((item) => {
+                        const practiceTopic = canPractice ? findPracticeTopic(item) : undefined;
+                        const hasPracticeSources = Boolean(
+                          practiceTopic?.sourceDocumentIds?.length && practiceTopic.sourceChunkIds?.length
+                        );
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="font-medium">{item.conceptName}</h4>
+                                <Badge variant={item.completed ? "secondary" : item.accuracy !== null && item.accuracy < 70 ? "destructive" : "outline"}>
+                                  {item.status}{item.accuracy !== null ? ` · ${item.accuracy}%` : ""}
+                                </Badge>
+                              </div>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {item.subjectName} · {item.scheduledDate
+                                  ? `Scheduled ${new Date(`${item.scheduledDate.slice(0, 10)}T00:00:00`).toLocaleDateString()}`
+                                  : "Due now"} · {item.estimatedMinutes} min
+                              </p>
                             </div>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              {item.subjectName} · {item.scheduledDate
-                                ? `Scheduled ${new Date(`${item.scheduledDate.slice(0, 10)}T00:00:00`).toLocaleDateString()}`
-                                : "Due now"} · {item.estimatedMinutes} min
-                            </p>
+                            {!item.completed && (
+                              <div className="flex flex-wrap gap-2">
+                                {canPractice && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={!hasPracticeSources}
+                                    onClick={() => practiceTopic && openTopicPractice(practiceTopic)}
+                                    title={hasPracticeSources
+                                      ? "Start a focused quiz. Your results will update the next review date."
+                                      : "Source material for focused practice is unavailable."}
+                                  >
+                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                    Practice now
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCompleteReview(item.id)}
+                                  disabled={completingReviewId === item.id}
+                                >
+                                  <Check className="mr-2 h-4 w-4" />
+                                  {completingReviewId === item.id ? "Saving..." : "Mark reviewed"}
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          {!item.completed && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCompleteReview(item.id)}
-                              disabled={completingReviewId === item.id}
-                            >
-                              <Check className="mr-2 h-4 w-4" />
-                              {completingReviewId === item.id ? "Saving..." : "Mark reviewed"}
-                            </Button>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </section>
                 )
