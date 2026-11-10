@@ -18,6 +18,7 @@ requests
 psycopg2-binary 
 sqlalchemy
 langdetect
+ftfy
 nltk
 TTS==0.22.0  # Fixed version for compatibility
 python-dotenv

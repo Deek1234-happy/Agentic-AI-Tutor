@@ -554,14 +554,16 @@ Generation is evaluated on Exact Match (EM), Contain Match, Precision, Recall, F
 
 ## 🚀 Installation
 
+> **Windows setup for this repository:** use the detailed [running the app locally](RUNNING_THE_APP.md) guide. The legacy commands below describe paths and ports that do not match the current project layout.
+
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11 (required by the pinned AI-service dependencies)
 - .NET 8 SDK
 - Node.js 20+ and npm (for React web)
 - PostgreSQL 15+ with pgvector extension
 - Neo4j 5.x
-- Docker (optional, for containerized deployment)
+- Docker Desktop (for the local PostgreSQL and Neo4j containers)
 
 ### 1. AI Service (Python / FastAPI)
 
