@@ -13,5 +13,10 @@ namespace AgenticAITutor.Models.DTOs
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Number of questions must be at least 1.")]
         public int NumberOfQuestions { get; set; }
+
+        [StringLength(255)]
+        public string? FocusConcept { get; set; }
+
+        public List<Guid> SourceChunkIds { get; set; } = new();
     }
 }

@@ -119,6 +119,7 @@ Modern educational technology faces two fundamental, unsolved problems: students
 | **LLM-as-a-Judge Scoring** | Composite MCQ Quality Score (CMQS): 0.30·correctness + 0.20·clarity + 0.15·distractors + 0.15·educational_value + 0.20·chunk_grounding |
 | **Metadata Extraction** | Per-chunk topic, key concepts, Bloom level, difficulty, and chunk type classification |
 | **Slot-Based MCQ Prompting** | Structured prompting strategy producing stem, four options, correct answer, distractors, and full metadata |
+| **Weak-Topic Review & Practice** | Identify missed concepts, review their explanations and source material, then generate a focused practice quiz and track accuracy across attempts |
 | **Hugging Face Deployment** | Fine-tuned LoRA adapter published to Hugging Face Hub for reproducible inference |
 
 ---

@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Progress as ProgressBar } from "../components/ui/progress";
 import { Badge } from "../components/ui/badge";
 import { Skeleton } from "../components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
-import { Award, Trophy } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Award, BookOpenCheck, RotateCcw } from "lucide-react";
 import { getUserProgress } from "../../services/analyticsService";
 import type { ProgressDashboardResponse } from "../../types/analytics";
 import {
@@ -34,6 +29,7 @@ const emptyProgress: ProgressDashboardResponse = {
 };
 
 export default function Progress() {
+  const navigate = useNavigate();
   const [progress, setProgress] = useState<ProgressDashboardResponse>(emptyProgress);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -62,7 +58,18 @@ export default function Progress() {
 
   const overallPerformance = progress.monthlyPerformance ?? [];
   const subjectProgress = progress.subjectProgress ?? [];
+  const weakConcepts = progress.weakConcepts ?? [];
   const avgMastery = progress.overallMastery ?? 0;
+
+  const openTopicPractice = (topic: (typeof weakConcepts)[number]) => {
+    const params = new URLSearchParams({
+      focusConcept: topic.conceptName || "",
+      subjectId: topic.subjectId,
+      documentIds: topic.sourceDocumentIds.join(","),
+      sourceChunkIds: topic.sourceChunkIds.join(","),
+    });
+    navigate(`/quizzes?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -114,6 +121,82 @@ export default function Progress() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpenCheck className="h-5 w-5 text-primary" />
+            Topics to Review
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={index} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : weakConcepts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No missed concepts to review yet. Complete a quiz to get topic-specific feedback.
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {weakConcepts.map((topic) => {
+                const hasPracticeSources =
+                  topic.sourceDocumentIds?.length > 0 && topic.sourceChunkIds?.length > 0;
+
+                return (
+                  <div
+                    key={`${topic.subjectId}-${topic.conceptName}`}
+                    className="rounded-lg border p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-medium">{topic.conceptName || "Unnamed concept"}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {topic.subjectName} · {topic.errorCount} missed of {topic.questionCount}
+                        </p>
+                      </div>
+                      <Badge variant={topic.accuracy >= 70 ? "secondary" : "destructive"}>
+                        {topic.accuracy}% accuracy
+                      </Badge>
+                    </div>
+                    <ProgressBar value={topic.accuracy} className="mt-3 h-2" />
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!topic.reviewAttemptId}
+                        onClick={() =>
+                          topic.reviewAttemptId &&
+                          navigate(`/quizzes/attempts/${topic.reviewAttemptId}/review`)
+                        }
+                      >
+                        <BookOpenCheck className="mr-2 h-4 w-4" />
+                        Review mistakes
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={!hasPracticeSources}
+                        onClick={() => openTopicPractice(topic)}
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Practice this topic
+                      </Button>
+                    </div>
+                    {!hasPracticeSources && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Topic practice is unavailable because its source material is missing.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Overall Performance Trend */}
       <Card>

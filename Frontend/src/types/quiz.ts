@@ -4,6 +4,8 @@ export interface QuizInitiateRequest {
   subjectId: string;
   documentIds: string[];
   numberOfQuestions: number;
+  focusConcept?: string;
+  sourceChunkIds?: string[];
 }
 
 export interface QuizInitiateResponse {
@@ -93,6 +95,8 @@ export interface QuizReviewQuestionDto {
   correctOption: string;
   selectedOption: string | null;
   isCorrect: boolean;
+  sourceDocumentName: string | null;
+  sourceExcerpt: string | null;
   options: QuizOptionDto[] | null;
 }
 

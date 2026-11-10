@@ -100,6 +100,7 @@ namespace AgenticAITutor.Repositories
                 .Include(a => a.QuizAnswers)
                     .ThenInclude(ans => ans.Question)
                         .ThenInclude(q => q.Chunk)
+                            .ThenInclude(chunk => chunk!.Document)
                 .FirstOrDefaultAsync(a => a.Id == attemptId);
 
         public async Task<List<QuizAttempt>> GetAttemptsByQuizAndUserAsync(Guid quizId, Guid userId)

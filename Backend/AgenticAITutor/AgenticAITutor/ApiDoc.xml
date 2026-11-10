@@ -427,13 +427,13 @@
             Constant-time OTP comparison to prevent timing attacks.
             </summary>
         </member>
-        <member name="M:AgenticAITutor.Services.GenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32)">
+        <member name="M:AgenticAITutor.Services.GenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32,System.String,System.Collections.Generic.List{System.Guid})">
             <summary>
             Hash = SHA256( userId + ":" + sorted_documentIds.Join(",") )
             Sorting ensures that [doc1, doc2] and [doc2, doc1] produce the same hash.
             </summary>
         </member>
-        <member name="M:AgenticAITutor.Services.IGenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32)">
+        <member name="M:AgenticAITutor.Services.IGenerationHashService.ComputeHash(System.Guid,System.Collections.Generic.List{System.Guid},System.Int32,System.String,System.Collections.Generic.List{System.Guid})">
             <summary>
             Computes a deterministic SHA-256 hash from the userId and a sorted
             list of document IDs. Used to detect duplicate quiz generation requests.

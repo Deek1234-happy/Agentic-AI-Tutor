@@ -60,8 +60,29 @@ namespace AgenticAITutor.Services
                 return response;
             }
 
+            var focusConcept = request.FocusConcept?.Trim();
+            if (!string.IsNullOrEmpty(focusConcept)
+                && !request.SourceChunkIds.Any())
+            {
+                response.Success = false;
+                response.Message = "Focused practice requires at least one source chunk.";
+                return response;
+            }
+
+            if (string.IsNullOrEmpty(focusConcept) && request.SourceChunkIds.Any())
+            {
+                response.Success = false;
+                response.Message = "A focus concept is required for source-specific practice.";
+                return response;
+            }
+
             // 3. Compute deterministic hash
-            var hash = _hashService.ComputeHash(userId, request.DocumentIds, request.NumberOfQuestions);
+            var hash = _hashService.ComputeHash(
+                userId,
+                request.DocumentIds,
+                request.NumberOfQuestions,
+                focusConcept,
+                request.SourceChunkIds);
 
             // 4. Check for existing quiz with this hash
             var existing = await _quizRepo.GetByUserAndHashAsync(userId, hash);
@@ -115,7 +136,19 @@ namespace AgenticAITutor.Services
             await _quizRepo.AddQuizDocumentsAsync(quiz.Id, request.DocumentIds);
 
             // 7. Enqueue Hangfire job
-            BackgroundJob.Enqueue<QuizGenerationJob>(job => job.Execute(quiz.Id, request.NumberOfQuestions));
+            if (!string.IsNullOrEmpty(focusConcept))
+            {
+                BackgroundJob.Enqueue<QuizGenerationJob>(job =>
+                    job.ExecuteFocused(
+                        quiz.Id,
+                        request.NumberOfQuestions,
+                        focusConcept,
+                        request.SourceChunkIds.Distinct().ToList()));
+            }
+            else
+            {
+                BackgroundJob.Enqueue<QuizGenerationJob>(job => job.Execute(quiz.Id, request.NumberOfQuestions));
+            }
 
             response.Data = new QuizInitiateResponse
             {
@@ -413,6 +446,10 @@ namespace AgenticAITutor.Services
                     CorrectOption = q.CorrectOption,
                     SelectedOption = ans.SelectedOption,
                     IsCorrect = ans.IsCorrect ?? false,
+                    SourceDocumentName = q.Chunk?.Document?.Filename,
+                    SourceExcerpt = q.Chunk?.ChunkText is { Length: > 1000 } sourceText
+                        ? $"{sourceText[..1000]}..."
+                        : q.Chunk?.ChunkText,
                     Options = q.QuizOptions
                         .OrderBy(o => o.OptionLabel)
                         .Select(o => new QuizOptionDto

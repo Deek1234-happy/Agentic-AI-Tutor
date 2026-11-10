@@ -39,6 +39,22 @@ namespace AgenticAITutor.BackgroundJobs
         [DisableConcurrentExecution(60 * 60)]
         [AutomaticRetry(Attempts = 0)]
         public async Task Execute(Guid quizId, int numberOfQuestions)
+            => await ExecuteCore(quizId, numberOfQuestions, null, null);
+
+        [DisableConcurrentExecution(60 * 60)]
+        [AutomaticRetry(Attempts = 0)]
+        public async Task ExecuteFocused(
+            Guid quizId,
+            int numberOfQuestions,
+            string focusConcept,
+            List<Guid> sourceChunkIds)
+            => await ExecuteCore(quizId, numberOfQuestions, focusConcept, sourceChunkIds);
+
+        private async Task ExecuteCore(
+            Guid quizId,
+            int numberOfQuestions,
+            string? focusConcept,
+            List<Guid>? sourceChunkIds)
         {
             _logger.LogInformation("QuizGenerationJob started for QuizId: {QuizId}", quizId);
 
@@ -75,6 +91,17 @@ namespace AgenticAITutor.BackgroundJobs
                     throw new InvalidOperationException("No chunks found for the selected documents.");
                 }
 
+                if (!string.IsNullOrWhiteSpace(focusConcept))
+                {
+                    var sourceIds = (sourceChunkIds ?? new List<Guid>()).ToHashSet();
+                    allChunks = allChunks.Where(chunk => sourceIds.Contains(chunk.Id)).ToList();
+                    if (!allChunks.Any())
+                    {
+                        throw new InvalidOperationException(
+                            "No matching source chunks were found for the focused practice quiz.");
+                    }
+                }
+
                 // 3. Build the MCQ generation request
                 var mcqRequest = new McqGenerateRequest
                 {
@@ -87,7 +114,9 @@ namespace AgenticAITutor.BackgroundJobs
                         ContextNextSentence = c.ContextNextSentence,
                         BloomLevel = c.BloomLevel,
                         ChunkType = c.ChunkType,
-                        Concepts = c.Concepts,
+                        Concepts = string.IsNullOrWhiteSpace(focusConcept)
+                            ? c.Concepts
+                            : new List<string> { focusConcept },
                         Keywords = c.Keywords
                     }).ToList(),
                     NumberOfQuestions = numberOfQuestions,

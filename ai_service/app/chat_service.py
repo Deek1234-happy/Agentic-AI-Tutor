@@ -467,7 +467,7 @@ def handle_chat(payload):
         print(f"Kept {len(filtered)} chunks (score >= {SIMILARITY_THRESHOLD})")
 
         for r in filtered:
-            print(f"  → Doc: {r[1]} | Pages: {r[3]}-{r[4]} | Score: {r[5]}")
+            print(f"  -> Doc: {r[1]} | Pages: {r[3]}-{r[4]} | Score: {r[5]}")
 
         all_retrieved.extend(filtered)
 

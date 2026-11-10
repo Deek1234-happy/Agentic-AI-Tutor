@@ -9,7 +9,12 @@ namespace AgenticAITutor.Services
         /// Hash = SHA256( userId + ":" + sorted_documentIds.Join(",") )
         /// Sorting ensures that [doc1, doc2] and [doc2, doc1] produce the same hash.
         /// </summary>
-        public string ComputeHash(Guid userId, List<Guid> documentIds, int numberOfQuestions)
+        public string ComputeHash(
+            Guid userId,
+            List<Guid> documentIds,
+            int numberOfQuestions,
+            string? focusConcept = null,
+            List<Guid>? sourceChunkIds = null)
         {
             // Lexicographic sort on the string representation of each GUID
             var sortedIds = documentIds
@@ -18,6 +23,14 @@ namespace AgenticAITutor.Services
                 .ToList();
 
             var raw = $"{userId}:{string.Join(",", sortedIds)}:{numberOfQuestions}";
+            if (!string.IsNullOrWhiteSpace(focusConcept))
+            {
+                var sortedChunkIds = (sourceChunkIds ?? new List<Guid>())
+                    .Select(id => id.ToString())
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(id => id, StringComparer.Ordinal);
+                raw += $":focus:{focusConcept.Trim().ToUpperInvariant()}:{string.Join(",", sortedChunkIds)}";
+            }
 
             using var sha256 = SHA256.Create();
             var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(raw));

@@ -6,6 +6,12 @@ from fastapi import APIRouter
 from contextlib import asynccontextmanager
 import logging
 import os
+import sys
+
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(errors="backslashreplace")
+
 from .extract import router as extract_router
 from .chunk_kg import router as chunk_kg_router
 from .search import router as search_router

@@ -25,6 +25,7 @@ public class AnalyticsRepository : IAnalyticsRepository
                 .ThenInclude(q => q.Subject)
             .Include(a => a.QuizAnswers)
                 .ThenInclude(qa => qa.Question)
+                    .ThenInclude(q => q.Chunk)
             .Where(a => a.UserId == userId && a.FinishedAt != null)
             .ToListAsync();
     }

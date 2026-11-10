@@ -12,6 +12,8 @@ namespace AgenticAITutor.Models.DTOs
         /// <summary>The original label the student selected (after reverse-mapping).</summary>
         public char? SelectedOption { get; set; }
         public bool IsCorrect { get; set; }
+        public string? SourceDocumentName { get; set; }
+        public string? SourceExcerpt { get; set; }
         public List<QuizOptionDto> Options { get; set; } = new();
     }
 }

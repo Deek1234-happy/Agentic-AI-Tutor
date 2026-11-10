@@ -13,6 +13,14 @@ export interface SubjectProgressDto {
 export interface ConceptMasteryDto {
   conceptName: string | null;
   errorCount: number;
+  correctCount: number;
+  questionCount: number;
+  accuracy: number;
+  subjectId: string;
+  subjectName: string;
+  reviewAttemptId: string | null;
+  sourceDocumentIds: string[];
+  sourceChunkIds: string[];
 }
 
 export interface ProgressDashboardResponse {

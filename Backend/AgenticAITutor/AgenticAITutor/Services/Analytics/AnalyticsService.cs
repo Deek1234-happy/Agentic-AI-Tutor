@@ -74,22 +74,67 @@ public class AnalyticsService : IAnalyticsService
             });
         }
 
-        // Weak Concepts
-        var allAnswers = attempts.SelectMany(a => a.QuizAnswers).Where(qa => qa.IsCorrect == false).ToList();
-        
-        var conceptCounts = allAnswers
-            .Where(qa => qa.Question != null && !string.IsNullOrEmpty(qa.Question.Concept))
-            .GroupBy(qa => qa.Question.Concept)
-            .Select(g => new ConceptMasteryDto
+        // Keep weak-topic accuracy scoped to the subject so practice uses the
+        // same subject's source material and later attempts can be compared.
+        var conceptAnswers = attempts
+            .SelectMany(attempt => attempt.QuizAnswers.Select(answer => new
             {
-                ConceptName = g.Key,
-                ErrorCount = g.Count()
+                Attempt = attempt,
+                Answer = answer,
+                Subject = attempt.Quiz?.Subject,
+                Concept = answer.Question?.Concept?.Trim()
+            }))
+            .Where(item => item.Answer.IsCorrect.HasValue
+                && item.Subject != null
+                && !string.IsNullOrWhiteSpace(item.Concept))
+            .GroupBy(item => new
+            {
+                SubjectId = item.Subject!.Id,
+                ConceptKey = item.Concept!.ToUpperInvariant()
             })
-            .OrderByDescending(c => c.ErrorCount)
-            .Take(5)
-            .ToList();
-            
-        response.WeakConcepts = conceptCounts;
+            .Select(group => new
+            {
+                Answers = group.ToList(),
+                First = group.First(),
+                Incorrect = group.Where(item => item.Answer.IsCorrect == false).ToList()
+            })
+            .Where(group => group.Incorrect.Count > 0)
+            .OrderByDescending(group => group.Incorrect.Count)
+            .Take(5);
+
+        foreach (var group in conceptAnswers)
+        {
+            var correctCount = group.Answers.Count(item => item.Answer.IsCorrect == true);
+            var questionCount = group.Answers.Count;
+            var mostRecentMistake = group.Incorrect
+                .OrderByDescending(item => item.Attempt.FinishedAt)
+                .First();
+            var recentMistakes = group.Incorrect
+                .Where(item => item.Attempt.Id == mostRecentMistake.Attempt.Id)
+                .ToList();
+
+            response.WeakConcepts.Add(new ConceptMasteryDto
+            {
+                ConceptName = group.First.Concept!,
+                ErrorCount = group.Incorrect.Count,
+                CorrectCount = correctCount,
+                QuestionCount = questionCount,
+                Accuracy = (int)Math.Round((double)correctCount / questionCount * 100),
+                SubjectId = group.First.Subject!.Id,
+                SubjectName = group.First.Subject.Name,
+                ReviewAttemptId = mostRecentMistake.Attempt.Id,
+                SourceDocumentIds = recentMistakes
+                    .Where(item => item.Answer.Question.Chunk?.DocumentId.HasValue == true)
+                    .Select(item => item.Answer.Question.Chunk!.DocumentId!.Value)
+                    .Distinct()
+                    .ToList(),
+                SourceChunkIds = recentMistakes
+                    .Where(item => item.Answer.Question.ChunkId.HasValue)
+                    .Select(item => item.Answer.Question.ChunkId!.Value)
+                    .Distinct()
+                    .ToList()
+            });
+        }
 
         return response;
     }

@@ -119,6 +119,19 @@ export default function QuizReview() {
                   {question.concept && <Badge variant="secondary">Concept: {question.concept}</Badge>}
                   {question.bloomLevel && <Badge variant="outline">{question.bloomLevel}</Badge>}
                 </div>
+
+                {(question.sourceDocumentName || question.sourceExcerpt) && (
+                  <details className="rounded-lg border bg-muted/20 p-4">
+                    <summary className="cursor-pointer text-sm font-medium">
+                      Source material{question.sourceDocumentName ? ` · ${question.sourceDocumentName}` : ""}
+                    </summary>
+                    {question.sourceExcerpt && (
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                        {question.sourceExcerpt}
+                      </p>
+                    )}
+                  </details>
+                )}
               </CardContent>
             </Card>
           );

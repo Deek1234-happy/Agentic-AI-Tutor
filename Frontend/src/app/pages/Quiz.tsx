@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { BookOpen, Eye, Loader2, RefreshCw, Sparkles, Trophy } from "lucide-react";
 import { Badge } from "../components/ui/badge";
@@ -19,6 +19,7 @@ import type { DocumentResponse } from "../../types/subject";
 
 export default function Quiz() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const pollingRef = useRef<number | null>(null);
   const pollingQuizIdsRef = useRef<Set<string>>(new Set());
   const [history, setHistory] = useState<QuizHistoryItem[]>([]);
@@ -28,6 +29,8 @@ export default function Quiz() {
   const [subjectId, setSubjectId] = useState("");
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState("10");
+  const [focusConcept, setFocusConcept] = useState<string>();
+  const [sourceChunkIds, setSourceChunkIds] = useState<string[]>([]);
   const [historySubjectId, setHistorySubjectId] = useState("all");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(10);
@@ -37,6 +40,22 @@ export default function Quiz() {
     isLoading: isLoadingDocuments,
     hasInProgress,
   } = useSubjectDocuments(subjectId || undefined);
+
+  useEffect(() => {
+    const concept = searchParams.get("focusConcept");
+    const requestedSubjectId = searchParams.get("subjectId");
+    const documentIds = (searchParams.get("documentIds") || "").split(",").filter(Boolean);
+    const chunkIds = (searchParams.get("sourceChunkIds") || "").split(",").filter(Boolean);
+
+    if (!concept || !requestedSubjectId || documentIds.length === 0 || chunkIds.length === 0) return;
+
+    setFocusConcept(concept);
+    setSourceChunkIds(chunkIds);
+    setSubjectId(requestedSubjectId);
+    setSelectedDocumentIds(documentIds);
+    setQuestionCount("5");
+    setIsDialogOpen(true);
+  }, [searchParams]);
 
   useEffect(() => {
     loadHistory();
@@ -95,6 +114,7 @@ export default function Quiz() {
         subjectId: subjectId.trim(),
         documentIds: selectedDocumentIds,
         numberOfQuestions: count,
+        ...(focusConcept ? { focusConcept, sourceChunkIds } : {}),
       });
 
       const normalizedStatus = response.status?.toUpperCase() || "GENERATING";
@@ -113,6 +133,9 @@ export default function Quiz() {
         toast.success(response.message || "Quiz is ready.");
         setIsDialogOpen(false);
         setSelectedDocumentIds([]);
+        setFocusConcept(undefined);
+        setSourceChunkIds([]);
+        setSearchParams({}, { replace: true });
         setIsGenerating(false);
         return;
       }
@@ -120,6 +143,9 @@ export default function Quiz() {
       toast.success(response.message || "Quiz generation started.");
       setIsDialogOpen(false);
       setSelectedDocumentIds([]);
+      setFocusConcept(undefined);
+      setSourceChunkIds([]);
+      setSearchParams({}, { replace: true });
       setIsGenerating(false);
       pollQuizStatus(response.quizId);
     } catch (err) {
@@ -193,6 +219,17 @@ export default function Quiz() {
     setSelectedDocumentIds((previous) =>
       checked ? [...previous, documentId] : previous.filter((id) => id !== documentId)
     );
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (isGenerating) return;
+    setIsDialogOpen(open);
+    if (!open && focusConcept) {
+      setFocusConcept(undefined);
+      setSourceChunkIds([]);
+      setSelectedDocumentIds([]);
+      setSearchParams({}, { replace: true });
+    }
   };
 
   const isDocumentReady = (document: DocumentResponse) => {
@@ -375,19 +412,25 @@ export default function Quiz() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => !isGenerating && setIsDialogOpen(open)}>
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Generate New Quiz</DialogTitle>
+            <DialogTitle>{focusConcept ? `Practice: ${focusConcept}` : "Generate New Quiz"}</DialogTitle>
             <DialogDescription>
-              Select a subject, choose the ready documents to quiz from, then choose the number of questions.
+              {focusConcept
+                ? "This practice quiz uses the source material behind your missed questions."
+                : "Select a subject, choose the ready documents to quiz from, then choose the number of questions."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Subject</Label>
-                <Select value={subjectId} onValueChange={handleSubjectChange} disabled={isLoadingSubjects}>
+                <Select
+                  value={subjectId}
+                  onValueChange={handleSubjectChange}
+                  disabled={isLoadingSubjects || Boolean(focusConcept)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={isLoadingSubjects ? "Loading subjects..." : "Select a subject"} />
                   </SelectTrigger>
@@ -434,7 +477,7 @@ export default function Quiz() {
                               <Checkbox
                                 id={`quiz-document-${document.id}`}
                                 checked={checked}
-                                disabled={!ready}
+                                disabled={!ready || Boolean(focusConcept)}
                                 onCheckedChange={(value) => handleDocumentToggle(document.id, value === true)}
                               />
                               <span className="min-w-0 flex-1">
@@ -477,7 +520,7 @@ export default function Quiz() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isGenerating}>
+            <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isGenerating}>
               Cancel
             </Button>
             <Button onClick={handleGenerate} disabled={isGenerating}>
